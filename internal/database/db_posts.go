@@ -3,9 +3,9 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"forum-project/internal/models"
 	"log"
 	"net/http"
+	"social_network/internal/models"
 	"strconv"
 	"strings"
 	"time"
@@ -173,7 +173,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		finalQuery = strings.Replace(finalQuery, "?", fmt.Sprintf("%v", arg), 1)
 	}
 	log.Println("🎬🎬🎬🎬Final query:", finalQuery)
-	
+
 	log.Printf("Executing query with args: %v", args)
 	rows, err := db.Query(query, args...)
 	if err != nil {

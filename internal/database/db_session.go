@@ -3,8 +3,8 @@ package database
 import (
 	"errors"
 	"fmt"
-	"forum-project/internal/models"
 	"net/http"
+	"social_network/internal/models"
 	"time"
 )
 

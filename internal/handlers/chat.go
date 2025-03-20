@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"forum-project/internal/database"
-	"forum-project/internal/models"
-	"forum-project/internal/websocket"
+	"social_network/internal/database"
+	"social_network/internal/models"
+	"social_network/internal/websocket"
 )
 
 type ChatHandlers struct {
@@ -51,9 +51,9 @@ func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byte) {
 	log.Printf("Received raw message (handleChatMessage): %s", string(message))
 	var baseMessage struct {
-		Type    string          `json:"type"`
-		Content json.RawMessage `json:"content"`
-        Receiver_id int         `json:"Receiver_id"`
+		Type        string          `json:"type"`
+		Content     json.RawMessage `json:"content"`
+		Receiver_id int             `json:"Receiver_id"`
 	}
 
 	err := json.Unmarshal(message, &baseMessage)
@@ -75,7 +75,7 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			Receiver_id int    `json:"Receiver_id"`
 			Content     string `json:"content"`
 		}
-		log.Printf("Raw chat Receiver_id and content: %d %s",baseMessage.Receiver_id, string(baseMessage.Content))
+		log.Printf("Raw chat Receiver_id and content: %d %s", baseMessage.Receiver_id, string(baseMessage.Content))
 
 		if err := json.Unmarshal(baseMessage.Content, &chatContent); err != nil {
 			// If direct parsing fails, try treating it as a string
@@ -95,9 +95,9 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		}
 
 		chatMessage := models.ChatMessage{
-			SenderID:   client.UserID,
+			SenderID: client.UserID,
 			// ReceiverID: chatContent.Receiver_id,
-            ReceiverID: baseMessage.Receiver_id,
+			ReceiverID: baseMessage.Receiver_id,
 			Content:    chatContent.Content,
 			Timestamp:  time.Now(),
 		}
@@ -127,10 +127,10 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 	case "typing_status":
 		var typingStatus struct {
 			Receiver_id int    `json:"Receiver_id"`
-			IsTyping   bool    `json:"is_typing"`
-			Username   string  `json:"username"`
+			IsTyping    bool   `json:"is_typing"`
+			Username    string `json:"username"`
 		}
-		
+
 		if err := json.Unmarshal(baseMessage.Content, &typingStatus); err != nil {
 			log.Printf("Error parsing typing status: %v", err)
 			return

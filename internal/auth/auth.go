@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"forum-project/internal/database"
-	"forum-project/internal/models"
-	"forum-project/internal/utils"
-	"forum-project/internal/websocket"
+	"social_network/internal/database"
+	"social_network/internal/models"
+	"social_network/internal/utils"
+	"social_network/internal/websocket"
 
 	"golang.org/x/crypto/bcrypt"
 )

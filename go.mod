@@ -1,4 +1,4 @@
-module forum-project
+module social_network
 
 go 1.22.5
 

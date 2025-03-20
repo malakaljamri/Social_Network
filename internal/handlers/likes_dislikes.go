@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"forum-project/internal/database"
-	"forum-project/internal/models"
 	"net/http"
+	"social_network/internal/database"
+	"social_network/internal/models"
 )
 
 func LikePost(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 		LikeDislike: likeDislike,
 		// Likes:       likes,
 		// Dislikes:    dislikes,
-		Created:     created,
+		Created: created,
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -90,7 +90,7 @@ func DislikePost(w http.ResponseWriter, r *http.Request) {
 		LikeDislike: likeDislike,
 		// Likes:       likes,
 		// Dislikes:    dislikes,
-		Created:     created,
+		Created: created,
 	}
 
 	w.WriteHeader(http.StatusOK)

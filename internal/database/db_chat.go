@@ -1,7 +1,7 @@
 package database
 
 import (
-	"forum-project/internal/models"
+	"social_network/internal/models"
 )
 
 func SaveChatMessage(message *models.ChatMessage) error {

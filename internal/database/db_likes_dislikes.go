@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	// "fmt"
-	"forum-project/internal/models"
+	"social_network/internal/models"
 )
 
 func CreateLikeDislike(likeDislike *models.LikeDislike) (bool, error) {
@@ -84,17 +84,17 @@ func DeleteLikeDislike(id int) error {
 // 	var id int
 
 // 	if postID != 0 {
-// 		query = `SELECT 
+// 		query = `SELECT
 //             SUM(CASE WHEN is_like = 1 THEN 1 ELSE 0 END) as likes,
 //             SUM(CASE WHEN is_like = 0 THEN 1 ELSE 0 END) as dislikes
-//         FROM likes_dislikes 
+//         FROM likes_dislikes
 //         WHERE post_id = ?`
 // 		id = postID
 // 	} else if commentID != 0 {
-// 		query = `SELECT 
+// 		query = `SELECT
 //             SUM(CASE WHEN is_like = 1 THEN 1 ELSE 0 END) as likes,
 //             SUM(CASE WHEN is_like = 0 THEN 1 ELSE 0 END) as dislikes
-//         FROM likes_dislikes 
+//         FROM likes_dislikes
 //         WHERE comment_id = ?`
 // 		id = commentID
 // 	} else {

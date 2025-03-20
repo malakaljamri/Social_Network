@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"forum-project/internal/database"
-	"forum-project/internal/models"
-	"forum-project/internal/websocket"
 	"net/http"
 	"slices"
+	"social_network/internal/database"
+	"social_network/internal/models"
+	"social_network/internal/websocket"
 	"strconv"
 )
 

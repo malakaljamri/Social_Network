@@ -1,8 +1,8 @@
 package database
 
 import (
-	"forum-project/internal/models"
 	"log"
+	"social_network/internal/models"
 )
 
 func CreateCategory(category *models.Category) error {
@@ -28,26 +28,26 @@ func GetCategories() ([]models.Category, error) {
         ORDER BY c.name
     `
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-    rows, err := db.Query(query)
-    if err != nil {
-        log.Printf("Error executing query: %v", err)
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("Error executing query: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
 
-    var categories []models.Category
-    for rows.Next() {
-        var cat models.Category
-        err := rows.Scan(&cat.ID, &cat.Name, &cat.PostCount)
-        if err != nil {
-            log.Printf("Error scanning row: %v", err)
-            return nil, err
-        }
-        // log.Printf("Category fetched: ID=%d, Name=%s, PostCount=%d", cat.ID, cat.Name, cat.PostCount)
-        categories = append(categories, cat)
-    }
+	var categories []models.Category
+	for rows.Next() {
+		var cat models.Category
+		err := rows.Scan(&cat.ID, &cat.Name, &cat.PostCount)
+		if err != nil {
+			log.Printf("Error scanning row: %v", err)
+			return nil, err
+		}
+		// log.Printf("Category fetched: ID=%d, Name=%s, PostCount=%d", cat.ID, cat.Name, cat.PostCount)
+		categories = append(categories, cat)
+	}
 
-    return categories, nil
+	return categories, nil
 }
 
 func DeleteCategory(categoryID int) error {

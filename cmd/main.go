@@ -1,15 +1,15 @@
 package main
 
 import (
-	"forum-project/internal/auth"
-	"forum-project/internal/database"
-	"forum-project/internal/handlers"
-	"forum-project/internal/websocket"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 	"runtime"
+	"social_network/internal/auth"
+	"social_network/internal/database"
+	"social_network/internal/handlers"
+	"social_network/internal/websocket"
 )
 
 func main() {

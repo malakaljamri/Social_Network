@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"forum-project/internal/models"
+	"social_network/internal/models"
 
 	// Import SQLite driver
 	_ "github.com/mattn/go-sqlite3"
@@ -25,7 +25,9 @@ var db *sql.DB
 func InitializeDB() (*sql.DB, error) {
 	var err error
 	dir, err := os.Getwd()
-	if err != nil { log.Fatalf("Failed to get current working directory: %v", err) }
+	if err != nil {
+		log.Fatalf("Failed to get current working directory: %v", err)
+	}
 	dbPath := filepath.Join(dir, "forum.db")
 	if strings.HasSuffix(dir, "cmd") {
 		dbPath = filepath.Join(dir, "..", "forum.db")

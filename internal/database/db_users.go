@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"forum-project/internal/models"
+	"social_network/internal/models"
 )
 
 var OnlineUsers = make(map[int]bool)
