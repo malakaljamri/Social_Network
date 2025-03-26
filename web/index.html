@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Forum</title>
+    <title>Social Network</title>
     <link rel="stylesheet" href="static/css/style.css">
-    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> -->
+    <!-- Vue.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMCIgZmlsbD0iIzdkNmVlNyI+PC9yZWN0PjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0zNi42MyAyMi40Mkw2Ni41MiAyMi40MlE2Ni43OCAyMi44NyA2Ny4wNiAyMy42M1E2Ny4zMiAyNC40MCA2Ny4zMiAyNS4zMEw2Ny4zMiAyNS4zMFE2Ny4zMiAyNi44MyA2Ni42MCAyNy43M1E2NS44OCAyOC42MyA2NC41MyAyOC42M0w2NC41MyAyOC42M0w0MC4wNSAyOC42M0w0MC4wNSA0Ny4zNUw2My4zNiA0Ny4zNVE2My42MyA0Ny44MCA2My45MSA0OC41NlE2NC4xNyA0OS4zMyA2NC4xNyA1MC4yM0w2NC4xNyA1MC4yM1E2NC4xNyA1MS43NiA2My40NSA1Mi42NlE2Mi43MyA1My41NiA2MS4zOCA1My41Nkw2MS4zOCA1My41Nkw0MC4wNSA1My41Nkw0MC4wNSA3Ny4wNVEzOS42MCA3Ny4yMyAzOC42NiA3Ny40MVEzNy43MSA3Ny41OSAzNi43MiA3Ny41OUwzNi43MiA3Ny41OVEzMi42NyA3Ny41OSAzMi42NyA3NC4zNEwzMi42NyA3NC4zNEwzMi42NyAyNi4zOFEzMi42NyAyNC41OCAzMy43NSAyMy41MFEzNC44NCAyMi40MiAzNi42MyAyMi40MkwzNi42MyAyMi40MloiPjwvcGF0aD48L3N2Zz4=" />
 </head>
 <body>
@@ -15,25 +16,34 @@
             <div class="filter-section">
                 <h3 class="collapsible">Categories</h3>
                 <div id="categories-list" class="content">
+                    <!-- Vue categories list -->
+                    <div v-if="categories && categories.length">
+                        <div v-for="category in categories" :key="category.ID">
+                            <input type="checkbox" :id="'category-'+category.ID" 
+                                  :value="category.ID" v-model="filters.category">
+                            <label :for="'category-'+category.ID">[[category.Name]] ([[category.PostCount]])</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="filterByUser" class="filter-section">
                 <h3 class="collapsible">User</h3>
                 <div class="content">
-                    <input type="checkbox" id="loggedInUserFilter"> Show only my posts
+                    <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn"> 
+                    Show only my posts
                 </div>
             </div>
             <div class="filter-section">
                 <h3 class="collapsible">Date Range</h3>
                 <div class="content">
-                    <input type="date" id="fromDate">
-                    <input type="date" id="toDate">
+                    <input type="date" id="fromDate" v-model="filters.dateFrom">
+                    <input type="date" id="toDate" v-model="filters.dateTo">
                 </div>
             </div>
             <div class="filter-section liked-section">
                 <h3 class="collapsible">Liked Posts</h3>
                 <div class="content">
-                <input type="checkbox" id="likedPosts"> Show only liked posts
+                <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts
                 </div>
             </div>
         </div>
@@ -42,7 +52,16 @@
     <div id="chat-section">
         <div id="online-users" class="online-users-list card">
             <h3>Users</h3>
-            <div class="users-container"></div>
+            <div class="users-container">
+                <!-- Vue online users list -->
+                <div v-if="onlineUsers && onlineUsers.length">
+                    <div v-for="user in onlineUsers" :key="user.id" class="user-item" @click="openChat(user.id)">
+                        <span class="online-indicator" :class="{'is-online': user.online}"></span>
+                        <span>[[user.username]]</span>
+                    </div>
+                </div>
+                <div v-else>No users online</div>
+            </div>
         </div>
         <div style="display: none;" id="publicChatMessages" class="card">
             <h3>Chat Messages</h3>
@@ -54,11 +73,52 @@
 
     <div id="forum-container">
         <div id="posts-feed">
-            <!-- <main style="position: relative;transform: translatex(-50%);margin-left: 50%;/*! box-shadow: 4px 4px gray; */border-left: 1px solid #ccc;border-right: 1px solid #ccc;border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;"> -->
             <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
-                <h1 style="text-align: center;">Welcome To Real Time Forum</h1>
-                <div id="pagination-container" class="center"></div>
-                <div id="posts-container"></div>
+                <h1 style="text-align: center;">Welcome To Social Network</h1>
+                
+                <!-- Loading indicator -->
+                <div v-if="loading" class="loading-indicator">Loading posts...</div>
+                
+                <!-- Pagination controls -->
+                <div id="pagination-container" class="center">
+                    <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
+                    <span>Page [[currentPage]] of [[totalPages]]</span>
+                    <button @click="fetchPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
+                </div>
+                
+                <!-- Posts container with Vue -->
+                <div id="posts-container">
+                    <div v-if="filteredPosts.length === 0 && !loading" class="no-posts">
+                        No posts match your filters
+                    </div>
+                    <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
+                        <div class="post-header">
+                            <h2>[[post.Title]]</h2>
+                            <div class="post-meta">
+                                <span class="post-author">Posted by [[post.Author]]</span>
+                                <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
+                            </div>
+                        </div>
+                        <div class="post-content">[[post.Text]]</div>
+                        <div class="post-footer">
+                            <div class="post-interactions">
+                                <button @click="likePost(post.ID)" class="like-btn" 
+                                        :disabled="!currentUser.isLoggedIn">
+                                    [[post.Likes || 0]]
+                                </button>
+                                <button @click="dislikePost(post.ID)" class="dislike-btn" 
+                                        :disabled="!currentUser.isLoggedIn">
+                                    [[post.Dislikes || 0]]
+                                </button>
+                            </div>
+                            <div class="post-category" v-if="post.Categories && post.Categories.length">
+                                <span v-for="catId in post.Categories" :key="catId">
+                                    [[getCategoryName(catId)]]
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -66,5 +126,7 @@
     <script src="static/js/nav.js"></script>
     <script src="static/js/index.js"></script>
     <script src="/static/js/websocket.js"></script>
+    <!-- Add Vue app implementation -->
+    <script src="/static/js/vue-app.js"></script>
 </body>
 </html>
