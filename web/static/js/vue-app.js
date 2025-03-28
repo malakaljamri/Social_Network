@@ -22,11 +22,12 @@ const app = createApp({
             category: null,
             userOnly: false,
             dateFrom: null,
-            dateTo: null,
-            likedOnly: false
+            dateTo: null
+            //likedOnly: false
         });
 
-        // Computed properties
+        // Computed properties for Derived Data that depend on other reactive data:
+        // This updates automatically when posts or filters change
         const filteredPosts = computed(() => {
             let result = [...posts.value];
             
@@ -48,10 +49,9 @@ const app = createApp({
                 result = result.filter(post => new Date(post.CreatedAt) <= toDate);
             }
             
-            if (filters.likedOnly) {
-                // This would require additional data from the backend
-                // Placeholder for liked posts filter
-            }
+            // if (filters.likedOnly) {
+                
+            // }
             
             return result;
         });

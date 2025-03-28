@@ -111,6 +111,7 @@
                                     [[post.Dislikes || 0]]
                                 </button>
                             </div>
+                            <!-- Category This directive is what allows us to display all categories, posts, or users without manually coding each one. -->
                             <div class="post-category" v-if="post.Categories && post.Categories.length">
                                 <span v-for="catId in post.Categories" :key="catId">
                                     [[getCategoryName(catId)]]
