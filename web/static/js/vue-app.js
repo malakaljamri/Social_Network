@@ -20,7 +20,7 @@ const app = createApp({
         const categories = ref([]);
         const filters = reactive({
             category: null,
-            userOnly: false,
+            //userOnly: false,
             dateFrom: null,
             dateTo: null
             //likedOnly: false
