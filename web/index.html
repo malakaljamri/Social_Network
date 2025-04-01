@@ -80,7 +80,7 @@
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 
                 <!-- Pagination controls -->
-                <div id="pagination-container" class="center">
+                <div id="pagination-container">
                     <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
                     <span>Page [[currentPage]] of [[totalPages]]</span>
                     <button @click="fetchPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
@@ -128,6 +128,6 @@
     <script src="static/js/index.js"></script>
     <script src="/static/js/websocket.js"></script>
     <!-- Add Vue app implementation -->
-    <script src="/static/js/vue-app.js"></script>
+    <!-- <script src="/static/js/vue-app.js"></script> -->
 </body>
 </html>
