@@ -45,10 +45,41 @@ function updateUserStatusUI(data) {
             <span class="username">
                 <i class="fas fa-user"></i> ${data.username} 👋
             </span>
+            <button id="profile-link" class="profile-btn" title="View Profile" data-user-id="${data.userID}">
+                <i class="fas fa-user-circle"></i> 👤 My Profile
+            </button>
             <button onclick="logout()" class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i> 🚪 Logout
             </button>
         `;
+        
+        // Add event listener for the profile link
+        document.getElementById('profile-link').addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            console.log("Clicking profile button for user ID:", userId);
+            
+            if (userId) {
+                // Create a custom event that Vue app can listen for
+                const event = new CustomEvent('showUserProfile', { 
+                    detail: { userId: parseInt(userId) } 
+                });
+                console.log("Dispatching showUserProfile event with ID:", userId);
+                document.dispatchEvent(event);
+                
+                // Try direct DOM manipulation as a fallback
+                const forumContainer = document.getElementById('forum-container');
+                const postsView = document.getElementById('posts-feed');
+                const profileView = document.getElementById('profile-view');
+                
+                if (forumContainer && postsView && profileView) {
+                    // Try to show profile view via DOM manipulation
+                    postsView.style.display = 'none';
+                    profileView.style.display = 'block';
+                    console.log("Profile view displayed via DOM manipulation");
+                }
+            }
+        });
+        
         document.querySelector('a[href="/create-post"]').addEventListener('click', function(e) {
             e.preventDefault();
             const overlay = document.createElement('div');
@@ -158,7 +189,7 @@ function updateUserStatusUI(data) {
                     <form id="login-form">
                         <input type="text" name="user_identifier" placeholder="Email or User name" value="example1@gmail.com">
                         <input type="password" name="password" placeholder="Password" value="12">
-                        <button type="submit" class="button">Login</button>
+                        <button type="submit" id="submit-login-btn" class="button">Login</button>
                         <div id="login-response" style="color: red;"></div>
                     </form>
                 </div>

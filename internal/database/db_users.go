@@ -43,7 +43,9 @@ func GetUserByEmailOrNickname(userIdentifier string) (models.User, error) { // X
 }
 
 func GetUserByID(id int) (models.User, error) {
-	query := `SELECT id, username, email, password FROM users WHERE id = ?`
+	query := `SELECT id, username, email, password, is_private, 
+              COALESCE(profile_privacy, 'public') as profile_privacy 
+              FROM users WHERE id = ?`
 	rows, err := FetchData(query, id)
 	if err != nil {
 		return models.User{}, err
@@ -51,10 +53,16 @@ func GetUserByID(id int) (models.User, error) {
 	defer rows.Close()
 
 	var user models.User
+	var profilePrivacy string
 	if rows.Next() {
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, 
+		                &user.IsPrivate, &profilePrivacy)
 		if err != nil {
 			return models.User{}, err
+		}
+		// If profile is marked as private in either field, treat it as private
+		if profilePrivacy == "private" && !user.IsPrivate {
+			user.IsPrivate = true
 		}
 	} else {
 		return models.User{}, sql.ErrNoRows
@@ -63,8 +71,15 @@ func GetUserByID(id int) (models.User, error) {
 }
 
 func UpdateUser(user models.User) error {
-	query := `UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?`
-	_, err := ExecuteQuery(query, user.Username, user.Email, user.Password, user.ID)
+	// Update both privacy fields for consistency
+	query := `UPDATE users SET username = ?, email = ?, password = ?, 
+	          is_private = ?, profile_privacy = ? WHERE id = ?`
+	profilePrivacy := "public"
+	if user.IsPrivate {
+		profilePrivacy = "private"
+	}
+	_, err := ExecuteQuery(query, user.Username, user.Email, user.Password, 
+	                      user.IsPrivate, profilePrivacy, user.ID)
 	return err
 }
 

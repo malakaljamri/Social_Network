@@ -20,6 +20,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Apply any pending database migrations
+	if err := database.ApplyMigrations(); err != nil {
+		log.Fatal("Error applying database migrations:", err)
+	}
+
 	hub := websocket.NewHub()
 	go hub.Run()
 	// go websocket.BroadcastTime(hub) // This function is only for testing purposes
@@ -47,6 +52,15 @@ func main() {
 	mux.HandleFunc("/api/posts", handlers.GetPostsHandler)
 	mux.HandleFunc("/api/oldest-post-date", handlers.GetOldestPostDate)
 	mux.HandleFunc("/api/newest-post-date", handlers.GetNewestPostDate)
+
+	// User profile and follow routes
+	mux.HandleFunc("/api/user/profile", handlers.GetUserProfile)
+	mux.HandleFunc("/api/user/posts", handlers.GetUserPosts)
+	mux.HandleFunc("/api/user/followers", handlers.GetUserFollowers)
+	mux.HandleFunc("/api/user/following", handlers.GetUserFollowing)
+	mux.HandleFunc("/api/user/follow", handlers.FollowUser)
+	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
+	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 
 	// Other routes (to be implemented)
 	mux.HandleFunc("/categories", handlers.GetCategories)

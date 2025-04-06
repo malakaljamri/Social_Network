@@ -13,6 +13,7 @@ type User struct {
 	Password  string
 	LastMessageTime string
 	Online    bool
+	IsPrivate bool    // Whether the profile is private (only followers can see posts)
 }
 
 type Session struct {
