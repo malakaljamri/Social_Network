@@ -144,10 +144,10 @@ func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
 		Domain:     "",
 		Expires:    expiresAt,
 		RawExpires: "",
-		MaxAge:     0,
-		Secure:     true,
+		MaxAge:     int(24 * time.Hour.Seconds()), // Set MaxAge in seconds (24 hours)
+		Secure:     false, // Set to false for local development (no HTTPS)
 		HttpOnly:   true,
-		SameSite:   http.SameSiteStrictMode,
+		SameSite:   http.SameSiteLaxMode, // Changed from StrictMode to LaxMode for better browser compatibility
 		Raw:        "",
 		Unparsed:   []string{},
 	})

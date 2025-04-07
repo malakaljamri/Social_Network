@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="static/css/style.css">
     <!-- Vue.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMCIgZmlsbD0iIzdkNmVlNyI+PC9yZWN0PjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0zNi42MyAyMi40Mkw2Ni41MiAyMi40MlE2Ni43OCAyMi44NyA2Ny4wNiAyMy42M1E2Ny4zMiAyNC40MCA2Ny4zMiAyNS4zMEw2Ny4zMiAyNS4zMFE2Ny4zMiAyNi44MyA2Ni42MCAyNy43M1E2NS44OCAyOC42MyA2NC41MyAyOC42M0w2NC41MyAyOC42M0w0MC4wNSAyOC42M0w4MC4wNSA0Ny4zNUw2My4zNiA0Ny4zNVE2My42MyA0Ny44MCA2My45MSA0OC41NlE2NC4xNyA0OS4zMyA2NC4xNyA1MC4yM0w2NC4xNyA1MC4yM1E2NC4xNyA1MS43NiA2My40NSA1Mi42NlE2Mi43MyA1My41NiA2MS4zOCA1My41Nkw2MS4zOCA1My41Nkw0MC4wNSA1My41Nkw0MC4wNSA3Ny4wNVEzOS42MCA3Ny4yMyAzOC42NiA3Ny40MVEzNy43MSA3Ny41OSAzNi43MiA3Ny41OVEzMi42NyA3Ny41OSAzMi42NyA3NC4zNEwzMi42NyA3NC4zNEwzMi42NyAyNi4zOFEzMi42NyAyNC41OCAzMy43NSAyMy41MFEzNC44NCAyMi40MiAzNi42MyAyMi40MkwzNi42MyAyMi40MloiPjwvcGF0aD48L3N2Zz4=" />
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMCIgZmlsbD0iIzdkNmVlNyI+PC9yZWN0PjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0zNi42MyAyMi40Mkw2Ni41MiAyMi40MlE2Ni43OCAyMi44NyA2Ny4wNiAyMy42M1E2Ny4zMiAyNC40MCA2Ny4zMiAyNS4zMEw2Ny4zMiAyNS4zMFE2Ny4zMiAyNi44MyA2Ni42MCAyNy43M1E2NS44OCAyOC42MyA2NC41MyAyOC42M0w2NC41MyAyOC42M0w4MC4wNSAyOC42M0w4MC4wNSA0Ny4zNUw2My4zNiA0Ny4zNVE2My42MyA0Ny44MCA2My45MSA0OC41NlE2NC4xNyA0OS4zMyA2NC4xNyA1MC4yM0w2NC4xNyA1MC4yM1E2NC4xNyA1MS43NiA2My40NSA1Mi42NlE2Mi43MyA1My41NiA2MS4zOCA1My41Nkw2MS4zOCA1My41Nkw0MC4wNSA1My41Nkw0MC4wNSA3Ny4wNVEzOS42MCA3Ny4yMyAzOC42NiA3Ny40MVEzNy43MSA3Ny41OSAzNi43MiA3Ny41OVEzMi42NyA3Ny41OSAzMi42NyA3NC4zNEwzMi42NyA3NC4zNEwzMi42NyAyNi4zOFEzMi42NyAyNC41OCAzMy43NSAyMy41MFEzNC44NCAyMi40MiAzNi42MyAyMi40MkwzNi42MyAyMi40MloiPjwvcGF0aD48L3N2Zz4=" />
     <style>
         /* Profile Page Styles */
         .profile-container {
@@ -273,6 +273,39 @@
             border-color: #1e88e5;
             box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.2);
         }
+        
+        /* Fix for user items in the sidebar to clearly indicate they're clickable */
+        .user-item.profile-link {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        
+        .user-item.profile-link:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .view-profile-hint {
+            font-size: 10px;
+            color: #7d6ee7;
+            margin-left: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .user-item.profile-link:hover .view-profile-hint {
+            opacity: 1;
+        }
+        
+        .own-profile-badge {
+            font-size: 18px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -321,9 +354,10 @@
             <div class="users-container">
                 <!-- Vue online users list -->
                 <div v-if="onlineUsers && onlineUsers.length">
-                    <div v-for="user in onlineUsers" :key="user.id" class="user-item" @click="viewUserProfile(user.id)">
+                    <div v-for="user in onlineUsers" :key="user.id" class="user-item profile-link" @click="viewUserProfile(user.id)">
                         <span class="online-indicator" :class="{'is-online': user.online}"></span>
-                        <span>[[user.username]]</span>
+                        <span class="username">[[user.username]]</span>
+                        <span class="view-profile-hint">View Profile</span>
                     </div>
                 </div>
                 <div v-else>No users online</div>
@@ -391,7 +425,7 @@
         </div>
         
         <!-- Profile View -->
-        <div id="profile-view" v-show="currentView === 'profile'">
+        <div id="profile-view" v-show="currentView === 'profile'" style="display: block !important;">
             <div class="profile-container">
                 <!-- Loading indicator -->
                 <div v-if="profileLoading" class="loading-indicator">Loading profile...</div>
@@ -416,6 +450,7 @@
                         <div class="profile-username">
                             [[profileUser.username]]
                             <span v-if="profileUser.is_private" class="privacy-badge" title="Private profile">🔒</span>
+                            <span v-if="profileUser.is_own_profile" class="own-profile-badge" title="This is your profile">👤 (You)</span>
                         </div>
                         <div class="profile-email">[[profileUser.email]]</div>
                         <div class="profile-stats">
@@ -435,19 +470,20 @@
                     </div>
                     <div class="profile-actions">
                         <button class="back-btn" @click="returnToFeed">Back to Feed</button>
-                        <button v-if="currentUser.isLoggedIn && currentUser.id !== profileUser.id" 
+                        <!-- Only show these buttons when NOT viewing your own profile -->
+                        <button v-if="currentUser.isLoggedIn && !profileUser.is_own_profile" 
                                 class="follow-btn" 
                                 @click="followUser(profileUser.id)" 
                                 v-show="!profileUser.is_following">Follow</button>
-                        <button v-if="currentUser.isLoggedIn && currentUser.id !== profileUser.id" 
+                        <button v-if="currentUser.isLoggedIn && !profileUser.is_own_profile" 
                                 class="unfollow-btn" 
                                 @click="unfollowUser(profileUser.id)" 
                                 v-show="profileUser.is_following">Unfollow</button>
                         <button class="chat-btn" 
-                                v-if="currentUser.isLoggedIn && currentUser.id !== profileUser.id"
+                                v-if="currentUser.isLoggedIn && !profileUser.is_own_profile"
                                 @click="openChat(profileUser.id)">Message</button>
-                        <!-- Privacy Settings Dropdown -->
-                        <div v-if="currentUser.isLoggedIn && currentUser.id === profileUser.id" class="privacy-dropdown">
+                        <!-- Privacy Settings Dropdown - only show on your own profile -->
+                        <div v-if="profileUser.is_own_profile" class="privacy-dropdown">
                             <select @change="updatePrivacySetting($event)" :value="profileUser.is_private ? 'private' : 'public'" class="privacy-select">
                                 <option value="public">🌍 Public Profile</option>
                                 <option value="private">🔒 Private Profile</option>

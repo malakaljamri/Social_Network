@@ -36,7 +36,8 @@ const app = createApp({
             following_count: 0,
             posts_count: 0,
             is_following: false,
-            is_private: false
+            is_private: false,
+            is_own_profile: false
         });
         const profilePosts = ref([]);
         const profileLoading = ref(false);
@@ -193,7 +194,7 @@ const app = createApp({
         // Chat functionality
         const openChat = (userId) => {
             if (!currentUser.isLoggedIn) {
-                alert('Please log in to use chat');
+                showAlert('Please log in to use chat');
                 return;
             }
             
@@ -201,7 +202,8 @@ const app = createApp({
             if (typeof openChatWindow === 'function') {
                 openChatWindow(userId);
             } else {
-                console.log('Chat functionality not fully implemented yet');
+                console.error('Chat functionality not fully implemented yet');
+                showAlert('Chat functionality is not available at the moment');
             }
         };
 
@@ -219,15 +221,27 @@ const app = createApp({
         // Fetch online users
         const fetchOnlineUsers = async () => {
             try {
-                const response = await fetch('/api/online-users');
-                if (!response.ok) throw new Error('Failed to fetch online users');
+                const response = await fetch('/api/online-users', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    console.error("Error fetching online users:", response.statusText);
+                    return;
+                }
                 
                 const data = await response.json();
-                onlineUsers.value = data || [];
-                return data;
+                
+                // Ensure user IDs are integers for proper comparison and view switching
+                onlineUsers.value = Array.isArray(data) ? data.map(user => ({
+                    ...user,
+                    id: parseInt(user.id) // Ensure ID is an integer
+                })) : [];
+                
+                console.log("Online users:", onlineUsers.value);
             } catch (error) {
-                console.error('Error fetching online users:', error);
-                return [];
+                console.error("Error fetching online users:", error);
+                onlineUsers.value = [];
             }
         };
         
@@ -246,6 +260,7 @@ const app = createApp({
             profileUser.posts_count = 0;
             profileUser.is_following = false;
             profileUser.is_private = false;
+            profileUser.is_own_profile = false;
         };
         
         // View a user's profile
@@ -253,20 +268,23 @@ const app = createApp({
             console.log("viewUserProfile called with userId:", userId);
             if (!userId) {
                 console.error("viewUserProfile called with invalid userId");
+                showAlert("Invalid user ID");
                 return;
             }
             
-            // Reset profile data
+            // Force reset profile data first
             resetProfileData();
             
-            // Make sure the view is changed to profile first
-            currentView.value = 'profile';
-            console.log("Changed currentView to:", currentView.value);
-            profileLoading.value = true;
-            profileTab.value = 'posts';
-            
             try {
-                console.log("Fetching profile data for user:", userId);
+                // Set loading state and switch view
+                profileLoading.value = true;
+                
+                // IMPORTANT: Change view BEFORE fetching data to ensure proper UI update
+                currentView.value = 'profile';
+                profileTab.value = 'posts';
+                
+                console.log("Changed currentView to 'profile', current state:", currentView.value);
+                
                 // Fetch user profile data
                 const response = await fetch(`/api/user/profile?id=${userId}`);
                 if (!response.ok) {
@@ -283,26 +301,38 @@ const app = createApp({
                     throw new Error('Invalid profile data format');
                 }
                 
+                // Determine if this is the current user's profile
+                const isOwnProfile = currentUser.isLoggedIn && currentUser.id === parseInt(userId);
+                console.log("Is viewing own profile:", isOwnProfile, "Current user ID:", currentUser.id, "Profile user ID:", userId);
+                
                 // Update profileUser with the fetched data
                 Object.assign(profileUser, {
-                    id: userId,
+                    id: parseInt(userId),
                     username: data.user.Username || '',
                     email: data.user.Email || '',
                     followers_count: data.followers_count || 0,
                     following_count: data.following_count || 0,
                     posts_count: data.posts_count || 0,
                     is_following: data.is_following || false,
-                    is_private: data.user.IsPrivate || false
+                    is_private: data.user.IsPrivate || false,
+                    is_own_profile: isOwnProfile
                 });
                 
                 console.log("Updated profileUser state:", profileUser);
                 
-                // Also fetch the user's posts
-                await fetchUserPosts(userId);
+                // Fetch additional profile data in parallel for better performance
+                await Promise.all([
+                    fetchUserPosts(userId),
+                    fetchUserFollowers(userId),
+                    fetchUserFollowing(userId)
+                ]).catch(error => {
+                    console.error("Error fetching profile data:", error);
+                    // Continue showing profile even if some data failed to load
+                });
                 
             } catch (error) {
                 console.error('Error fetching user profile:', error);
-                alert('Could not load profile: ' + error.message);
+                showAlert('Could not load profile: ' + error.message);
                 // Return to posts view in case of error
                 currentView.value = 'posts';
             } finally {
@@ -314,6 +344,13 @@ const app = createApp({
         // Fetch user's posts
         const fetchUserPosts = async (userId, page = 1, limit = 10) => {
             console.log("fetchUserPosts for userId:", userId);
+            if (!userId) {
+                console.error("fetchUserPosts called with invalid userId");
+                profilePosts.value = [];
+                return [];
+            }
+            
+            profileLoading.value = true;
             try {
                 const response = await fetch(`/api/user/posts?id=${userId}&page=${page}&limit=${limit}`);
                 if (!response.ok) {
@@ -327,17 +364,26 @@ const app = createApp({
                 // Ensure we always have an array
                 profilePosts.value = Array.isArray(data) ? data : [];
                 
-                return data;
+                return profilePosts.value;
             } catch (error) {
                 console.error('Error fetching user posts:', error);
                 profilePosts.value = [];
                 return [];
+            } finally {
+                profileLoading.value = false;
             }
         };
         
         // Fetch user's followers
         const fetchUserFollowers = async (userId) => {
             console.log("fetchUserFollowers for userId:", userId);
+            if (!userId) {
+                console.error("fetchUserFollowers called with invalid userId");
+                profileFollowers.value = [];
+                return [];
+            }
+            
+            profileLoading.value = true;
             try {
                 const response = await fetch(`/api/user/followers?id=${userId}`);
                 if (!response.ok) {
@@ -351,7 +397,7 @@ const app = createApp({
                 // Ensure we always have an array
                 profileFollowers.value = Array.isArray(data) ? data : [];
                 
-                return data;
+                return profileFollowers.value;
             } catch (error) {
                 console.error('Error fetching followers:', error);
                 profileFollowers.value = [];
@@ -364,6 +410,13 @@ const app = createApp({
         // Fetch users the profile user is following
         const fetchUserFollowing = async (userId) => {
             console.log("fetchUserFollowing for userId:", userId);
+            if (!userId) {
+                console.error("fetchUserFollowing called with invalid userId");
+                profileFollowing.value = [];
+                return [];
+            }
+            
+            profileLoading.value = true;
             try {
                 const response = await fetch(`/api/user/following?id=${userId}`);
                 if (!response.ok) {
@@ -377,7 +430,7 @@ const app = createApp({
                 // Ensure we always have an array
                 profileFollowing.value = Array.isArray(data) ? data : [];
                 
-                return data;
+                return profileFollowing.value;
             } catch (error) {
                 console.error('Error fetching following:', error);
                 profileFollowing.value = [];
@@ -390,11 +443,12 @@ const app = createApp({
         // Follow a user
         const followUser = async (userId) => {
             if (!currentUser.isLoggedIn) {
-                alert('Please log in to follow users');
-                return;
+                showAlert('Please log in to follow users');
+                return false;
             }
             
             try {
+                profileLoading.value = true;
                 const response = await fetch('/api/user/follow', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -402,27 +456,41 @@ const app = createApp({
                     credentials: 'include'
                 });
                 
-                if (!response.ok) throw new Error('Failed to follow user');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Follow API error:', response.status, errorData);
+                    throw new Error(errorData.message || 'Failed to follow user');
+                }
                 
                 // Update profile data
                 profileUser.is_following = true;
                 profileUser.followers_count++;
+                showAlert(`You are now following ${profileUser.username}`);
+                
+                // Refresh followers list if we're on that tab
+                if (profileTab.value === 'followers') {
+                    await fetchUserFollowers(userId);
+                }
                 
                 return true;
             } catch (error) {
                 console.error('Error following user:', error);
+                showAlert(error.message || 'Error following user');
                 return false;
+            } finally {
+                profileLoading.value = false;
             }
         };
-        
+
         // Unfollow a user
         const unfollowUser = async (userId) => {
             if (!currentUser.isLoggedIn) {
-                alert('Please log in to unfollow users');
-                return;
+                showAlert('Please log in to unfollow users');
+                return false;
             }
             
             try {
+                profileLoading.value = true;
                 const response = await fetch('/api/user/unfollow', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -430,27 +498,51 @@ const app = createApp({
                     credentials: 'include'
                 });
                 
-                if (!response.ok) throw new Error('Failed to unfollow user');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Unfollow API error:', response.status, errorData);
+                    throw new Error(errorData.message || 'Failed to unfollow user');
+                }
                 
                 // Update profile data
                 profileUser.is_following = false;
-                profileUser.followers_count--;
+                profileUser.followers_count = Math.max(0, profileUser.followers_count - 1);
+                showAlert(`You are no longer following ${profileUser.username}`);
+                
+                // Refresh followers list if we're on that tab
+                if (profileTab.value === 'followers') {
+                    await fetchUserFollowers(userId);
+                }
                 
                 return true;
             } catch (error) {
                 console.error('Error unfollowing user:', error);
+                showAlert(error.message || 'Error unfollowing user');
                 return false;
+            } finally {
+                profileLoading.value = false;
             }
         };
         
         // Change profile tab
         const changeProfileTab = async (tab) => {
+            console.log(`Changing profile tab to: ${tab}`);
             profileTab.value = tab;
             
-            if (tab === 'followers' && (!profileFollowers.value || profileFollowers.value.length === 0)) {
-                await fetchUserFollowers(profileUser.id);
-            } else if (tab === 'following' && (!profileFollowing.value || profileFollowing.value.length === 0)) {
-                await fetchUserFollowing(profileUser.id);
+            try {
+                profileLoading.value = true;
+                if (tab === 'followers') {
+                    await fetchUserFollowers(profileUser.id);
+                } else if (tab === 'following') {
+                    await fetchUserFollowing(profileUser.id);
+                } else if (tab === 'posts' && (!profilePosts.value || profilePosts.value.length === 0)) {
+                    await fetchUserPosts(profileUser.id);
+                }
+            } catch (error) {
+                console.error(`Error loading ${tab} tab:`, error);
+                showAlert(`Could not load ${tab}: ${error.message}`);
+            } finally {
+                profileLoading.value = false;
             }
         };
         

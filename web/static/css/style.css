@@ -773,3 +773,36 @@ button.pagination-button.active {
     margin-top: 10px;
   }
 }
+
+/* Fix for profile view visibility */
+#profile-view[style*="display: block"] {
+    display: block !important;
+    z-index: 1000;
+    position: relative;
+    background: white;
+    min-height: 100vh;
+}
+
+/* Better styling for username in online users list */
+.user-item .username {
+    font-weight: 500;
+    color: #333;
+}
+
+/* Ensure profile links have proper hover effects */
+.profile-link {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.profile-link:hover {
+    background-color: #f0f0f0;
+}
+
+/* Make sure view-profile-hint is visible on hover */
+.user-item:hover .view-profile-hint {
+    opacity: 1 !important;
+    color: #7d6ee7;
+    font-size: 11px;
+    margin-left: 5px;
+}
