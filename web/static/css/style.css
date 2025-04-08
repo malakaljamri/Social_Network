@@ -120,9 +120,11 @@ nav a {
 
 #posts-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, 1fr); 
   gap: 20px;
   padding: 20px;
+  max-width: 1200px; /* Adjust the width as needed */
+  margin: auto;
 }
 
 .card h2 {
@@ -333,6 +335,8 @@ button.pagination-button.active {
 .online-users-list {
   padding: 10px;
   border-top: 1px solid #ddd;
+  margin-top: 20px;
+  margin-right: 20px;
 }
 
 .users-container {
@@ -735,6 +739,8 @@ button.pagination-button.active {
   align-items: center;
   gap: 15px;
   margin: 20px 0;
+  margin: 20px auto;
+  max-width: 900px;
 }
 
 #pagination-container button {
@@ -772,4 +778,19 @@ button.pagination-button.active {
   .post-category {
     margin-top: 10px;
   }
+}
+
+.groups-btn {
+  color: var(--button-text-color);
+  text-decoration: none;
+  margin-right: 1200px;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  transition: background-color 0.3s ease;
+}
+
+.groups-btn:hover {
+  background-color: #303f9f;
 }
