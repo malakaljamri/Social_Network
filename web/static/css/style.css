@@ -794,3 +794,77 @@ button.pagination-button.active {
 .groups-btn:hover {
   background-color: #303f9f;
 }
+
+/* Group Activity Container */
+#group-activity-container {
+  border: 5px solid var(--primary-color); /* Blue boundary */
+  border-radius: 8px;
+  padding: 20px;
+  width: 800px; /* Fixed width */
+  height: 600px; /* Fixed height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  background-color: var(--card-color); /* Optional: Add a background color */
+  box-shadow: 0 4px 6px var(--shadow-color); /* Optional: Add a shadow */
+  position: fixed;
+  top: 100px; /* Adjust to align below the nav bar */
+  left: 300px; /* Position in the center */
+}
+
+#group-activity-header {
+  text-align: center; /* Center the header text */
+  margin: 0 0 10px 0; /* Add spacing below the header */
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
+
+.group-item:hover {
+  background-color: #e0e0e0;
+}
+
+/* Group List Container */
+#group-list-container {
+  border: 5px solid var(--primary-color); /* Blue boundary */
+  border-radius: 8px;
+  padding: 20px;
+  width: 250px; /* Fixed width */
+  height: 600px; /* Fixed height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  background-color: var(--card-color); /* Optional: Add a background color */
+  box-shadow: 0 4px 6px var(--shadow-color); /* Optional: Add a shadow */
+  position: fixed;
+  top: 100px; /* Adjust to align below the nav bar */
+  left: 20px; /* Position on the left */
+}
+
+#group-list-header {
+  text-align: center; /* Center the header text */
+  margin: 0 0 10px 0; /* Add spacing below the header */
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
+
+/* Group Event Container */
+#group-events-container {
+  border: 5px solid var(--primary-color); /* Blue boundary */
+  border-radius: 8px;
+  padding: 20px;
+  width: 250px; /* Fixed width */
+  height: 600px; /* Fixed height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  background-color: var(--card-color); /* Optional: Add a background color */
+  box-shadow: 0 4px 6px var(--shadow-color); /* Optional: Add a shadow */
+  position: fixed;
+  top: 100px; /* Align below the nav bar */
+  left: 1135px; /* Position to the right of Group Activity */
+  z-index: 0;
+}
+
+#group-events-header {
+  text-align: center; /* Center the header text */
+  margin: 0 0 10px 0; /* Add spacing below the header */
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
