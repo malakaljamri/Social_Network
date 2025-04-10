@@ -141,3 +141,22 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE groups (
+    group_id VARCHAR(20) PRIMARY KEY,       -- Group ID (e.g., "g1", "g2")
+    admin_id INT NOT NULL,                  -- User ID of the group creator (foreign key)
+    creation_date DATE NOT NULL,            -- Date the group was created
+    description TEXT,                       -- Group description
+    privacy TINYINT(1) NOT NULL DEFAULT 0,  -- Privacy: 0 = Public, 1 = Followers-only
+    locked TINYINT(1) NOT NULL DEFAULT 0,   -- Locked: 0 = Open, 1 = Locked
+    group_name VARCHAR(100) NOT NULL           -- Group name
+);
+
+CREATE TABLE group_members (
+    group_id VARCHAR(20) NOT NULL,     -- Group ID (foreign key)
+    user_id INT NOT NULL,              -- User ID (foreign key)
+    role ENUM('member', 'admin') DEFAULT 'member', -- Role in the group
+    PRIMARY KEY (group_id, user_id),
+    FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);

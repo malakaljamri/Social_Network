@@ -43,6 +43,9 @@ function updateUserStatusUI(data) {
             <a title="Create New Post" href="/create-post" class="create-post-btn">
                 <i class="fas fa-plus-circle"></i> ✍️ Create Post
             </a>
+            <a title="Create New Group" href="#" class="create-group-btn">
+                <i class="fas fa-users"></i> ➕ Create Group
+            </a>
             <span class="username">
                 <i class="fas fa-user"></i> ${data.username} 👋
             </span>
