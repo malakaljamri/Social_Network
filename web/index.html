@@ -432,7 +432,9 @@
                                 <div class="stat-label">Following</div>
                             </div>
                         </div>
-                        <button class="create-group-btn" @click="openCreateGroupForm">Create Group</button>
+                        <button @click="createGroup('Test Group')" class="create-group-btn">
+                            <i class="fas fa-users"></i> ➕ Create Group
+                        </button>
                     </div>
                     <div class="profile-actions">
                         <button class="back-btn" @click="returnToFeed">Back to Feed</button>

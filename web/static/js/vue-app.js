@@ -610,7 +610,8 @@ const app = createApp({
             returnToFeed,
             viewPostsByUser,
             updatePrivacySetting,
-            showAlert
+            showAlert,
+            createGroup
         };
     }
 });
@@ -619,3 +620,29 @@ const app = createApp({
 document.addEventListener('DOMContentLoaded', () => {
     app.mount('#forum-container');
 });
+
+const createGroup = async (groupName) => {
+    if (!currentUser.isLoggedIn) {
+        alert('Please log in to create a group');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/group/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: groupName }),
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Failed to create group');
+
+        const data = await response.json();
+        showAlert(`Group "${groupName}" created successfully!`);
+        return data;
+    } catch (error) {
+        console.error('Error creating group:', error);
+        showAlert('Failed to create group. Please try again.');
+        return null;
+    }
+};

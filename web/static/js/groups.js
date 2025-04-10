@@ -32,6 +32,7 @@ function switchToGroupsView() {
     if (paginationContainer) {
         paginationContainer.style.display = 'none'; // Hide the pagination
     }
+        
 
     // Create Group List container
     let groupListContainer = document.getElementById('group-list-container');
@@ -110,3 +111,12 @@ function switchToGroupsView() {
         document.body.appendChild(groupEventContainer);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const groupsButton = document.querySelector('.groups-btn');
+    if (groupsButton) {
+        groupsButton.addEventListener('click', () => {
+            switchToGroupsView();
+        });
+    }
+});
