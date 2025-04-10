@@ -891,13 +891,37 @@ button.pagination-button.active {
   max-width: 90%;
 }
 
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  max-width: 90%;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
 #group-name,
 #group-description {
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+#group-privacy {
+  margin-bottom: 15px;
+}
+
+#group-privacy label {
+  display: inline-block;
+  margin-right: 10px;
 }
 
 #submit-group-btn {

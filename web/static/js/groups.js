@@ -49,14 +49,34 @@ function switchToGroupsView() {
         // Add content to Group List
         const groupListContent = document.createElement('div');
         groupListContent.id = 'group-list-content';
-        groupListContent.innerHTML = `
-            <ul>
-                <li class="group-item">Group 1</li>
-                <li class="group-item">Group 2</li>
-                <li class="group-item">Group 3</li>
-                <li class="group-item">Group 4</li>
-            </ul>
-        `;
+
+        // Fetch groups from the backend
+        fetch('/groups', {
+            method: 'GET',
+            headers: {
+            'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.groups && data.groups.length > 0) {
+            const groupList = document.createElement('ul');
+            data.groups.forEach(group => {
+                const groupItem = document.createElement('li');
+                groupItem.className = 'group-item';
+                groupItem.textContent = group.name;
+                groupList.appendChild(groupItem);
+            });
+            groupListContent.appendChild(groupList);
+            } else {
+            groupListContent.textContent = 'No groups created yet!';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching groups:', error);
+            groupListContent.textContent = 'Failed to load groups.';
+        });
         groupListContainer.appendChild(groupListContent);
 
         // Append Group List container to the body
@@ -141,14 +161,28 @@ document.querySelector('.create-group-btn').addEventListener('click', function (
 
     // Add the form to the overlay
     overlay.innerHTML = `
-        <div class="card">
-            <div id="create-group-response"></div>
-            <form id="create-group-form">
-                <input type="text" id="group-name" placeholder="Group Name" required>
-                <textarea id="group-description" placeholder="Group Description" required></textarea>
-                <button type="submit" id="submit-group-btn">Create Group</button>
-            </form>
+<div class="card">
+    <div id="create-group-response"></div>
+    <form id="create-group-form">
+        <label for="group-name">Group Name</label>
+        <input type="text" id="group-name" placeholder="Group Name" required>
+        
+        <label for="group-description">Group Description</label>
+        <textarea id="group-description" placeholder="Group Description" required></textarea>
+        
+        <label>Privacy Setting</label>
+        <div id="group-privacy">
+            <label>
+                <input type="radio" name="privacy" value="Public" required> Public
+            </label>
+            <label>
+                <input type="radio" name="privacy" value="Private" required> Private
+            </label>
         </div>
+        
+        <button type="submit" id="submit-group-btn">Create Group</button>
+    </form>
+</div>
     `;
 
     document.body.appendChild(overlay);
@@ -194,3 +228,4 @@ document.querySelector('.create-group-btn').addEventListener('click', function (
         if (e.target === overlay) overlay.remove();
     });
 });
+
