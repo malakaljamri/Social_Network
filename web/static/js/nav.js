@@ -83,6 +83,80 @@ function updateUserStatusUI(data) {
                 }
             }
         });
+
+        document.querySelector('.create-group-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+
+    // Create the overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+
+    // Add the form to the overlay
+    overlay.innerHTML = `
+        <div class="card">
+            <div id="create-group-response"></div>
+            <form id="create-group-form">
+                <input type="text" id="group-name" placeholder="Group Name" required>
+                <textarea id="group-description" placeholder="Group Description" required></textarea>
+                <button type="submit" id="submit-group-btn">Create Group</button>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Handle form submission
+    document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const responseElement = document.getElementById('create-group-response');
+        responseElement.textContent = 'Creating group...';
+
+        const groupName = document.getElementById('group-name').value;
+        const groupDescription = document.getElementById('group-description').value;
+
+        try {
+            const response = await fetch('/group/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    name: groupName,
+                    description: groupDescription,
+                }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                responseElement.textContent = `Group "${groupName}" created successfully!`;
+                responseElement.style.color = 'green';
+                overlay.remove(); // Remove the overlay after success
+            } else {
+                throw new Error(data.error || 'Failed to create group');
+            }
+        } catch (error) {
+            responseElement.textContent = error.message;
+            responseElement.style.color = 'red';
+        }
+    });
+
+    // Close the overlay when clicking outside the form
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+});
         
         document.querySelector('a[href="/create-post"]').addEventListener('click', function(e) {
             e.preventDefault();

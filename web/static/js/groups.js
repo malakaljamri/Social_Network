@@ -32,7 +32,7 @@ function switchToGroupsView() {
     if (paginationContainer) {
         paginationContainer.style.display = 'none'; // Hide the pagination
     }
-        
+
 
     // Create Group List container
     let groupListContainer = document.getElementById('group-list-container');
@@ -120,3 +120,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
