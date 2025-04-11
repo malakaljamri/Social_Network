@@ -21,6 +21,7 @@ function createNavbar() {
         });
     }
     
+    if (!document.querySelector("nav")) {
     const nav = document.createElement('nav');
     nav.innerHTML = `
     <a href="/" class="logo">
@@ -35,6 +36,7 @@ function createNavbar() {
     </div>
     `;
     document.body.prepend(nav);
+}
 }
 
 function updateUserStatusUI(data) {

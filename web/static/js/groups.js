@@ -229,3 +229,48 @@ document.querySelector('.create-group-btn').addEventListener('click', function (
     });
 });
 
+
+
+document.getElementById("create-group-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+  
+    const name = document.getElementById("group-name").value.trim();
+    const description = document.getElementById("group-description").value.trim();
+    const isPrivate = false; // or get from UI if you support visibility
+    const userId = currentUserID; // make sure this is globally accessible
+  
+    const res = await fetch("/api/groups/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, is_private: isPrivate, user_id: userId })
+    });
+  
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message);
+      fetchGroups(); // ✅ refresh list after creation
+    } else {
+      alert(data.error || "Failed to create group");
+    }
+  });
+
+  
+  async function fetchGroups() {
+    try {
+      const res = await fetch("/api/groups");
+      const groups = await res.json();
+      const container = document.getElementById("groups-list"); // or adjust the ID
+      container.innerHTML = "";
+  
+      groups.forEach(group => {
+        const div = document.createElement("div");
+        div.className = "group-item";
+        div.textContent = group.Name;
+        container.appendChild(div);
+      });
+    } catch (err) {
+      document.getElementById("groups-list").textContent = "Failed to load groups.";
+    }
+  }
+  
+
