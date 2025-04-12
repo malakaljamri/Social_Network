@@ -456,16 +456,16 @@ function sendMessageToSocket(userId) {
     const input = document.getElementById(`chat-input-${userId}`);
     const message = input.value.trim();
 
-     // Check if user is online before sending
-     const userData = onlineUsers.get(userId);
-     if (!userData || !userData.online) {
-         const chatContainer = document.getElementById(`chat-messages-${userId}`);
-         const errorMessage = document.createElement('div');
-         errorMessage.className = 'chat-message error';
-         errorMessage.textContent = 'Cannot send message. User is offline.';
-         chatContainer.appendChild(errorMessage);
-         return;
-     }
+    // Check if user is online before sending
+    /*const userData = onlineUsers.get(userId);
+    if (!userData || !userData.online) {
+        const chatContainer = document.getElementById(`chat-messages-${userId}`);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'chat-message error';
+        errorMessage.textContent = 'Cannot send message. User is offline.';
+        chatContainer.appendChild(errorMessage);
+        return;
+    }*/
      
     if (message) {
         const chatMessage = {

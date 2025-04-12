@@ -69,7 +69,7 @@ func isDatabaseEmpty() (bool, error) {
 	return count == 0, nil
 }
 
-// createTables reads the SQL file and executes the queries to create tables
+// createTables reads the schema_output.sql file and executes the queries to create tables
 func createTables() error {
 	// Check if tables exist
 	var tableCount int
@@ -86,10 +86,10 @@ func createTables() error {
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)
 
-	// Read the SQL file containing table creation queries
-	sqlFile, err := os.ReadFile(filepath.Join(dir, "db.sql"))
+	// Read the schema_output.sql file containing table creation queries
+	sqlFile, err := os.ReadFile(filepath.Join(dir, "schema_output.sql"))
 	if err != nil {
-		return fmt.Errorf("failed to read db.sql file: %v", err)
+		return fmt.Errorf("failed to read schema_output.sql file: %v", err)
 	}
 
 	// Split the SQL file content into individual queries
@@ -113,7 +113,7 @@ func createTables() error {
 // ExecuteQuery prepares and executes a SQL query with the given arguments
 func ExecuteQuery(query string, args ...interface{}) (sql.Result, error) {
 	stmt, err := db.Prepare(query)
-	if err != nil {
+	if (err != nil) {
 		return nil, fmt.Errorf("failed to prepare query: %v", err)
 	}
 	defer stmt.Close()

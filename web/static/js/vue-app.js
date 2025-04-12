@@ -9,6 +9,7 @@ const app = createApp({
         // State variables
         const posts = ref([]);
         const loading = ref(true);
+        loading.value = false;
         const currentPage = ref(1);
         const totalPages = ref(1);
         const currentUser = reactive({
@@ -55,7 +56,7 @@ const app = createApp({
             }
             
             if (filters.userOnly && currentUser.id) {
-                result = result.filter(post => post.UserID === currentUser.id);
+                result = result.filter(post => post.UserID && post.UserID === currentUser.id);
             }
             
             if (filters.dateFrom) {
@@ -621,17 +622,17 @@ const app = createApp({
         // Called when component is mounted
         onMounted(async () => {
             await fetchUserStatus();
-            await fetchCategories();
-            await fetchPosts();
-            await fetchOnlineUsers();
 
-            // Initialize websocket for real-time features
             if (currentUser.isLoggedIn) {
+                await fetchCategories();
+                await fetchPosts();
+                await fetchOnlineUsers();
+                // Initialize websocket for real-time features
                 setTimeout(() => {
                     initializeWebSocket();
                 }, 1000);
             }
-            
+         
             // Set up periodic refresh of online users
             setInterval(fetchOnlineUsers, 30000);
             
@@ -709,5 +710,7 @@ const app = createApp({
 
 // Register and mount the app when document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    app.mount('#forum-container');
+    // setTimeout(() => {
+        app.mount('#forum-container');
+    // }, 1000); // Delay to ensure DOM is ready
 });

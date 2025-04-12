@@ -1,37 +1,34 @@
 document.addEventListener('DOMContentLoaded', function() {
-    createNavbar();
-    // checkUserStatus();
-    // if (socket.readyState === WebSocket.OPEN) {
-    //     socket.send(JSON.stringify({ type: 'user_status' }));
-    // } else {
-    //     socket.addEventListener('open', function() {
-    //         socket.send(JSON.stringify({ type: 'user_status' }));
-    //     });
-    // }
+    const app = createNavbar();
+    app.mount('#navbar');
 });
 
 function createNavbar() {
-    const myPostsLink = document.querySelector('a[href="/filter?by=myposts"]');
-    if (myPostsLink) {
-        myPostsLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            fetchPosts('myposts');
-        });
-    }
-    
-    const nav = document.createElement('nav');
-    nav.innerHTML = `
-    <a href="/" class="logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 100 100">
-            <rect width="100" height="100" rx="20" fill="#7d6ee7"></rect>
-            <path fill="#fff" d="M36.63 22.42L66.52 22.42Q66.78 22.87 67.06 23.63Q67.32 24.40 67.32 25.30L67.32 25.30Q67.32 26.83 66.60 27.73Q65.88 28.63 64.53 28.63L64.53 28.63L40.05 28.63L40.05 47.35L63.36 47.35Q63.63 47.80 63.91 48.56Q64.17 49.33 64.17 50.23L64.17 50.23Q64.17 51.76 63.45 52.66Q62.73 53.56 61.38 53.56L61.38 53.56L40.05 53.56L40.05 77.05Q39.60 77.23 38.66 77.41Q37.71 77.59 36.72 77.59L36.72 77.59Q32.67 77.59 32.67 74.34L32.67 74.34L32.67 26.38Q32.67 24.58 33.75 23.50Q34.84 22.42 36.63 22.42L36.63 22.42Z"></path>
-        </svg>
-    </a>
-    <div class="nav-links">
-        <span id="userStatus"></span>
-    </div>
-    `;
+    const nav = document.createElement('nav'); nav.id = 'navbar';
     document.body.prepend(nav);
+    return Vue.createApp({
+        components: {
+            Navbar: {
+                template: `
+                    <a href="/" class="logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 100 100">
+                            <rect width="100" height="100" rx="20" fill="#7d6ee7"></rect>
+                            <path fill="#fff" d="M36.63 22.42L66.52 22.42Q66.78 22.87 67.06 23.63Q67.32 24.40 67.32 25.30L67.32 25.30Q67.32 26.83 66.60 27.73Q65.88 28.63 64.53 28.63L64.53 28.63L40.05 28.63L40.05 47.35L63.36 47.35Q63.63 47.80 63.91 48.56Q64.17 49.33 64.17 50.23L64.17 50.23Q64.17 51.76 63.45 52.66Q62.73 53.56 61.38 53.56L61.38 53.56L40.05 53.56L40.05 77.05Q39.60 77.23 38.66 77.41Q37.71 77.59 36.72 77.59L36.72 77.59Q32.67 77.59 32.67 74.34L32.67 74.34L32.67 26.38Q32.67 24.58 33.75 23.50Q34.84 22.42 36.63 22.42L36.63 22.42Z"></path>
+                        </svg>
+                    </a>
+                    <div class="nav-links">
+                        <span id="userStatus"></span>
+                    </div>
+                `,
+                mounted() {
+                    console.log('Navbar component mounted');
+                },
+            },
+        },
+        template: `
+            <Navbar />
+        `,
+    });
 }
 
 function updateUserStatusUI(data) {
@@ -174,14 +171,6 @@ function updateUserStatusUI(data) {
         sideDivs.forEach(function(element) {
             element.style.display = "none";
         });
-        // let loginButtonsHTML = `<a href="/login">Login</a>
-        //                         <a href="/register">Sign Up</a>`;
-        // userStatusElement.innerHTML = loginButtonsHTML
-        // document.getElementById('posts-container')=userStatusElement
-        // document.querySelector('a[href="/login"]').addEventListener('click', function(e) {
-        //     e.preventDefault();
-        // });
-        // document.querySelector('a[href="/login"]').click()
         userStatusElement.innerHTML = `<i class="fas fa-info-circle"></i> Please login to continue 🔑`;
         document.querySelector("#posts-container").innerHTML = `<div class="container" style="position: absolute;left: 50%;transform: translateX(-50%);">
                 <div class="card">
