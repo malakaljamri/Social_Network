@@ -271,7 +271,7 @@ const app = createApp({
 
 // Register and mount the app when document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
+    // setTimeout(() => {
         app.mount('#forum-container');
-    }, 1000); // Delay to ensure DOM is ready
+    // }, 1000); // Delay to ensure DOM is ready
 });
