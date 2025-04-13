@@ -309,13 +309,13 @@ const app = createApp({
                 // Update profileUser with the fetched data
                 Object.assign(profileUser, {
                     id: parseInt(userId),
-                    username: data.user.Username || '',
-                    email: data.user.Email || '',
-                    followers_count: data.followers_count || 0,
-                    following_count: data.following_count || 0,
-                    posts_count: data.posts_count || 0,
-                    is_following: data.is_following || false,
-                    is_private: data.user.IsPrivate || false,
+                    username: data.User.Username || '',
+                    email: data.User.Email || '',
+                    followers_count: data.FollowersCount || 0,
+                    following_count: data.FollowingCount || 0,
+                    posts_count: data.PostsCount || 0,
+                    is_following: data.IsFollowing || false,
+                    is_private: data.User.IsPrivate || false,
                     is_own_profile: isOwnProfile
                 });
                 
