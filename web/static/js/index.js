@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // fetchPosts();
     const myPostsLink = document.querySelector('a[href="/filter?by=myposts"]');
     if (myPostsLink) {
         myPostsLink.addEventListener('click', function(e) {
@@ -51,7 +50,7 @@ function fetchUserStatus() {
                 document.getElementById('loggedInUserFilter').disabled = false;
                 currentUserID = data.userID;
                 currentUserName = data.username;
-                fetchPosts();
+                // fetchPosts();
             } else {
                 document.getElementById('loggedInUserFilter').disabled = true;
             }
@@ -61,6 +60,8 @@ function fetchUserStatus() {
 }
 
 async function fetchPosts(page = 1) {
+    // console.log('🔔fetchPosts() Caller:', new Error().stack.split('\n')[2].trim());
+    // console.log('🔔fetchPosts()', new Error().stack);
     try {
         const response = await fetch(`/posts?page=${page}&limit=${POSTS_PER_PAGE}`, {
             credentials: 'include' // Add credentials for auth

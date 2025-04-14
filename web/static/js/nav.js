@@ -138,7 +138,7 @@ function updateUserStatusUI(data) {
                         const data = await response.json();
                         if (response.ok) {
                             overlay.remove();
-                            fetchPosts();
+                            // fetchPosts();
                             window.scrollTo(0, 0);
                             fetchCategories();
                         } else {
@@ -348,7 +348,7 @@ async function handleLogin(data) {
             }
         } catch (error) {
             console.error('Error during login:', error);
-            fetchPosts(); // Still fetch posts even if WebSocket fails
+            // fetchPosts(); // Still fetch posts even if WebSocket fails
         }
     }
 }
