@@ -60,8 +60,6 @@ function fetchUserStatus() {
 }
 
 async function fetchPosts(page = 1) {
-    // console.log('🔔fetchPosts() Caller:', new Error().stack.split('\n')[2].trim());
-    // console.log('🔔fetchPosts()', new Error().stack);
     try {
         const response = await fetch(`/posts?page=${page}&limit=${POSTS_PER_PAGE}`, {
             credentials: 'include' // Add credentials for auth

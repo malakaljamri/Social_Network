@@ -94,7 +94,7 @@ const app = createApp({
             }
         };
 
-        const fetchPosts = async (page = 1) => {
+        /*const fetchPosts = async (page = 1) => { // the older version is better in paginations
             loading.value = true;
             try {
                 const response = await fetch(`/posts?page=${page}&limit=10`, {
@@ -119,7 +119,7 @@ const app = createApp({
             } finally {
                 loading.value = false;
             }
-        };
+        };*/
 
         const fetchCategories = async () => {
             try {
