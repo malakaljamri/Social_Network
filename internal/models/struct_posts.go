@@ -13,6 +13,7 @@ type Post struct {
 	Categories []int
 	Likes      int
 	Dislikes   int
+	Privacy	   string
 }
 
 type Comment struct {

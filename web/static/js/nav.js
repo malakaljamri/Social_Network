@@ -102,8 +102,12 @@ function updateUserStatusUI(data) {
                             oninput="this.setCustomValidity('')"
                         ></textarea>
                         <select id="post-category" required>
-                            <option value="">Select Category</option>
                             <option value="6" selected>Other categories</option>
+                        </select>
+                        <select id="post-privacy" required>
+                            <option value="public" selected>Public</option>
+                            <option value="almost_private">Followers</option>
+                            <option value="private">Choosen followers</option>
                         </select>
                         <button type="submit" id="submit-post-btn">Create Post</button>
                     </form>
@@ -132,6 +136,7 @@ function updateUserStatusUI(data) {
                 const title = document.getElementById('post-title').value;
                 const content = document.getElementById('post-content').value;
                 const category = document.getElementById('post-category').value;
+                const privacy = document.getElementById('post-privacy').value;
         
                 try {
                     const response = await fetch('/post/create', {
@@ -144,7 +149,8 @@ function updateUserStatusUI(data) {
                             Title: title,
                             Text: content,
                             CategoryID: parseInt(category),
-                            UserID: parseInt(currentUserID)
+                            UserID: parseInt(currentUserID),
+                            Privacy: privacy,
                         })
                     });
                     
