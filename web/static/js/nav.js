@@ -86,10 +86,24 @@ function updateUserStatusUI(data) {
                 <div class="card">
                     <div id="create-post-response"></div>
                     <form id="create-post-form">
-                        <input type="text" id="post-title" placeholder="Post Title" required>
-                        <textarea id="post-content" placeholder="Write your post content here..." required></textarea>
+                        <input type="text" id="post-title" placeholder="Post Title" required
+                            minlength="3" 
+                            maxlength="100" 
+                            pattern="^[a-zA-Z0-9\\s!?.,'-]+$" 
+                            title="Title must be between 3 and 100 characters and contain only letters, numbers, spaces, and basic punctuation."
+                            oninvalid="this.setCustomValidity('Please enter a valid title.')"
+                            oninput="this.setCustomValidity('')"
+                        >
+                        <textarea id="post-content" placeholder="Write your post content here..." required
+                            minlength="10" 
+                            maxlength="5000" 
+                            title="Content must be between 10 and 5000 characters."
+                            oninvalid="this.setCustomValidity('Please enter valid content.')"
+                            oninput="this.setCustomValidity('')"
+                        ></textarea>
                         <select id="post-category" required>
                             <option value="">Select Category</option>
+                            <option value="6" selected>Other categories</option>
                         </select>
                         <button type="submit" id="submit-post-btn">Create Post</button>
                     </form>
