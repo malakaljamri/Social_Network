@@ -36,7 +36,7 @@ func GetPosts(page, limit int) ([]models.Post, int, error) {
 	}
 
 	// Then, fetch the posts for the current page
-	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author
+	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author, privacy
           FROM posts ORDER BY id DESC LIMIT ? OFFSET ?`
 	rows, err := FetchData(query, limit, offset)
 	if err != nil {
@@ -48,7 +48,7 @@ func GetPosts(page, limit int) ([]models.Post, int, error) {
 	var posts []models.Post
 	for rows.Next() {
 		var post models.Post
-		if err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Author); err != nil {
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Author, &post.Privacy); err != nil {
 			return nil, 0, err
 		}
 		posts = append(posts, post)

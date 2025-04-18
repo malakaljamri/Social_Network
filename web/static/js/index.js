@@ -233,7 +233,9 @@ function createPostCard(post) {
     content.textContent = post.Text;
 
     const createdAt = document.createElement('small');
-    createdAt.textContent = `Created at: ${new Date(post.CreatedAt).toLocaleString()} | By: ${post.Author}`;
+    const createdDate = new Date(post.CreatedAt);
+    const formattedDate = `${createdDate.getDate().toString().padStart(2, '0')}-${createdDate.toLocaleString('default', { month: 'short' })}-${createdDate.getFullYear()} ${createdDate.getHours().toString().padStart(2, '0')}:${createdDate.getMinutes().toString().padStart(2, '0')}`;
+    createdAt.textContent = `Created at: ${formattedDate} | By: ${post.Author} | Privacy: ${post.Privacy}`;
 
     const likeDislikeContainer = document.createElement('div');
     likeDislikeContainer.className = 'like-dislike-container';
