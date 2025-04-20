@@ -20,11 +20,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// Apply any pending database migrations
-	if err := database.ApplyMigrations(); err != nil {
-		log.Fatal("Error applying database migrations:", err)
-	}
-
 	hub := websocket.NewHub()
 	go hub.Run()
 	// go websocket.BroadcastTime(hub) // This function is only for testing purposes

@@ -80,7 +80,7 @@ func PostValidation(post *models.Post) error {
 }
 
 func GetPosts(w http.ResponseWriter, r *http.Request) {
-	log.Println("Original GetPosts called")
+	// log.Println("Original GetPosts called")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 

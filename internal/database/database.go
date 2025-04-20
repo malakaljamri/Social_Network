@@ -71,6 +71,7 @@ func isDatabaseEmpty() (bool, error) {
 
 // createTables reads the schema_output.sql file and executes the queries to create tables
 func createTables() error {
+	/* UNTIL the final DB tables are ready, we will use migrations to create the tables
 	// Check if tables exist
 	var tableCount int
 	err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'").Scan(&tableCount)
@@ -106,7 +107,7 @@ func createTables() error {
 			return fmt.Errorf("failed to execute query: %v\nQuery: %s", err, query)
 		}
 	}
-
+*/
 	return nil
 }
 
