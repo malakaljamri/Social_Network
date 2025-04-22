@@ -37,6 +37,7 @@ func GetPosts(page, limit int) ([]models.Post, int, error) {
 
 	// Then, fetch the posts for the current page
 	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author, privacy
+		  
           FROM posts ORDER BY id DESC LIMIT ? OFFSET ?`
 	rows, err := FetchData(query, limit, offset)
 	if err != nil {
@@ -121,6 +122,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		   COALESCE(SUM(CASE WHEN ld.is_like = 1 THEN 1 ELSE 0 END), 0) as likes,
 		   COALESCE(SUM(CASE WHEN ld.is_like = 0 THEN 1 ELSE 0 END), 0) as dislikes,
 		   GROUP_CONCAT(DISTINCT pc.category_id) as category_ids
+		   , (SELECT u.username FROM users u WHERE u.id = p.user_id) AS author, p.privacy
 	FROM posts p
 	LEFT JOIN likes_dislikes ld ON p.id = ld.post_id
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
@@ -186,7 +188,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	for rows.Next() {
 		var post models.Post
 		var categoryIDsStr sql.NullString
-		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr)
+		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr, &post.Author, &post.Privacy)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, 0, err
@@ -206,7 +208,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	log.Printf("Total posts retrieved: %d", len(posts))
 
 	var totalCount int
-	countQuery := "SELECT COUNT(DISTINCT p.id) " + query[strings.Index(query, "FROM"):]
+	countQuery := "SELECT COUNT(DISTINCT p.id) " + query[strings.Index(query, "FROM posts p"):]
 	countQuery = strings.Replace(countQuery, "GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?", "", 1)
 	finalQuery2 := countQuery
 	for _, arg := range args {
