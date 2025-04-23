@@ -126,9 +126,22 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	FROM posts p
 	LEFT JOIN likes_dislikes ld ON p.id = ld.post_id
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
-	WHERE p.privacy = 'public' OR p.user_id = ?`
+	WHERE (
+		    p.privacy = 'public' OR p.user_id = ?
+		or (p.privacy = 'almost_private' AND p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?))
+		or (p.privacy = 'private' AND
+				p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?) and
+				p.id in      (select post_id    from post_viewers where viewer_id = ?)
+			)
+	)`
 
 	var args []interface{}
+	userID, erruserID := GetUserIDFromSession(r)
+	if erruserID != nil {
+		log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
+		return nil, 0, erruserID
+	}
+	for i := 1; i == 4; i++ { args = append(args, userID) }
 
 	if categories, ok := filters["categories"].([]interface{}); ok && len(categories) > 0 {
 		placeholders := make([]string, len(categories))
@@ -150,13 +163,6 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		query += " AND p.created_at <= ?"
 		args = append(args, parsedToDate.Format("2006-01-02 15:04:05"))
 	}
-
-	userID, erruserID := GetUserIDFromSession(r)
-	if erruserID != nil {
-		log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
-		return nil, 0, erruserID
-	}
-	args = append(args, userID)
 
 	if loggedInUserFilter, ok := filters["loggedInUserFilter"].(bool); ok && loggedInUserFilter {
 		if userID > 0 {
