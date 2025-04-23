@@ -251,7 +251,7 @@ func Print_userIDs(caller string) {
 	log.Printf("Online User 🆔s (%s): %v", caller, userIDs)
 }
 
-func SendPostsViaWebSocket(client *Client) {
+/*func SendPostsViaWebSocket(client *Client) {
 	posts, _, err := database.GetPosts(1, 10) // Get the first 10 posts
 	if err != nil {
 		log.Printf("❌ Error fetching posts: %v", err)
@@ -264,16 +264,16 @@ func SendPostsViaWebSocket(client *Client) {
 	}
 
 	client.Send <- messageToJSON(message)
-}
+}*/
 
-func messageToJSON(message Message) []byte {
+/*func messageToJSON(message Message) []byte {
 	json, err := json.Marshal(message)
 	if err != nil {
 		log.Println("Error marshalling message:", err)
 		return []byte{}
 	}
 	return json
-}
+}*/
 
 func BroadcastTime(hub *Hub) { // This function is only for testing purposes
 	ticker := time.NewTicker(1 * time.Second)

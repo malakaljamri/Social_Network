@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"social_network/internal/database"
 	"social_network/internal/models"
-	"social_network/internal/websocket"
+	// "social_network/internal/websocket"
 	"strconv"
 	"strings"
 )
@@ -92,7 +92,8 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	// log.Println("📃📃📃📃page:", page)
 
-	posts, totalCount, err := database.GetPosts(page, limit)
+	// posts, totalCount, err := database.GetPosts(page, limit)
+	posts, totalCount, err := database.GetFilteredPosts(page, limit, nil, r)
 	if err != nil {
 		http.Error(w, "❌ Error fetching posts", http.StatusInternalServerError)
 		return
@@ -219,7 +220,7 @@ func GetNewestPostDate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(date)
 }
 
-func SendPostsViaWebSocket(client *websocket.Client) {
+/*func SendPostsViaWebSocket(client *websocket.Client) {
 	posts, _, err := database.GetPosts(1, 10) // Get the first 10 posts
 	if err != nil {
 		log.Printf("❌ Error fetching posts: %v", err)
@@ -232,4 +233,4 @@ func SendPostsViaWebSocket(client *websocket.Client) {
 	}
 
 	client.Send <- messageToJSON(message)
-}
+}*/

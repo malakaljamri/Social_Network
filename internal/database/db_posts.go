@@ -25,7 +25,7 @@ func CreatePost(post *models.Post) error {
 	return nil
 }
 
-func GetPosts(page, limit int) ([]models.Post, int, error) {
+/*func GetPosts(page, limit int) ([]models.Post, int, error) {
 	offset := (page - 1) * limit
 
 	// First, get the total count
@@ -55,7 +55,7 @@ func GetPosts(page, limit int) ([]models.Post, int, error) {
 		posts = append(posts, post)
 	}
 	return posts, totalCount, nil
-}
+}*/
 
 func GetPostByID(postID int) (models.Post, error) {
 	query := `
@@ -126,7 +126,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	FROM posts p
 	LEFT JOIN likes_dislikes ld ON p.id = ld.post_id
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
-	WHERE 1=1`
+	WHERE p.privacy = 'public' OR p.user_id = ?`
 
 	var args []interface{}
 
@@ -151,17 +151,22 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		args = append(args, parsedToDate.Format("2006-01-02 15:04:05"))
 	}
 
+	userID, erruserID := GetUserIDFromSession(r)
+	if erruserID != nil {
+		log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
+		return nil, 0, erruserID
+	}
+	args = append(args, userID)
+
 	if loggedInUserFilter, ok := filters["loggedInUserFilter"].(bool); ok && loggedInUserFilter {
-		userID, err := GetUserIDFromSession(r)
-		if err == nil && userID > 0 {
+		if userID > 0 {
 			query += " AND p.user_id = ?"
 			args = append(args, userID)
 		}
 	}
 
 	if likedByUserID, ok := filters["likedOnly"].(bool); ok && likedByUserID {
-		userID, err := GetUserIDFromSession(r)
-		if err == nil && userID > 0 {
+		if userID > 0 {
 			query += " AND p.id IN (SELECT post_id FROM likes_dislikes WHERE user_id = ? AND is_like = 1)"
 			args = append(args, userID)
 		}

@@ -138,10 +138,10 @@ func GetOnlineUsersDetails(userIDs []int, userID int) ([]models.User, error) {
 	return users, nil
 }
 
-func convertToInterface(ids []int) []interface{} {
+/*func convertToInterface(ids []int) []interface{} {
 	result := make([]interface{}, len(ids))
 	for i, v := range ids {
 		result[i] = v
 	}
 	return result
-}
+}*/
