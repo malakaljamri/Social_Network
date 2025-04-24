@@ -6,6 +6,47 @@ const app = createApp({
     // Use different delimiters to avoid conflict with Go templates
     delimiters: ['[[', ']]'],
     setup() {
+
+        const currentView = ref('posts');  // default view
+        const lastViewBeforeForm = ref(null);
+        const showCreateGroupForm = ref(false);
+        const groupList = ref([]);
+
+        function switchToGroupsView() {
+            currentView.value = 'groups';
+            showCreateGroupForm.value = false;
+            fetch('/api/groups')
+                .then(res => res.json())
+                .then(data => {
+                    groupList.value = data;
+                });
+        }
+
+        function openCreateGroupForm() {
+            lastViewBeforeForm.value = currentView.value;
+            showCreateGroupForm.value = true;
+        }
+
+        function closeCreateGroupForm() {
+            showCreateGroupForm.value = false;
+            if (lastViewBeforeForm.value) {
+                currentView.value = lastViewBeforeForm.value;
+            }
+        }
+
+        function submitGroupForm(formData) {
+            fetch('/api/groups/create', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Group created:', data);
+                closeCreateGroupForm();
+                switchToGroupsView();
+            });
+        }
+
         // State variables
         const posts = ref([]);
         const loading = ref(true);
@@ -27,7 +68,6 @@ const app = createApp({
         });
         
         // Profile page state - all arrays must be initialized to empty arrays
-        const currentView = ref('posts'); // 'posts', 'profile'
         const profileUser = reactive({
             id: null,
             username: '',
@@ -571,6 +611,14 @@ const app = createApp({
 
         // Return reactive state and methods for template use
         return {
+            currentView,
+            lastViewBeforeForm,
+            showCreateGroupForm,
+            groupList,
+            switchToGroupsView,
+            openCreateGroupForm,
+            closeCreateGroupForm,
+            submitGroupForm,
             // Main feed state
             posts,
             loading,
