@@ -562,7 +562,7 @@
         <!-- Posts Feed View -->
         <div id="posts-feed" v-show="currentView === 'posts'">
             <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
-                <h1 style="text-align: center;">Welcome To Social Network</h1>
+                
                 
                 <!-- Loading indicator -->
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
@@ -617,16 +617,7 @@
                 <!-- Loading indicator -->
                 <div v-if="profileLoading" class="loading-indicator">Loading profile...</div>
                 
-                <!-- Debug info -->
-                <div v-if="!profileUser.id && !profileLoading" style="text-align: center; margin: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-                    <h3>💡 Profile Information</h3>
-                    <p><strong>Username:</strong> [[profileUser.username]]</p>
-                    <p><strong>Email:</strong> [[profileUser.email]]</p>
-                    <p><strong>Private:</strong> [[profileUser.is_private ? 'Yes' : 'No']]</p>
-                    <p><strong>Posts Count:</strong> [[profileUser.posts_count]]</p>
-                    <p><strong>Followers Count:</strong> [[profileUser.followers_count]]</p>
-
-                </div>
+              
                 
                 <!-- Profile Header -->
                 <div class="profile-header">
