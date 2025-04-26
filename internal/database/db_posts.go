@@ -141,7 +141,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
 		return nil, 0, erruserID
 	}
-	for i := 0; i < 4; i++ { args = append(args, userID) }
+	args = append(args, userID, userID, userID, userID)
 
 	if categories, ok := filters["categories"].([]interface{}); ok && len(categories) > 0 {
 		placeholders := make([]string, len(categories))

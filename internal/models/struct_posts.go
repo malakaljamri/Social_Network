@@ -14,6 +14,7 @@ type Post struct {
 	Likes      int
 	Dislikes   int
 	Privacy	   string
+	image	   string
 }
 
 type Comment struct {
