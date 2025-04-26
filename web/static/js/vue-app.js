@@ -46,6 +46,10 @@ const app = createApp({
         const profileFollowing = ref([]);
         const profileTab = ref('posts'); // 'posts', 'followers', 'following'
 
+        // User search state
+        const userSearchQuery = ref('');
+        const userSearchResults = ref([]);
+
         // Computed properties for Derived Data that depend on other reactive data:
         // This updates automatically when posts or filters change
         const filteredPosts = computed(() => {
@@ -303,19 +307,19 @@ const app = createApp({
                 }
                 
                 // Determine if this is the current user's profile
-                const isOwnProfile = currentUser.isLoggedIn && currentUser.id === parseInt(userId);
+                const isOwnProfile = currentUser.isLoggedIn && (parseInt(currentUser.id) === parseInt(userId));
                 console.log("Is viewing own profile:", isOwnProfile, "Current user ID:", currentUser.id, "Profile user ID:", userId);
                 
                 // Update profileUser with the fetched data
                 Object.assign(profileUser, {
                     id: parseInt(userId),
-                    username: data.User.Username || '',
-                    email: data.User.Email || '',
+                    username: data.user.Username || '',
+                    email: data.user.Email || '',
                     followers_count: data.FollowersCount || 0,
                     following_count: data.FollowingCount || 0,
                     posts_count: data.PostsCount || 0,
                     is_following: data.IsFollowing || false,
-                    is_private: data.User.IsPrivate || false,
+                    is_private: data.user.IsPrivate || false,
                     is_own_profile: isOwnProfile
                 });
                 
@@ -603,6 +607,24 @@ const app = createApp({
             });
         };
 
+        // User search method
+        const searchUsers = async () => {
+            if (userSearchQuery.value.length < 2) {
+                userSearchResults.value = [];
+                return;
+            }
+            try {
+                const response = await fetch(`/api/search/users?q=${encodeURIComponent(userSearchQuery.value)}`);
+                if (response.ok) {
+                    userSearchResults.value = await response.json();
+                } else {
+                    userSearchResults.value = [];
+                }
+            } catch (err) {
+                userSearchResults.value = [];
+            }
+        };
+
         // Show simple alert message
         const showAlert = (message) => {
             const alertDiv = document.createElement('div');
@@ -660,6 +682,20 @@ const app = createApp({
                     viewUserProfile(event.detail.userId);
                 }
             });
+            
+            // Example usage: add a button to view a user's profile from a user list or post
+            // This can be placed in your template or component where user info is shown
+            // <button @click="viewUserProfile(user.id)">View Profile</button>
+
+            // If using plain HTML (not Vue template), you can add an event listener dynamically:
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.user-profile-link').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const userId = el.getAttribute('data-user-id');
+                        if (userId) viewUserProfile(parseInt(userId));
+                    });
+                });
+            });
         });
 
         // Return reactive state and methods for template use
@@ -684,6 +720,10 @@ const app = createApp({
             profileFollowing,
             profileTab,
             
+            // User search state
+            userSearchQuery,
+            userSearchResults,
+            
             // Methods
             fetchPosts,
             fetchCategories,
@@ -703,6 +743,7 @@ const app = createApp({
             returnToFeed,
             viewPostsByUser,
             updatePrivacySetting,
+            searchUsers,
             showAlert
         };
     }

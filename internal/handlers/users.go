@@ -132,6 +132,19 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 // GetUserPosts returns posts by a specific user
 func GetUserPosts(w http.ResponseWriter, r *http.Request) {
+
+	// Parse pagination parameters with defaults
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+	page := 1
+	limit := 10
+	if pageVal, err := strconv.Atoi(pageStr); err == nil && pageVal > 0 {
+		page = pageVal
+	}
+	if limitVal, err := strconv.Atoi(limitStr); err == nil && limitVal > 0 && limitVal <= 50 {
+		limit = limitVal
+	}
+
 	// Get target user ID from URL query
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
@@ -159,9 +172,6 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 			canViewPosts = false
 		}
 	}
-
-	// Get pagination parameters
-	page, limit := getPaginationParams(r)
 
 	// If can't view posts due to privacy, return empty array
 	if !canViewPosts {
@@ -337,7 +347,7 @@ func UpdatePrivacySettings(w http.ResponseWriter, r *http.Request) {
 	// Return success
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Privacy settings updated successfully",
+		"message":    "Privacy settings updated successfully",
 		"is_private": request.IsPrivate,
 	})
 }
