@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"social_network/internal/database"
 	"social_network/internal/models"
+
 	// "social_network/internal/websocket"
 	"strconv"
 	"strings"
@@ -19,28 +23,83 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
 
-	var post models.Post
-	err := json.NewDecoder(r.Body).Decode(&post)
+	// Parse the multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
 		return
 	}
 
-	// Trim whitespace from title and content
-	post.Title = strings.TrimSpace(post.Title)
-	post.Text = strings.TrimSpace(post.Text)
+	// Determine the root directory of the project
+	executablePath, err := os.Executable() // Get the path of the running executable
+	if err != nil {
+		http.Error(w, "Failed to determine executable path", http.StatusInternalServerError)
+		return
+	}
+	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
 
-	// Enhanced validation
-	if err := PostValidation(&post); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	// Construct the path to "web/uploads" relative to the root directory
+	uploadDir := filepath.Join(rootDir, "..", "web", "uploads") // Go up one level, then to "web/uploads"
+
+	// Ensure the uploads directory exists
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		err := os.MkdirAll(uploadDir, os.ModePerm)
+		if err != nil {
+			http.Error(w, "Failed to create uploads directory", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Handle the uploaded image file
+	var imagePath string
+	file, handler, err := r.FormFile("Image")
+	if err == nil { // If an image is provided
+		defer file.Close()
+
+		// Save the file to the uploads folder
+		uploadPath := filepath.Join(uploadDir, handler.Filename)
+		out, err := os.Create(uploadPath)
+		if err != nil {
+			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		_, err = io.Copy(out, file)
+		if err != nil {
+			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			return
+		}
+		imagePath = fmt.Sprintf("/uploads/%s", handler.Filename) // Relative path for serving
+	}
+
+	// Extract form fields
+	title := strings.TrimSpace(r.FormValue("Title"))
+	text := strings.TrimSpace(r.FormValue("Text"))
+	categoryID, _ := strconv.Atoi(r.FormValue("CategoryID"))
+	userID, _ := strconv.Atoi(r.FormValue("UserID"))
+	privacy := r.FormValue("Privacy")
+
+	// Validate the fields
+	if len(title) < 3 || len(title) > 100 {
+		http.Error(w, "Title must be between 3 and 100 characters", http.StatusBadRequest)
+		return
+	}
+	if len(text) < 10 || len(text) > 5000 {
+		http.Error(w, "Content must be between 10 and 5000 characters", http.StatusBadRequest)
 		return
 	}
 
-	// Sanitize the input
-	post.Title = html.EscapeString(post.Title)
-	post.Text = html.EscapeString(post.Text)
+	// Create the post object
+	post := models.Post{
+		Title:      html.EscapeString(title),
+		Text:       html.EscapeString(text),
+		CategoryID: categoryID,
+		UserID:     userID,
+		Privacy:    privacy,
+		Image:      imagePath, // Add this field to your Post model
+	}
 
-	// Create post in database
+	// Save the post to the database
 	err = database.CreatePost(&post)
 	if err != nil {
 		log.Printf("Database error: %v", err)
@@ -53,7 +112,6 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		"status": "success",
 		"post":   post,
 	}
-
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }

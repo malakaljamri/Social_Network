@@ -88,8 +88,7 @@ function updateUserStatusUI(data) {
                     <form id="create-post-form">
                         <input type="text" id="post-title" placeholder="Post Title" required
                             minlength="3" 
-                            maxlength="100" 
-                            pattern="^[a-zA-Z0-9\\s!?.,'-]+$" 
+                            maxlength="100"
                             title="Title must be between 3 and 100 characters and contain only letters, numbers, spaces, and basic punctuation."
                             oninvalid="this.setCustomValidity('Please enter a valid title.')"
                             oninput="this.setCustomValidity('')"
@@ -107,13 +106,38 @@ function updateUserStatusUI(data) {
                         <select id="post-privacy" required>
                             <option value="public" selected>Public</option>
                             <option value="almost_private">Followers</option>
-                            <option value="private">Choosen followers</option>
+                            <option value="private">Chosen followers</option>
                         </select>
+                        <input type="file" id="post-image" accept="image/jpeg, image/png, image/gif" />
                         <button type="submit" id="submit-post-btn">Create Post</button>
                     </form>
                 </div>`;
-            
             document.body.appendChild(overlay);
+
+            // Add file validation for size and dimensions
+            document.getElementById('post-image').addEventListener('change', function () {
+                const file = this.files[0];
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                const maxWidth = 2000;
+                const maxHeight = 2000;
+
+                if (file) {
+                    if (file.size > maxSize) {
+                        alert('File size must not exceed 2MB.');
+                        this.value = ''; // Clear the input
+                        return;
+                    }
+
+                    const img = new Image();
+                    img.onload = function () {
+                        if (img.width > maxWidth || img.height > maxHeight) {
+                            alert(`Image dimensions must not exceed ${maxWidth}x${maxHeight}px.`);
+                            document.getElementById('post-image').value = ''; // Clear the input
+                        }
+                    };
+                    img.src = URL.createObjectURL(file);
+                }
+            });
         
             // Fetch categories dynamically
             fetch('/categories')
@@ -137,30 +161,28 @@ function updateUserStatusUI(data) {
                 const content = document.getElementById('post-content').value;
                 const category = document.getElementById('post-category').value;
                 const privacy = document.getElementById('post-privacy').value;
+                const formData = new FormData();
+                    formData.append('Title', title);
+                    formData.append('Text', content);
+                    formData.append('CategoryID', parseInt(category));
+                    formData.append('UserID', parseInt(currentUserID));
+                    formData.append('Privacy', privacy);
+                    const imageFile = document.getElementById('post-image').files[0];
+                        if (imageFile)  formData.append('Image', imageFile);
         
                 try {
                     const response = await fetch('/post/create', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
                         credentials: 'include',
-                        body: JSON.stringify({
-                            Title: title,
-                            Text: content,
-                            CategoryID: parseInt(category),
-                            UserID: parseInt(currentUserID),
-                            Privacy: privacy,
-                        })
+                        body: formData,
                     });
                     
                     try {
                         const data = await response.json();
                         if (response.ok) {
                             overlay.remove();
-                            // fetchPosts();
                             window.scrollTo(0, 0);
-                            fetchCategories();
+                            document.querySelector("#categories-list input").dispatchEvent(new Event('change'));
                         } else {
                             throw new Error(data.error || 'Failed to create post');
                         }
