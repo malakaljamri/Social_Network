@@ -34,6 +34,10 @@ func main() {
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)
 
+	
+	// Serve static files from the "web" directory
+	mux.Handle("/web/", http.StripPrefix("/web/uploads", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
+
 	// Serve static files
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
 	// mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))

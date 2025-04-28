@@ -122,7 +122,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		   COALESCE(SUM(CASE WHEN ld.is_like = 1 THEN 1 ELSE 0 END), 0) as likes,
 		   COALESCE(SUM(CASE WHEN ld.is_like = 0 THEN 1 ELSE 0 END), 0) as dislikes,
 		   GROUP_CONCAT(DISTINCT pc.category_id) as category_ids
-		   , (SELECT u.username FROM users u WHERE u.id = p.user_id) AS author, p.privacy
+		   , (SELECT u.username FROM users u WHERE u.id = p.user_id) AS author, p.privacy, p.image
 	FROM posts p
 	LEFT JOIN likes_dislikes ld ON p.id = ld.post_id
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
@@ -199,7 +199,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	for rows.Next() {
 		var post models.Post
 		var categoryIDsStr sql.NullString
-		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr, &post.Author, &post.Privacy)
+		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr, &post.Author, &post.Privacy, &post.Image)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, 0, err

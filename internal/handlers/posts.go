@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"social_network/internal/database"
 	"social_network/internal/models"
 
@@ -22,7 +21,13 @@ import (
 func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-
+	userID, errUserID := database.GetUserIDFromSession(r)
+	if errUserID != nil {
+		response := map[string]string{"error": "Failed to get user ID from session"}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 	// Parse the multipart form
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
@@ -39,7 +44,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
 
 	// Construct the path to "web/uploads" relative to the root directory
-	uploadDir := filepath.Join(rootDir, "..", "web", "uploads") // Go up one level, then to "web/uploads"
+	uploadDir := filepath.Join(rootDir, "..", "web", "uploads", fmt.Sprintf("userID%d", userID))// Go up one level, then to "web/uploads"
 
 	// Ensure the uploads directory exists
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
@@ -55,7 +60,6 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("Image")
 	if err == nil { // If an image is provided
 		defer file.Close()
-
 		// Save the file to the uploads folder
 		uploadPath := filepath.Join(uploadDir, handler.Filename)
 		out, err := os.Create(uploadPath)
@@ -69,14 +73,13 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to save image", http.StatusInternalServerError)
 			return
 		}
-		imagePath = fmt.Sprintf("/uploads/%s", handler.Filename) // Relative path for serving
+		imagePath = fmt.Sprintf("/uploads/userID%d/%s", userID, handler.Filename) // Relative path for serving
 	}
 
 	// Extract form fields
 	title := strings.TrimSpace(r.FormValue("Title"))
 	text := strings.TrimSpace(r.FormValue("Text"))
 	categoryID, _ := strconv.Atoi(r.FormValue("CategoryID"))
-	userID, _ := strconv.Atoi(r.FormValue("UserID"))
 	privacy := r.FormValue("Privacy")
 
 	// Validate the fields
@@ -96,9 +99,16 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		CategoryID: categoryID,
 		UserID:     userID,
 		Privacy:    privacy,
-		Image:      imagePath, // Add this field to your Post model
+		Image:      imagePath,
 	}
-
+	// Validate the post using PostValidation
+	err = PostValidation(&post)
+	if err != nil {
+		response := map[string]string{"error": fmt.Sprintf("Validation error: %v", err)}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 	// Save the post to the database
 	err = database.CreatePost(&post)
 	if err != nil {
@@ -114,27 +124,6 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
-}
-
-func PostValidation(post *models.Post) error {
-
-	// Validate title
-	if len(post.Title) < 3 || len(post.Title) > 100 {
-		return fmt.Errorf("title must be between 3 and 100 characters")
-	}
-
-	// Validate content
-	if len(post.Text) < 10 || len(post.Text) > 5000 {
-		return fmt.Errorf("content must be between 10 and 5000 characters")
-	}
-
-	// Title character validation using more precise regex
-	titleRegex := regexp.MustCompile(`^[a-zA-Z0-9\s!?.,'-]+$`)
-	if !titleRegex.MatchString(post.Title) {
-		return fmt.Errorf("title Contains Invalid Characters")
-	}
-
-	return nil
 }
 
 func GetPosts(w http.ResponseWriter, r *http.Request) {

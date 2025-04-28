@@ -229,8 +229,27 @@ function createPostCard(post) {
     const title = document.createElement('h3');
     title.textContent = `post-${post.ID}: ${post.Title}`;
 
+    const contentContainer = document.createElement('div');
+    contentContainer.style.display = 'flex';
+    contentContainer.style.alignItems = 'flex-start';
+    contentContainer.style.gap = '1rem';
+
+    if (post.Image) {
+        const img = document.createElement('img');
+        // img.src = post.Image.startsWith('http') ? post.Image
+        //     : `${window.location.origin}/web${post.Image}`;
+        img.src = post.Image.startsWith('http') ? post.Image
+        : `${window.location.origin}/web${post.Image.startsWith('/') ? '' : '/'}${post.Image.replace(/\\/g, '/')}`;
+        img.alt = post.Title || 'Post Image';
+        img.style.maxWidth = '150px';
+        img.style.height = 'auto';
+        img.style.objectFit = 'cover';
+        contentContainer.appendChild(img);
+    }
+
     const content = document.createElement('p');
     content.textContent = post.Text;
+    contentContainer.appendChild(content);
 
     const createdAt = document.createElement('small');
     const createdDate = new Date(post.CreatedAt);
@@ -291,7 +310,7 @@ function createPostCard(post) {
     commentsSection.appendChild(commentForm);
 
     card.appendChild(title);
-    card.appendChild(content);
+    card.appendChild(contentContainer);
     card.appendChild(createdAt);
     card.appendChild(likeDislikeContainer);
     card.appendChild(commentToggleBtn);
