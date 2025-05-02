@@ -3,8 +3,8 @@ package database
 import "social_network/internal/models"
 
 func CreateComment(comment *models.Comment) error {
-	query := `INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)`
-	result, err := ExecuteQuery(query, comment.PostID, comment.UserID, comment.Text)
+	query := `INSERT INTO comments (post_id, user_id, content, image) VALUES (?, ?, ?, ?)`
+	result, err := ExecuteQuery(query, comment.PostID, comment.UserID, comment.Text, comment.Image)
 	if err != nil {
 		return err
 	}
@@ -17,7 +17,8 @@ func CreateComment(comment *models.Comment) error {
 }
 
 func GetCommentsByPostID(postID int) ([]models.Comment, error) {
-	query := `SELECT id, post_id, user_id, content, created_at, (SELECT username FROM users WHERE id = user_id) as user_name
+	query := `SELECT id, post_id, user_id, content, created_at, image
+	, (SELECT username FROM users WHERE id = user_id) as user_name
 	FROM comments WHERE post_id = ? order by id desc`
 	rows, err := FetchData(query, postID)
 	if err != nil {
@@ -28,7 +29,7 @@ func GetCommentsByPostID(postID int) ([]models.Comment, error) {
 	var comments []models.Comment
 	for rows.Next() {
 		var comment models.Comment
-		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Text, &comment.CreatedAt, &comment.Author); err != nil {
+		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.UserID, &comment.Text, &comment.CreatedAt, &comment.Image, &comment.Author); err != nil {
 			return nil, err
 		}
 		comments = append(comments, comment)

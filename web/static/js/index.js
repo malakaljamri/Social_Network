@@ -542,25 +542,30 @@ function fetchComments(postId) {
 }
 
 function createCommentItem(comment) {
-    // const commentItem = document.createElement('li');
-    // commentItem.id = `comment-${comment.ID}`;
-    // commentItem.textContent = comment.Text;
-
     const commentItem = document.createElement('li');
 
-    const timestamp = new Date(comment.CreatedAt).toLocaleString();
     const commentHeader = document.createElement('div');
     commentHeader.className = 'comment-header';
     commentHeader.innerHTML = `
         <span class="comment-author">${comment.Author}</span>
-        <span class="comment-timestamp">${timestamp}</span>
+        <span class="comment-timestamp">${formatDate(comment.CreatedAt)}</span>
     `;
-    
+
     const commentText = document.createElement('div');
     commentText.className = 'comment-text';
     commentText.textContent = comment.Text;
     
     commentItem.appendChild(commentHeader);
+    if (comment.Image) {
+        const img = document.createElement('img');
+        img.src = comment.Image.startsWith('http') ? comment.Image
+        : `${window.location.origin}/web${comment.Image.startsWith('/') ? '' : '/'}${comment.Image.replace(/\\/g, '/')}`;
+        img.alt = comment.Text || 'comment Image';
+        img.style.maxWidth = '150px';
+        img.style.height = 'auto';
+        img.style.objectFit = 'cover';
+        commentItem.appendChild(img);
+    }
     commentItem.appendChild(commentText);
 
 
@@ -609,8 +614,16 @@ function handleCommentSubmit(event, postId) {
     event.preventDefault();
     const form = event.target;
     const content = form.content.value.trim();
+    const imageFile = form['Comment-image'].files[0];
     
     if (!content) return;
+
+    const formData = new FormData();
+    formData.append('PostID', postId);
+    formData.append('Text', content);
+    if (imageFile) {
+        formData.append('Image', imageFile);
+    }
 
     fetch('/comment/create', {
         method: 'POST',
@@ -651,6 +664,7 @@ function createCommentForm(postId) {
         <button type="button" class="emoji-trigger">😊</button>
     </div> -->
     <textarea name="content" placeholder="Add a comment ✍️" required></textarea>
+    <input name="Comment-image" type="file" class="Comment-image" accept="image/jpeg, image/png, image/gif" />
     <button type="submit">Send 📤</button>
 `;
     commentForm.addEventListener('submit', (e) => handleCommentSubmit(e, postId));
@@ -684,4 +698,14 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function formatDate(createdDate, dateSplitter = '-', timeSplitter = ':') {
+    createdDate = new Date(createdDate);
+    return `${createdDate.getDate().toString().padStart(2, '0')}
+        ${dateSplitter}${createdDate.toLocaleString('default',
+        { month: 'short' })}${dateSplitter}${createdDate.getFullYear()}
+        ${createdDate.getHours().toString().padStart(2, '0')}
+        ${timeSplitter}
+        ${createdDate.getMinutes().toString().padStart(2, '0')}`;
 }

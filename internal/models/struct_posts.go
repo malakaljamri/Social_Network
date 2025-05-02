@@ -24,6 +24,7 @@ type Comment struct {
 	Text   string
 	CreatedAt time.Time
 	Author string
+	Image string
 }
 
 type ChatMessage struct {
