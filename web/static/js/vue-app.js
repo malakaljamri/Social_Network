@@ -447,6 +447,7 @@ const app = createApp({
         
         // Follow a user
         const followUser = async (userId) => {
+            
             if (!currentUser.isLoggedIn) {
                 showAlert('Please log in to follow users');
                 return false;
@@ -469,7 +470,7 @@ const app = createApp({
                 
                 // Update profile data
                 profileUser.is_following = true;
-                profileUser.followers_count++;
+                profileUser.followers_count = Math.max(0, profileUser.followers_count + 1);
                 showAlert(`You are now following ${profileUser.username}`);
                 
                 // Refresh followers list if we're on that tab
@@ -614,6 +615,7 @@ const app = createApp({
                 return;
             }
             try {
+                //by encodeURIComponent()It changes many special characters into a safe format for URLs. ex remove space to %20
                 const response = await fetch(`/api/search/users?q=${encodeURIComponent(userSearchQuery.value)}`);
                 if (response.ok) {
                     userSearchResults.value = await response.json();
