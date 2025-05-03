@@ -627,13 +627,7 @@ function handleCommentSubmit(event, postId) {
 
     fetch('/comment/create', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            PostID: postId,
-            Text: content
-        }),
+        body: formData,
         credentials: 'include'
     })
     .then(response => {
