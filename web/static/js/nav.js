@@ -243,21 +243,10 @@ function updateUserStatusUI(data) {
                     <h2>Create a New Group</h2>
                     <form id="create-group-form">
                         <label for="group-name">Enter Group Name:</label>
-                        <input type="text" id="group-name" placeholder="Group Name" required 
-                            minlength="3" maxlength="100" 
-                            pattern="^[a-zA-Z0-9\\s!?.,'-]+$"
-                            title="Name must be between 3 and 100 characters and contain valid characters.">
+                        <input type="text" id="group-name" placeholder="Group Name" required minlength="3" maxlength="100" />
         
                         <label for="group-description">Enter Group Description:</label>
-                        <input type="text" id="group-description" placeholder="Group Description" required 
-                            minlength="10" maxlength="1000">
-        
-                        <label for="group-privacy">Privacy Setting:</label>
-                        <select id="group-privacy" required>
-                            <option value="public" selected>Public</option>
-                            <option value="almost_private">Followers</option>
-                            <option value="private">Chosen Followers</option>
-                        </select>
+                        <input type="text" id="group-description" placeholder="Group Description" required minlength="10" maxlength="1000" />
         
                         <button type="submit" id="submit-group-btn">Create Group</button>
                     </form>
@@ -266,12 +255,55 @@ function updateUserStatusUI(data) {
         
             document.body.appendChild(overlay);
         
-            // Close modal on outside click
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) overlay.remove();
+            // Close on outside click
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) overlay.remove();
             });
         
-            // Future: Add submit handler for #create-group-form here
+            // Submit handler
+            document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('group-name').value.trim();
+                const description = document.getElementById('group-description').value.trim();
+        
+                const response = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, description })
+                });
+        
+                if (response.ok) {
+                    const card = overlay.querySelector('.card');
+                    card.innerHTML = `<h2 style="text-align: center;">Group Created!</h2>`;
+                
+                    setTimeout(() => {
+                        overlay.remove();
+                    }, 1000);
+                }                
+            });
+        });
+        
+        // Create Group Form
+        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('group-name').value.trim();
+            const description = document.getElementById('group-description').value.trim();
+        
+            const response = await fetch('/api/groups/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ name, description })
+            });
+        
+            if (response.ok) {
+                alert('✅ Group created successfully!');
+                overlay.remove();
+            } else {
+                const err = await response.text();
+                alert(`❌ Failed: ${err}`);
+            }
         });
         
         sideDivs.forEach(function(element) {
