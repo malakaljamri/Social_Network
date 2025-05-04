@@ -5,36 +5,45 @@ import (
 	"encoding/json"
 	"net/http"
 	"social_network/internal/database"
+	"log"
 )
 
 func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		userID, err := database.GetUserIDFromSession(r)
-		if err != nil {
-			http.Error(w, "Failed to get user ID from session", http.StatusUnauthorized)
-			return
-		}
+    return func(w http.ResponseWriter, r *http.Request) {
+        log.Println("📥 Received request at /api/groups/create")
 
-		var group database.Group
-		if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
-			http.Error(w, "Invalid input", http.StatusBadRequest)
-			return
-		}
+        userID, err := database.GetUserIDFromSession(r)
+        if err != nil {
+            http.Error(w, "Failed to get user ID from session", http.StatusUnauthorized)
+            return
+        }
 
-		if len(group.Name) < 3 || len(group.Description) < 10 {
-			http.Error(w, "Invalid group data", http.StatusBadRequest)
-			return
-		}
+        var group database.Group
+        err = json.NewDecoder(r.Body).Decode(&group)
+        if err != nil {
+            http.Error(w, "Invalid request payload", http.StatusBadRequest)
+            return
+        }
 
-		group.CreatorID = userID
+        group.CreatorID = userID
 
-		if err := database.CreateGroup(db, &group); err != nil {
-			http.Error(w, "Failed to create group: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+        log.Printf("📦 Creating group: %+v", group)
 
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Group created successfully"))
-	}
+        err = database.CreateGroup(db, &group)
+        if err != nil {
+            log.Printf("❌ Failed to insert group: %v", err)
+            http.Error(w, "Failed to create group", http.StatusInternalServerError)
+            return
+        }
+
+        log.Println("✅ Group inserted into DB")
+
+        w.WriteHeader(http.StatusCreated)
+        json.NewEncoder(w).Encode(map[string]string{
+            "status": "success",
+        })
+    }
 }
+
+
 

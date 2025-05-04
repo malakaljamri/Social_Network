@@ -429,6 +429,7 @@ function updateUserStatusUI(data) {
             
                 loginResponse.style.color = 'Green';
                 loginResponse.innerText = 'Logging in...';
+                
             
                 try {
                     // First do the login

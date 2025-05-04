@@ -3,7 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	// "log"
 	"net/http"
 	"time"
 
@@ -244,7 +244,7 @@ func (h *AuthHandlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		h.hub.Broadcast <- jsonMessage
 	}()
 	go websocket.UpdateUserStatus(h.hub, user.ID, false)
-	go websocket.Print_userIDs("LogoutHandler")
+	// go websocket.Print_userIDs("LogoutHandler")
 }
 
 func (h *AuthHandlers) UserStatusHandler(w http.ResponseWriter, r *http.Request) { // called from main.go
@@ -256,7 +256,7 @@ func (h *AuthHandlers) UserStatusHandler(w http.ResponseWriter, r *http.Request)
 		})
 		return
 	}
-	log.Println("🪑 session", session)
+	// log.Println("🪑 session", session)
 
 	user, err := database.GetUserByID(session.UserID)
 	if err != nil { // w.WriteHeader(http.StatusUnauthorized)
@@ -266,7 +266,7 @@ func (h *AuthHandlers) UserStatusHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Println("👤 user", user)
+	// log.Println("👤 user", user)
 	// w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"loggedIn": true,

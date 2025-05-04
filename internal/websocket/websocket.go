@@ -55,7 +55,7 @@ func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request, messageHa
 	}
 
 	client := &Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256), UserID: userID}
-	log.Printf("Client connected with User 🆔: %d", userID)
+	// log.Printf("Client connected with User 🆔: %d", userID)
 	client.Hub.Register <- client
 
 	// Send online status
@@ -105,8 +105,8 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			// Log the message being sent (for debugging)
-			log.Printf("Sending message to client %d: %s", c.UserID, string(message))
+			// // Log the message being sent (for debugging)
+			// log.Printf("Sending message to client %d: %s", c.UserID, string(message))
 
 			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				log.Printf("Error writing message: %v", err)
@@ -142,7 +142,7 @@ func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 			break
 		}
 		messageHandler(c, message)
-		Print_userIDs("ReadPump")
+		// Print_userIDs("ReadPump")
 	}
 }
 
@@ -230,11 +230,11 @@ func (h *Hub) Run() {
 				client.SetOnlineStatus(false)
 			}
 		case message := <-h.Broadcast:
-			log.Printf("Broadcasting message to %d clients", len(h.clients))
+			// log.Printf("Broadcasting message to %d clients", len(h.clients))
 			for client := range h.clients {
 				select {
 				case client.Send <- message:
-					log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+					// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
 				default:
 					log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
 					close(client.Send)
@@ -242,14 +242,14 @@ func (h *Hub) Run() {
 				}
 			}
 		}
-		Print_userIDs("Run")
+		// Print_userIDs("Run")
 	}
 }
 
-func Print_userIDs(caller string) {
-	userIDs := GetOnlineUsers()
-	log.Printf("Online User 🆔s (%s): %v", caller, userIDs)
-}
+// func Print_userIDs(caller string) {
+// 	userIDs := GetOnlineUsers()
+// 	log.Printf("Online User 🆔s (%s): %v", caller, userIDs)
+// }
 
 /*func SendPostsViaWebSocket(client *Client) {
 	posts, _, err := database.GetPosts(1, 10) // Get the first 10 posts
