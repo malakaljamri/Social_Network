@@ -39,6 +39,12 @@ function updateUserStatusUI(data) {
             <a title="Create New Post" href="/create-post" class="create-post-btn">
                 <i class="fas fa-plus-circle"></i> ✍️ Create Post
             </a>
+            <a title="Groups Page" href="/groups" class="groups-page-btn">
+                <i class="fas fa-users"></i> 👥 Groups
+            </a>
+            <a title="Create Group" href="#" class="create-group-btn">
+                <i class="fas fa-plus-square"></i> ➕ Create Group
+            </a>
             <span class="username">
                 <i class="fas fa-user"></i> ${data.username} 👋
             </span>
@@ -50,6 +56,26 @@ function updateUserStatusUI(data) {
             </button>
         `;
         
+        document.querySelector('a[href="/groups"]').addEventListener('click', function(e) {
+            e.preventDefault();
+        
+            // 1. Hide or clear the sidebar
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.innerHTML = '';
+        
+            // 2. Update <h2>Social Network</h2> to Group Events
+            const h2 = document.querySelector('h2');
+            if (h2 && h2.textContent.trim() === 'Social Network') {
+                h2.textContent = 'Group Events';
+            }
+        
+            // 3. Update <h1>Welcome to Social Network</h1> to Group Posts
+            const h1 = document.querySelector('h1');
+            if (h1 && h1.textContent.trim() === 'Welcome To Social Network') {
+                h1.textContent = 'Group Posts';
+            }
+        });
+                
         // Add event listener for the profile link
         document.getElementById('profile-link').addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
@@ -76,7 +102,7 @@ function updateUserStatusUI(data) {
                 }
             }
         });
-        
+        // Create Post Listener
         document.querySelector('a[href="/create-post"]').addEventListener('click', function(e) {
             e.preventDefault();
             const overlay = document.createElement('div');
@@ -204,6 +230,49 @@ function updateUserStatusUI(data) {
                 if (e.target === overlay) overlay.remove();
             });
         });        
+        
+        // Create Group Listener
+        document.querySelector('.create-group-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+        
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;';
+        
+            overlay.innerHTML = `
+                <div class="card">
+                    <h2>Create a New Group</h2>
+                    <form id="create-group-form">
+                        <label for="group-name">Enter Group Name:</label>
+                        <input type="text" id="group-name" placeholder="Group Name" required 
+                            minlength="3" maxlength="100" 
+                            pattern="^[a-zA-Z0-9\\s!?.,'-]+$"
+                            title="Name must be between 3 and 100 characters and contain valid characters.">
+        
+                        <label for="group-description">Enter Group Description:</label>
+                        <input type="text" id="group-description" placeholder="Group Description" required 
+                            minlength="10" maxlength="1000">
+        
+                        <label for="group-privacy">Privacy Setting:</label>
+                        <select id="group-privacy" required>
+                            <option value="public" selected>Public</option>
+                            <option value="almost_private">Followers</option>
+                            <option value="private">Chosen Followers</option>
+                        </select>
+        
+                        <button type="submit" id="submit-group-btn">Create Group</button>
+                    </form>
+                </div>
+            `;
+        
+            document.body.appendChild(overlay);
+        
+            // Close modal on outside click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+        
+            // Future: Add submit handler for #create-group-form here
+        });
         
         sideDivs.forEach(function(element) {
             element.style.display = "block";
