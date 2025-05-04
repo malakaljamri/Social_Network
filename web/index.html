@@ -76,9 +76,23 @@
     </div>
 
     <div id="forum-container">
+        <!-- Groups View -->
+<div v-show="currentView === 'groups'" class="groups-view">
+    <h2 style="text-align: center;">Group Description</h2>
+    <div id="group-description-section" class="card" style="margin: 1em;">
+        <template v-if="!selectedGroup">
+            <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+        </template>
+        <template v-else>
+            <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
+            <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
+            <p>[[selectedGroup.description]]</p>
+        </template>
+    </div>
+</div>
         <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
         <!-- User Search Bar (now inside Vue app root) -->
-        <div id="user-search">
+        <div id="user-search" v-show="currentView !== 'groups'">
             <input
                 type="text"
                 v-model="userSearchQuery"

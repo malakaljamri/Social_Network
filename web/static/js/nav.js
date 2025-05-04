@@ -59,13 +59,16 @@ function updateUserStatusUI(data) {
         document.querySelector('a[href="/groups"]')?.addEventListener('click', async function (e) {
             e.preventDefault();
         
+            const vueApp = window.__VUE_APP__;
+            if (vueApp && vueApp.goToGroups) vueApp.goToGroups();
+        
             // Clear sidebar
             const sidebar = document.getElementById('sidebar');
             if (sidebar) sidebar.innerHTML = '';
         
             // Update headings
             const h2 = document.querySelector('h2');
-            if (h2 && h2.textContent.trim() === 'Social Network') h2.textContent = 'Group Events';
+            if (h2 && h2.textContent.trim() === 'Social Network') h2.textContent = 'Group Description';
         
             const h1 = document.querySelector('h1');
             if (h1 && h1.textContent.trim() === 'Welcome To Social Network') h1.textContent = 'Group Posts';
@@ -106,9 +109,17 @@ function updateUserStatusUI(data) {
                     const btn = document.createElement('button');
                     btn.textContent = group.Name;
                     btn.className = 'group-list-btn';
+        
                     btn.addEventListener('click', () => {
-                        console.log("Selected group:", group.Name);
+                        if (vueApp && vueApp.selectGroup) {
+                            vueApp.selectGroup({
+                                creatorUsername: group.Creator?.Username || 'unknown',
+                                createdAt: group.CreatedAt || '',
+                                description: group.Description || 'No description available.'
+                            });
+                        }
                     });
+        
                     listDiv.appendChild(btn);
                     groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
                 });
@@ -128,6 +139,7 @@ function updateUserStatusUI(data) {
             groupListContainer.appendChild(listDiv);
             document.body.appendChild(groupListContainer);
         });
+        
         
         
         // Add event listener for the profile link
