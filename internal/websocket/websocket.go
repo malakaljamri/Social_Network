@@ -7,7 +7,6 @@ import (
 	"social_network/internal/database"
 	"sync"
 	"time"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -293,3 +292,5 @@ func BroadcastTime(hub *Hub) { // This function is only for testing purposes
 		hub.Broadcast <- jsonMessage
 	}
 }
+
+var MainHub = NewHub()

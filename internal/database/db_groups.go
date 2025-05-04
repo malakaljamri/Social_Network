@@ -31,4 +31,25 @@ func CreateGroup(db *sql.DB, group *Group) error {
     return nil
 }
 
+func GetAllGroups(db *sql.DB) ([]Group, error) {
+    rows, err := db.Query("SELECT id, name, description FROM groups")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var groups []Group
+    for rows.Next() {
+        var g Group
+        err := rows.Scan(&g.ID, &g.Name, &g.Description)
+        if err != nil {
+            return nil, err
+        }
+        groups = append(groups, g)
+    }
+
+    return groups, nil
+}
+
+
 

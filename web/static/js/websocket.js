@@ -625,3 +625,43 @@ function updateTypingStatus(data) {
         typingIndicator.remove();
     }
 }
+
+socket.addEventListener('message', function (event) {
+    const data = JSON.parse(event.data);
+
+    // 🔔 Handle new group live update
+    if (data.Type === 'new_group') {
+        const group = data.Content;
+
+        const groupListContainer = document.getElementById('group-list-container');
+        if (!groupListContainer) return;
+
+        const listDiv = groupListContainer.querySelector('div');
+        if (!listDiv) return;
+
+        // Avoid duplicate buttons
+        const existing = Array.from(listDiv.querySelectorAll('button')).some(btn =>
+            btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
+        );
+        if (existing) return;
+
+        const btn = document.createElement('button');
+        btn.textContent = group.name;
+        btn.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: left;
+            cursor: pointer;
+        `;
+        btn.addEventListener('click', () => {
+            console.log("Selected group:", group.name);
+        });
+        listDiv.appendChild(btn);
+    }
+});
+

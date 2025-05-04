@@ -56,26 +56,111 @@ function updateUserStatusUI(data) {
             </button>
         `;
         
-        document.querySelector('a[href="/groups"]').addEventListener('click', function(e) {
+        document.querySelector('a[href="/groups"]')?.addEventListener('click', async function (e) {
             e.preventDefault();
         
-            // 1. Hide or clear the sidebar
+            // Clear sidebar
             const sidebar = document.getElementById('sidebar');
             if (sidebar) sidebar.innerHTML = '';
         
-            // 2. Update <h2>Social Network</h2> to Group Events
+            // Update headings
             const h2 = document.querySelector('h2');
             if (h2 && h2.textContent.trim() === 'Social Network') {
                 h2.textContent = 'Group Events';
             }
         
-            // 3. Update <h1>Welcome to Social Network</h1> to Group Posts
             const h1 = document.querySelector('h1');
             if (h1 && h1.textContent.trim() === 'Welcome To Social Network') {
                 h1.textContent = 'Group Posts';
             }
+        
+            // Remove existing group list
+            const oldList = document.getElementById('group-list-container');
+            if (oldList) oldList.remove();
+        
+            // Create new container
+            const groupListContainer = document.createElement('div');
+            groupListContainer.id = 'group-list-container';
+            groupListContainer.style.cssText = `
+                width: 250px;
+                background: #f9f9f9;
+                border-right: 1px solid #ccc;
+                padding: 1rem;
+                overflow-y: auto;
+                max-height: 90vh;
+            `;
+        
+            // Header
+            const listHeader = document.createElement('h3');
+            listHeader.textContent = 'List of Groups';
+        
+            // Search input
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search groups...';
+            searchInput.style.cssText = `
+                width: 100%;
+                padding: 6px 10px;
+                margin: 10px 0;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            `;
+        
+            groupListContainer.appendChild(listHeader);
+            groupListContainer.appendChild(searchInput);
+        
+            const listDiv = document.createElement('div');
+            const groupButtons = [];
+        
+            try {
+                const res = await fetch('/api/groups');
+                const groups = await res.json();
+        
+                if (groups.length === 0) {
+                    listDiv.innerHTML = '<p>No groups available.</p>';
+                } else {
+                    groups.forEach(group => {
+                        const btn = document.createElement('button');
+                        btn.textContent = group.Name;
+                        btn.style.cssText = `
+                            display: block;
+                            width: 100%;
+                            padding: 8px 10px;
+                            margin-bottom: 5px;
+                            background-color: #fff;
+                            border: 1px solid #ccc;
+                            border-radius: 4px;
+                            text-align: left;
+                            cursor: pointer;
+                        `;
+                        btn.addEventListener('click', () => {
+                            console.log("Selected group:", group.Name);
+                        });
+                        listDiv.appendChild(btn);
+                        groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
+                    });
+                }
+        
+                // Filter behavior
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase();
+                    groupButtons.forEach(({ name, element }) => {
+                        element.style.display = name.includes(query) ? 'block' : 'none';
+                    });
+                });
+        
+            } catch (error) {
+                listDiv.innerHTML = '<p>Error loading groups.</p>';
+                console.error('Failed to fetch groups:', error);
+            }
+        
+            groupListContainer.appendChild(listDiv);
+        
+            const forumContainer = document.getElementById('forum-container');
+            forumContainer.style.display = 'flex';
+            forumContainer.insertAdjacentElement('beforebegin', groupListContainer);
         });
-                
+        
         // Add event listener for the profile link
         document.getElementById('profile-link').addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');

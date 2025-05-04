@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"social_network/internal/database"
+    "social_network/internal/websocket"
 	"log"
 )
 
@@ -38,6 +39,22 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 
         log.Println("✅ Group inserted into DB")
 
+		// Broadcast new group to all clients
+		message := websocket.Message{
+			Type: "new_group",
+			Content: map[string]interface{}{
+				"id":          group.ID,
+				"name":        group.Name,
+				"description": group.Description,
+			},
+		}
+		jsonMessage, err := json.Marshal(message)
+		if err == nil {
+			websocket.MainHub.Broadcast <- jsonMessage
+		}
+		
+
+
         w.WriteHeader(http.StatusCreated)
         json.NewEncoder(w).Encode(map[string]string{
             "status": "success",
@@ -45,5 +62,16 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
     }
 }
 
+func GetAllGroupsHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        groups, err := database.GetAllGroups(db)
+        if err != nil {
+            http.Error(w, "Failed to fetch groups", http.StatusInternalServerError)
+            return
+        }
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(groups)
+    }
+}
 
 
