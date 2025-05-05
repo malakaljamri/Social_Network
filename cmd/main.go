@@ -10,6 +10,7 @@ import (
 	"social_network/internal/database"
 	"social_network/internal/handlers"
 	"social_network/internal/websocket"
+	
 )
 
 func main() {
@@ -20,14 +21,14 @@ func main() {
 	}
 	defer db.Close()
 
-	hub := websocket.NewHub()
-	go hub.Run()
+	go websocket.MainHub.Run()
+
 	// go websocket.BroadcastTime(hub) // This function is only for testing purposes
 
 	// handlers with hub
-	authHandlers := auth.NewAuthHandlers(hub)
-	chatHandlers := handlers.NewChatHandlers(hub)
-
+	authHandlers := auth.NewAuthHandlers(websocket.MainHub)
+	chatHandlers := handlers.NewChatHandlers(websocket.MainHub)
+	
 	// Create a new ServeMux
 	mux := http.NewServeMux()
 	// Get the directory of the current file
@@ -74,6 +75,9 @@ func main() {
 	mux.HandleFunc("/comment/delete", handlers.DeleteComment)
 	mux.HandleFunc("/post/like", handlers.LikePost)
 	mux.HandleFunc("/post/dislike", handlers.DislikePost)
+	mux.HandleFunc("/api/groups/create", handlers.CreateGroupHandler(db))
+	mux.HandleFunc("/api/groups", handlers.GetAllGroupsHandler(db))
+
 	// mux.HandleFunc("/comment/like", handlers.LikeComment)
 	// mux.HandleFunc("/comment/dislike", handlers.DislikeComment)
 
@@ -88,4 +92,5 @@ func main() {
 	// Start the server
 	log.Println("Server starting on http://localhost:8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", mux))
+
 }

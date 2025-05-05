@@ -134,7 +134,7 @@ func GetOnlineUsersDetails(userIDs []int, userID int) ([]models.User, error) {
 		_, user.Online = OnlineUsers[user.ID]
 		users = append(users, user)
 	}
-	fmt.Println(users)
+	// fmt.Println(users)
 	return users, nil
 }
 

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	// "log"
 	"net/http"
 	"slices"
 	"social_network/internal/database"
@@ -183,7 +183,7 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 	// Fetch posts by the user
 	posts, err := database.GetPostsByUser(userID, page, limit)
 	if err != nil {
-		log.Printf("Error fetching posts for user %d: %v", userID, err)
+		// log.Printf("Error fetching posts for user %d: %v", userID, err)
 		http.Error(w, "Error fetching user posts", http.StatusInternalServerError)
 		return
 	}
@@ -193,7 +193,7 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 		posts = []models.Post{}
 	}
 
-	log.Printf("Returning %d posts for user %d", len(posts), userID)
+	// log.Printf("Returning %d posts for user %d", len(posts), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
 }
@@ -211,7 +211,7 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 	// Fetch followers
 	followers, err := database.GetFollowers(userID)
 	if err != nil {
-		log.Printf("Error fetching followers for user %d: %v", userID, err)
+		// log.Printf("Error fetching followers for user %d: %v", userID, err)
 		http.Error(w, "Error fetching followers", http.StatusInternalServerError)
 		return
 	}
@@ -221,7 +221,7 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 		followers = []models.User{}
 	}
 
-	log.Printf("Returning %d followers for user %d", len(followers), userID)
+	// log.Printf("Returning %d followers for user %d", len(followers), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(followers)
 }
@@ -239,7 +239,7 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 	// Fetch following
 	following, err := database.GetFollowing(userID)
 	if err != nil {
-		log.Printf("Error fetching following for user %d: %v", userID, err)
+		// log.Printf("Error fetching following for user %d: %v", userID, err)
 		http.Error(w, "Error fetching following", http.StatusInternalServerError)
 		return
 	}
@@ -249,7 +249,7 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 		following = []models.User{}
 	}
 
-	log.Printf("Returning %d following for user %d", len(following), userID)
+	// log.Printf("Returning %d following for user %d", len(following), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(following)
 }

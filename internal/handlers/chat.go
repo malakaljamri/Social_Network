@@ -49,7 +49,7 @@ func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byte) {
-	log.Printf("Received raw message (handleChatMessage): %s", string(message))
+	// log.Printf("Received raw message (handleChatMessage): %s", string(message))
 	var baseMessage struct {
 		Type        string          `json:"type"`
 		Content     json.RawMessage `json:"content"`

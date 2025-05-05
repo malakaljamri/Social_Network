@@ -39,6 +39,12 @@ function updateUserStatusUI(data) {
             <a title="Create New Post" href="/create-post" class="create-post-btn">
                 <i class="fas fa-plus-circle"></i> ✍️ Create Post
             </a>
+            <a title="Groups Page" href="/groups" class="groups-page-btn">
+                <i class="fas fa-users"></i> 👥 Groups
+            </a>
+            <a title="Create Group" href="#" class="create-group-btn">
+                <i class="fas fa-plus-square"></i> ➕ Create Group
+            </a>
             <span class="username">
                 <i class="fas fa-user"></i> ${data.username} 👋
             </span>
@@ -49,6 +55,92 @@ function updateUserStatusUI(data) {
                 <i class="fas fa-sign-out-alt"></i> 🚪 Logout
             </button>
         `;
+        
+        document.querySelector('a[href="/groups"]')?.addEventListener('click', async function (e) {
+            e.preventDefault();
+        
+            const vueApp = window.__VUE_APP__;
+            if (vueApp && vueApp.goToGroups) vueApp.goToGroups();
+        
+            // Clear sidebar
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.innerHTML = '';
+        
+            // Update headings
+            const h2 = document.querySelector('h2');
+            if (h2 && h2.textContent.trim() === 'Social Network') h2.textContent = 'Group Description';
+        
+            const h1 = document.querySelector('h1');
+            if (h1 && h1.textContent.trim() === 'Welcome To Social Network') h1.textContent = 'Group Posts';
+        
+            // Adjust forum container layout
+            const forumContainer = document.getElementById('forum-container');
+            forumContainer.classList.add('groups-view');
+        
+            // Remove existing group list
+            const oldList = document.getElementById('group-list-container');
+            if (oldList) oldList.remove();
+        
+            // Create new container
+            const groupListContainer = document.createElement('div');
+            groupListContainer.id = 'group-list-container';
+            groupListContainer.className = 'group-list-container';
+        
+            const listHeader = document.createElement('h3');
+            listHeader.textContent = 'List of Groups';
+            listHeader.className = 'group-list-header';
+        
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search groups...';
+            searchInput.className = 'group-search';
+        
+            groupListContainer.appendChild(listHeader);
+            groupListContainer.appendChild(searchInput);
+        
+            const listDiv = document.createElement('div');
+            const groupButtons = [];
+        
+            try {
+                const res = await fetch('/api/groups');
+                const groups = await res.json();
+        
+                groups.forEach(group => {
+                    const btn = document.createElement('button');
+                    btn.textContent = group.Name;
+                    btn.className = 'group-list-btn';
+        
+                    btn.addEventListener('click', () => {
+                        if (vueApp && vueApp.selectGroup) {
+                            vueApp.selectGroup({
+                                creatorUsername: group.Creator?.Username || 'unknown',
+                                createdAt: group.CreatedAt || '',
+                                description: group.Description || 'No description available.'
+                            });
+                        }
+                    });
+        
+                    listDiv.appendChild(btn);
+                    groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
+                });
+        
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase();
+                    groupButtons.forEach(({ name, element }) => {
+                        element.style.display = name.includes(query) ? 'block' : 'none';
+                    });
+                });
+        
+            } catch (error) {
+                listDiv.innerHTML = '<p>Error loading groups.</p>';
+                console.error('Failed to fetch groups:', error);
+            }
+        
+            groupListContainer.appendChild(listDiv);
+            document.body.appendChild(groupListContainer);
+        });
+        
+        
         
         // Add event listener for the profile link
         document.getElementById('profile-link').addEventListener('click', function() {
@@ -76,7 +168,7 @@ function updateUserStatusUI(data) {
                 }
             }
         });
-        
+        // Create Post Listener
         document.querySelector('a[href="/create-post"]').addEventListener('click', function(e) {
             e.preventDefault();
             const overlay = document.createElement('div');
@@ -205,6 +297,81 @@ function updateUserStatusUI(data) {
             });
         });        
         
+        // Create Group Listener
+        document.querySelector('.create-group-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+        
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;';
+        
+            overlay.innerHTML = `
+                <div class="card">
+                    <h2>Create a New Group</h2>
+                    <form id="create-group-form">
+                        <label for="group-name">Enter Group Name:</label>
+                        <input type="text" id="group-name" placeholder="Group Name" required minlength="3" maxlength="100" />
+        
+                        <label for="group-description">Enter Group Description:</label>
+                        <input type="text" id="group-description" placeholder="Group Description" required minlength="10" maxlength="1000" />
+        
+                        <button type="submit" id="submit-group-btn">Create Group</button>
+                    </form>
+                </div>
+            `;
+        
+            document.body.appendChild(overlay);
+        
+            // Close on outside click
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) overlay.remove();
+            });
+        
+            // Submit handler
+            document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('group-name').value.trim();
+                const description = document.getElementById('group-description').value.trim();
+        
+                const response = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, description })
+                });
+        
+                if (response.ok) {
+                    const card = overlay.querySelector('.card');
+                    card.innerHTML = `<h2 style="text-align: center;">Group Created!</h2>`;
+                
+                    setTimeout(() => {
+                        overlay.remove();
+                    }, 1000);
+                }                
+            });
+        });
+        
+        // Create Group Form
+        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('group-name').value.trim();
+            const description = document.getElementById('group-description').value.trim();
+        
+            const response = await fetch('/api/groups/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ name, description })
+            });
+        
+            if (response.ok) {
+                alert('✅ Group created successfully!');
+                overlay.remove();
+            } else {
+                const err = await response.text();
+                alert(`❌ Failed: ${err}`);
+            }
+        });
+        
         sideDivs.forEach(function(element) {
             element.style.display = "block";
         });
@@ -328,6 +495,7 @@ function updateUserStatusUI(data) {
             
                 loginResponse.style.color = 'Green';
                 loginResponse.innerText = 'Logging in...';
+                
             
                 try {
                     // First do the login

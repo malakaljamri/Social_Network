@@ -8,6 +8,11 @@ const app = createApp({
     setup() {
         // State variables
         const posts = ref([]);
+        const selectedGroup = ref(null);
+
+        function selectGroup(group) {
+            selectedGroup.value = group;
+        }            
         const loading = ref(true);
         loading.value = false;
         const currentPage = ref(1);
@@ -29,6 +34,9 @@ const app = createApp({
         
         // Profile page state - all arrays must be initialized to empty arrays
         const currentView = ref('posts'); // 'posts', 'profile'
+        function goToGroups() {
+            currentView.value = 'groups';
+        }
         const profileUser = reactive({
             id: null,
             username: '',
@@ -743,7 +751,11 @@ const app = createApp({
             returnToFeed,
             viewPostsByUser,
             updatePrivacySetting,
+            selectedGroup,
+            selectGroup,
+            formatDate,
             searchUsers,
+            goToGroups,
             showAlert
         };
     }
@@ -754,4 +766,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // setTimeout(() => {
         app.mount('#forum-container');
     // }, 1000); // Delay to ensure DOM is ready
+    window.__VUE_APP__ = app._instance.proxy;
 });
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
