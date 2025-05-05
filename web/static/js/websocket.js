@@ -139,21 +139,6 @@ function handleWebSocketMessage(message) {
                 });
             }
             break;
-        // case 'users_update':
-        //     // Handle bulk updates to online users list
-        //     if (message.content.users) {
-        //         onlineUsers.clear();
-        //         message.content.users.forEach(user => {
-        //             if (user.ID !== currentUserID) {
-        //                 onlineUsers.set(user.ID, {
-        //                     online: true,
-        //                     username: user.Username
-        //                 });
-        //             }
-        //         });
-        //         updateOnlineUsersList();
-        //     }
-        //     break;
         case 'chat':
             if (message.content.Receiver_id === 0) { // Public chat message
                 const publicChatContainer = document.querySelector('.public_chat_messagesContainer');
@@ -183,6 +168,41 @@ function handleWebSocketMessage(message) {
             break;
         case 'error':
             console.error("Server error:", message.content);
+            break;
+        case 'new_group':
+            const group = message.content;
+            const groupListContainer = document.getElementById('group-list-container');
+            if (!groupListContainer) return;
+
+            const listDiv = groupListContainer.querySelector('div:last-child');
+            if (!listDiv) return;
+
+            const exists = Array.from(listDiv.querySelectorAll('button')).some(btn =>
+                btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
+            );
+            if (exists) return;
+
+            const btn = document.createElement('button');
+            btn.textContent = group.name;
+            btn.className = 'group-list-btn';
+            
+            btn.addEventListener('click', () => {
+                const username = group.creator && group.creator.username ? group.creator.username : 'unknown';
+                const createdDate = new Date(group.created_at);
+                const formatted = `${createdDate.getDate().toString().padStart(2, '0')}/${(createdDate.getMonth() + 1).toString().padStart(2, '0')}/${createdDate.getFullYear()}`;
+                
+                const vueApp = window.__VUE_APP__;
+                if (vueApp && vueApp.selectGroup) {
+                    vueApp.selectGroup({
+                        name: group.name,
+                        creatorUsername: username,
+                        createdAt: formatted,
+                        description: group.description || 'No description available.'
+                    });
+                }
+            });
+
+            listDiv.appendChild(btn);
             break;
         default:
             console.warn('Unknown message type:', message);
@@ -625,31 +645,5 @@ function updateTypingStatus(data) {
         typingIndicator.remove();
     }
 }
-
-socket.addEventListener('message', function (event) {
-    const data = JSON.parse(event.data);
-
-    if (data.Type === 'new_group') {
-        const group = data.Content;
-        const groupListContainer = document.getElementById('group-list-container');
-        if (!groupListContainer) return;
-
-        const listDiv = groupListContainer.querySelector('div');
-        if (!listDiv) return;
-
-        const exists = Array.from(listDiv.querySelectorAll('button')).some(btn =>
-            btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
-        );
-        if (exists) return;
-
-        const btn = document.createElement('button');
-        btn.textContent = group.name;
-        btn.className = 'group-list-btn';
-        btn.addEventListener('click', () => {
-            console.log("Selected group:", group.name);
-        });
-        listDiv.appendChild(btn);
-    }
-});
 
 
