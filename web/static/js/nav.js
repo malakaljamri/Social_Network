@@ -111,14 +111,23 @@ function updateUserStatusUI(data) {
                     btn.className = 'group-list-btn';
         
                     btn.addEventListener('click', () => {
-                        if (vueApp && vueApp.selectGroup) {
-                            vueApp.selectGroup({
-                                creatorUsername: group.Creator?.Username || 'unknown',
-                                createdAt: group.CreatedAt || '',
-                                description: group.Description || 'No description available.'
-                            });
+                        const username = group.Creator && group.Creator.Username ? group.Creator.Username : 'unknown';
+                    
+                        let formatted = '';
+                        if (group.CreatedAt) {
+                            const createdDate = new Date(group.CreatedAt);
+                            if (!isNaN(createdDate)) {
+                                formatted = `${createdDate.getDate().toString().padStart(2, '0')}/${(createdDate.getMonth() + 1).toString().padStart(2, '0')}/${createdDate.getFullYear()}`;
+                            }
                         }
-                    });
+                    
+                        vueApp.selectGroup({
+                            name: group.Name,
+                            creatorUsername: username,
+                            createdAt: formatted || 'N/A',
+                            description: group.Description || 'No description available.'
+                        });
+                    });                    
         
                     listDiv.appendChild(btn);
                     groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
