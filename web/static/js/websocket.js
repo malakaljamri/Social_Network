@@ -38,6 +38,7 @@ function initializeWebSocket() {
                     }
                     await fetchOnlineUsers();
                     resolve();
+                    socketMessageListener();
                 } catch (error) {
                     reject(error);
                 }
@@ -626,30 +627,31 @@ function updateTypingStatus(data) {
     }
 }
 
-socket.addEventListener('message', function (event) {
-    const data = JSON.parse(event.data);
+function socketMessageListener() {
+    socket.addEventListener('message', function (event) {
+        const data = JSON.parse(event.data);
 
-    if (data.Type === 'new_group') {
-        const group = data.Content;
-        const groupListContainer = document.getElementById('group-list-container');
-        if (!groupListContainer) return;
+        if (data.Type === 'new_group') {
+            const group = data.Content;
+            const groupListContainer = document.getElementById('group-list-container');
+            if (!groupListContainer) return;
 
-        const listDiv = groupListContainer.querySelector('div');
-        if (!listDiv) return;
+            const listDiv = groupListContainer.querySelector('div');
+            if (!listDiv) return;
 
-        const exists = Array.from(listDiv.querySelectorAll('button')).some(btn =>
-            btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
-        );
-        if (exists) return;
+            const exists = Array.from(listDiv.querySelectorAll('button')).some(btn =>
+                btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
+            );
+            if (exists) return;
 
-        const btn = document.createElement('button');
-        btn.textContent = group.name;
-        btn.className = 'group-list-btn';
-        btn.addEventListener('click', () => {
-            console.log("Selected group:", group.name);
-        });
-        listDiv.appendChild(btn);
-    }
-});
-
+            const btn = document.createElement('button');
+            btn.textContent = group.name;
+            btn.className = 'group-list-btn';
+            btn.addEventListener('click', () => {
+                console.log("Selected group:", group.name);
+            });
+            listDiv.appendChild(btn);
+        }
+    });
+}
 

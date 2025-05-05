@@ -62,82 +62,96 @@ function updateUserStatusUI(data) {
             const vueApp = window.__VUE_APP__;
             if (vueApp && vueApp.goToGroups) vueApp.goToGroups();
         
-            // Clear sidebar
+            // Get the sidebar element
             const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.innerHTML = '';
+            if (!sidebar) return;
         
-            // Update headings
-            const h2 = document.querySelector('h2');
-            if (h2 && h2.textContent.trim() === 'Social Network') h2.textContent = 'Group Description';
+            // Check if the group list already exists
+            const existingGroupList = document.getElementById('group-list-container');
+            if (existingGroupList) {
+                console.log('Group list already exists.');
+                return;
+            }
         
-            const h1 = document.querySelector('h1');
-            if (h1 && h1.textContent.trim() === 'Welcome To Social Network') h1.textContent = 'Group Posts';
-        
-            // Adjust forum container layout
-            const forumContainer = document.getElementById('forum-container');
-            forumContainer.classList.add('groups-view');
-        
-            // Remove existing group list
-            const oldList = document.getElementById('group-list-container');
-            if (oldList) oldList.remove();
-        
-            // Create new container
+            // Create a new container for the group list
             const groupListContainer = document.createElement('div');
             groupListContainer.id = 'group-list-container';
             groupListContainer.className = 'group-list-container';
         
+            // Add a header for the group list
             const listHeader = document.createElement('h3');
             listHeader.textContent = 'List of Groups';
             listHeader.className = 'group-list-header';
         
+            // Add a button to remove the group list
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove Groups';
+            removeButton.className = 'remove-groups-btn';
+            removeButton.style.cssText = 'margin-left: 10px; background: red; color: white; border: none; padding: 5px; cursor: pointer;';
+            removeButton.addEventListener('click', () => {
+                groupListContainer.remove();
+            });
+        
+            // Add a search input for filtering groups
             const searchInput = document.createElement('input');
             searchInput.type = 'text';
             searchInput.placeholder = 'Search groups...';
             searchInput.className = 'group-search';
         
+            // Append the header and remove button to the group list container
             groupListContainer.appendChild(listHeader);
+            groupListContainer.appendChild(removeButton);
             groupListContainer.appendChild(searchInput);
         
+            // Add a container for the group buttons
             const listDiv = document.createElement('div');
             const groupButtons = [];
         
             try {
+                // Fetch the list of groups from the server
                 const res = await fetch('/api/groups');
                 const groups = await res.json();
         
-                groups.forEach(group => {
-                    const btn = document.createElement('button');
-                    btn.textContent = group.Name;
-                    btn.className = 'group-list-btn';
-        
-                    btn.addEventListener('click', () => {
-                        if (vueApp && vueApp.selectGroup) {
-                            vueApp.selectGroup({
-                                creatorUsername: group.Creator?.Username || 'unknown',
-                                createdAt: group.CreatedAt || '',
-                                description: group.Description || 'No description available.'
-                            });
-                        }
+                if (!groups || !Array.isArray(groups)) {
+                    listDiv.innerHTML = '<p>No groups available.</p>';
+                } else {
+                    groups.forEach(group => {
+                        const btn = document.createElement('button');
+                        btn.textContent = group.Name;
+                        btn.className = 'group-list-btn';
+            
+                        btn.addEventListener('click', () => {
+                            if (vueApp && vueApp.selectGroup) {
+                                vueApp.selectGroup({
+                                    creatorUsername: group.Creator?.Username || 'unknown',
+                                    createdAt: group.CreatedAt || '',
+                                    description: group.Description || 'No description available.',
+                                });
+                            }
+                        });
+            
+                        listDiv.appendChild(btn);
+                        groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
                     });
-        
-                    listDiv.appendChild(btn);
-                    groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
-                });
-        
-                searchInput.addEventListener('input', () => {
-                    const query = searchInput.value.toLowerCase();
-                    groupButtons.forEach(({ name, element }) => {
-                        element.style.display = name.includes(query) ? 'block' : 'none';
+            
+                    // Add functionality to filter groups based on the search input
+                    searchInput.addEventListener('input', () => {
+                        const query = searchInput.value.toLowerCase();
+                        groupButtons.forEach(({ name, element }) => {
+                            element.style.display = name.includes(query) ? 'block' : 'none';
+                        });
                     });
-                });
-        
+                }
             } catch (error) {
                 listDiv.innerHTML = '<p>Error loading groups.</p>';
                 console.error('Failed to fetch groups:', error);
             }
         
+            // Append the list of groups to the group list container
             groupListContainer.appendChild(listDiv);
-            document.body.appendChild(groupListContainer);
+        
+            // Add the group list container as the first child of the sidebar
+            sidebar.prepend(groupListContainer);
         });
         
         
@@ -351,7 +365,7 @@ function updateUserStatusUI(data) {
         });
         
         // Create Group Form
-        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+        /*document.getElementById('create-group-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('group-name').value.trim();
             const description = document.getElementById('group-description').value.trim();
@@ -370,7 +384,7 @@ function updateUserStatusUI(data) {
                 const err = await response.text();
                 alert(`❌ Failed: ${err}`);
             }
-        });
+        });*/
         
         sideDivs.forEach(function(element) {
             element.style.display = "block";
