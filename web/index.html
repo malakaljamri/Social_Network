@@ -11,8 +11,8 @@
 </head>
 <body>
     <!-- User Search Bar -->
-    <div id="sidebar">
-        <div id="sidebarContent">
+    <div id="sidebar" v-show="showSidebar">
+        <div id="sidebarContent" v-show="showSidebar">
             <div id="resultsCounter" style="text-align: center;"></div>
             <!-- Vue Groups List -->
             <!-- <div v-if="currentView === 'groups'" class="filter-section">
@@ -28,7 +28,7 @@
                 </div>
             </div> -->
             <!-- End Vue Groups List -->
-            <div class="filter-section">
+            <div class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">Categories</h3>
                 <div id="categories-list" class="content"> 
                     <!-- Vue categories list -->
@@ -43,21 +43,21 @@
                     </div>
                 </div>
             </div>
-            <div id="filterByUser" class="filter-section">
+            <div id="filterByUser" class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">User</h3>
                 <div class="content">
                     <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn"> 
                     Show only my posts
                 </div>
             </div>
-            <div class="filter-section">
+            <div class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">Date Range</h3>
                 <div class="content">
                     <input type="date" id="fromDate" v-model="filters.dateFrom">
                     <input type="date" id="toDate" v-model="filters.dateTo">
                 </div>
             </div>
-            <div class="filter-section liked-section">
+            <div class="filter-section liked-section" v-show="showSidebar">
                 <h3 class="collapsible">Liked Posts</h3>
                 <div class="content">
                 <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts

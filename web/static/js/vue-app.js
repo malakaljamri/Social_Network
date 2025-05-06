@@ -1,5 +1,5 @@
 // Vue App Implementation
-const { createApp, ref, reactive, computed, onMounted } = Vue;
+const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
 // Main Vue Application
 const app = createApp({
@@ -13,6 +13,12 @@ const app = createApp({
         const selectedGroupId = ref(null);
         const groupSearchQuery = ref('');
         const groupPosts = ref([]);
+        const currentView = ref('posts'); // 'posts', 'profile', 'groups'
+
+        // Computed property for sidebar visibility
+        const showSidebar = computed(() => {
+            return currentView.value !== 'groups';
+        });
 
         function selectGroup(group) {
             selectedGroup.value = group;
@@ -37,7 +43,6 @@ const app = createApp({
         });
         
         // Profile page state - all arrays must be initialized to empty arrays
-        const currentView = ref('posts'); // 'posts', 'profile'
         function goToGroups() {
             currentView.value = 'groups';
         }
@@ -768,6 +773,13 @@ const app = createApp({
             });
         });
 
+        // Watch for showSidebar changes and trigger sidebar logic
+        watch(showSidebar, () => {
+            if (window.handleScreenChange) {
+                window.handleScreenChange(window.matchMedia('(max-width: 1300px)'));
+            }
+        });
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -800,6 +812,9 @@ const app = createApp({
             groupSearchQuery,
             filteredGroups,
             groupPosts,
+            
+            // UI state
+            showSidebar,
             
             // Methods
             fetchPosts,
