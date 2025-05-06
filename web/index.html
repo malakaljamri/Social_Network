@@ -174,7 +174,7 @@
 
             <!-- Group Posts Section -->
             <div class="group-posts">
-                <h2>Group Posts</h2>
+                <h2>[[ selectedGroup ? (selectedGroup.name + ' Posts') : 'Group Posts' ]]</h2>
                 <div class="card">
                     <div v-if="!selectedGroup">
                         <p style="color: grey;">Select a group to view its posts</p>
