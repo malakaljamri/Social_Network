@@ -706,6 +706,8 @@ const app = createApp({
                     createdAt: group.CreatedAt,
                     description: group.Description || 'No description available.'
                 };
+                // Initialize groupPosts as an empty array before fetching
+                groupPosts.value = [];
                 // Fetch group posts
                 await fetchGroupPosts(groupId);
             }
@@ -716,7 +718,8 @@ const app = createApp({
             try {
                 const response = await fetch(`/api/groups/posts?group_id=${groupId}`);
                 if (!response.ok) throw new Error('Failed to fetch group posts');
-                groupPosts.value = await response.json();
+                const data = await response.json();
+                groupPosts.value = Array.isArray(data) ? data : [];
             } catch (error) {
                 console.error('Error fetching group posts:', error);
                 groupPosts.value = [];
