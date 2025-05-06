@@ -1542,3 +1542,36 @@ button.pagination-button.active {
     background-color: #e0e0e0;
 }
 
+/* Group Events Modal Styles */
+.group-events-btn {
+    padding: 2px 8px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0;
+    margin-right: 10px;
+    border: 1px solid #2196f3;
+    color: #1976d2;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.group-events-btn:hover {
+    background-color: #bbdefb;
+}
+.events-list {
+    background: #fafbfc;
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin-bottom: 0;
+}
+.event-item {
+    padding: 8px 0 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 1.05em;
+    overflow: hidden;
+    white-space: normal;
+}
+.event-item:last-child {
+    border-bottom: none;
+}
+

@@ -116,6 +116,11 @@ const app = createApp({
             file_path: ''
         });
 
+        // Group Events modal state
+        const showGroupEventsModal = ref(false);
+        const groupEvents = reactive({ upcoming: [], past: [] });
+        const todayDate = new Date().toLocaleDateString();
+
         // Methods
         const fetchUserStatus = async () => {
             try {
@@ -842,6 +847,35 @@ const app = createApp({
             }
         });
 
+        // Fetch group events
+        const fetchGroupEvents = async (groupId) => {
+            try {
+                const response = await fetch(`/api/groups/events?group_id=${groupId}`);
+                if (!response.ok) throw new Error('Failed to fetch group events');
+                const data = await response.json();
+                groupEvents.upcoming = data.upcoming || [];
+                groupEvents.past = data.past || [];
+            } catch (error) {
+                groupEvents.upcoming = [];
+                groupEvents.past = [];
+            }
+        };
+
+        // Format event date
+        const formatEventDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date)) return dateString;
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        // Watch for modal open to fetch events
+        watch(showGroupEventsModal, (val) => {
+            if (val && selectedGroupId.value) {
+                fetchGroupEvents(selectedGroupId.value);
+            }
+        });
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -910,6 +944,12 @@ const app = createApp({
             fetchGroupPosts,
             createGroupPost,
             handleFileUpload,
+            
+            // Group Events state
+            showGroupEventsModal,
+            groupEvents,
+            todayDate,
+            formatEventDate,
         };
     }
 });

@@ -165,8 +165,11 @@
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                     </template>
                     <template v-else>
-                        <button v-if="selectedGroup" @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px;">
+                        <button v-if="selectedGroup" @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-plus-circle"></i> Create Group Post
+                        </button>
+                        <button v-if="selectedGroup" @click="showGroupEventsModal = true" class="group-events-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-calendar-alt"></i> Group Events
                         </button>
                         <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
                         <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
@@ -219,6 +222,42 @@
                             <button type="button" class="cancel-btn" @click="showCreateGroupPostForm = false">Cancel</button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- Group Events Modal -->
+            <div v-if="showGroupEventsModal" class="modal-overlay" @click="showGroupEventsModal = false">
+                <div class="modal-content" @click.stop style="max-width: 400px;">
+                    <h2>Group Events</h2>
+                    <div class="form-group">
+                        <strong>Today's Date:</strong> <span>[[ todayDate ]]</span>
+                    </div>
+                    <div class="form-group">
+                        <strong>Upcoming Events</strong>
+                        <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
+                            <div v-if="groupEvents.upcoming.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
+                            <div v-for="event in groupEvents.upcoming" :key="event.id" class="event-item">
+                                <span style="font-weight: 500;">[[ event.title ]]</span>
+                                <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
+                                <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="margin: 18px 0;">
+                    <div class="form-group">
+                        <strong>Past Events</strong>
+                        <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
+                            <div v-if="groupEvents.past.length === 0" style="color: #888; padding: 8px;">No past events</div>
+                            <div v-for="event in groupEvents.past" :key="event.id" class="event-item">
+                                <span style="font-weight: 500;">[[ event.title ]]</span>
+                                <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
+                                <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" @click="showGroupEventsModal = false">Close</button>
+                    </div>
                 </div>
             </div>
 

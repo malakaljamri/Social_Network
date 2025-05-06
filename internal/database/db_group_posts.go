@@ -19,6 +19,15 @@ type GroupPost struct {
 	Username       string `json:"username"`
 }
 
+type GroupEvent struct {
+	ID          int    `json:"id"`
+	GroupID     int    `json:"group_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	EventDate   string `json:"event_date"`
+	CreatedBy   int    `json:"created_by"`
+}
+
 // CreateGroupPost creates a new post in a group
 func CreateGroupPost(db *sql.DB, post *GroupPost) error {
 	if post == nil {
@@ -82,4 +91,37 @@ func GetGroupPosts(db *sql.DB, groupID int) ([]GroupPost, error) {
 	}
 
 	return posts, nil
+}
+
+// GetGroupEvents retrieves all events for a specific group
+func GetGroupEvents(db *sql.DB, groupID int) ([]GroupEvent, error) {
+	query := `
+		SELECT id, group_id, title, description, event_date, created_by
+		FROM events
+		WHERE group_id = ?
+		ORDER BY event_date ASC
+	`
+	rows, err := db.Query(query, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []GroupEvent
+	for rows.Next() {
+		var event GroupEvent
+		err := rows.Scan(
+			&event.ID,
+			&event.GroupID,
+			&event.Title,
+			&event.Description,
+			&event.EventDate,
+			&event.CreatedBy,
+		)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	return events, nil
 }
