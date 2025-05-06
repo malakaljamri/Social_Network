@@ -1320,3 +1320,9 @@ button.pagination-button.active {
   margin-left: auto;
 }
 
+.group-list-btn.selected-group {
+  background: #1976d2;
+  color: #fff;
+  font-weight: bold;
+}
+

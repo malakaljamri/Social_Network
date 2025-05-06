@@ -77,20 +77,82 @@
 
     <div id="forum-container">
         <!-- Groups View -->
-<div v-show="currentView === 'groups'" class="groups-view">
-    <h2 style="text-align: center;">Group Description</h2>
-    <div id="group-description-section" class="card" style="margin: 1em;">
-        <template v-if="!selectedGroup">
-            <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
-        </template>
-        <template v-else>
-            <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
-            <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
-            <p>[[selectedGroup.description]]</p>
-        </template>
-    </div>
-</div>
-        <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
+        <div v-show="currentView === 'groups'" class="groups-view">
+            <h2 style="text-align: center;">Group Description</h2>
+            <div id="group-description-section" class="card" style="margin: 1em;">
+                <template v-if="!selectedGroup">
+                    <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+                </template>
+                <template v-else>
+                    <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
+                    <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
+                    <p>[[selectedGroup.description]]</p>
+                </template>
+            </div>
+            <!-- Dynamic Group Posts Header -->
+            <h2 style="text-align: center;">
+                <template v-if="!selectedGroup">Group Posts</template>
+                <template v-else>[[selectedGroup.name]] Posts</template>
+            </h2>
+            <!-- Group Posts Section, seamless style (no extra card) -->
+            <div id="group-posts-section" style="margin: 1em 0;">
+                <template v-if="!selectedGroup">
+                    <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+                </template>
+                <template v-else>
+                    <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%; background: white;">
+                        <!-- Loading indicator -->
+                        <div v-if="loading" class="loading-indicator">Loading posts...</div>
+                        <!-- Pagination controls -->
+                        <div id="pagination-container">
+                            <button @click="fetchGroupPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
+                            <span>Page [[currentPage]] of [[totalPages]]</span>
+                            <button @click="fetchGroupPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
+                        </div>
+                        <!-- Posts container with Vue -->
+                        <div id="posts-container">
+                            <div v-if="filteredPosts.length === 0 && !loading" class="no-posts">
+                                No posts in this group yet
+                            </div>
+                            <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
+                                <div class="post-header">
+                                    <h2>[[post.Title]]</h2>
+                                    <div class="post-meta">
+                                        <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">[[post.Author]]</span></span>
+                                        <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
+                                    </div>
+                                </div>
+                                <div class="post-content">[[post.Text]]</div>
+                                <div class="post-footer">
+                                    <div class="post-interactions">
+                                        <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUser.isLoggedIn">[[post.Likes || 0]]</button>
+                                        <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUser.isLoggedIn">[[post.Dislikes || 0]]</button>
+                                    </div>
+                                    <div class="post-category" v-if="post.Categories && post.Categories.length">
+                                        <span v-for="catId in post.Categories" :key="catId">[[getCategoryName(catId)]]</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </template>
+            </div>
+            <!-- List of Groups Sidebar (Vue dynamic, only in groups view) -->
+            <div v-show="currentView === 'groups'" class="groups-list">
+                <h2>List of Groups</h2>
+                <input type="text" placeholder="Search groups..." v-model="groupSearchQuery">
+                <div v-for="group in orderedGroups" :key="group.ID">
+                    <button
+                        :class="['group-list-btn', { 'selected-group': selectedGroup && selectedGroup.ID === group.ID }]"
+                        @click="selectGroup(group)"
+                    >
+                        [[ group.name ]]
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Hide Social Network header in groups view -->
+        <h2 style="text-align:center;margin-top:20px;" v-show="currentView !== 'groups'">Social Network</h2>
         <!-- User Search Bar (now inside Vue app root) -->
         <div id="user-search" v-show="currentView !== 'groups'">
             <input

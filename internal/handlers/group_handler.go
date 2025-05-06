@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"social_network/internal/database"
 	"social_network/internal/websocket"
+	"strconv"
 )
 
 func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
@@ -80,5 +81,49 @@ func GetAllGroupsHandler(db *sql.DB) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(groups)
+	}
+}
+
+func GetGroupPostsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get group name from URL
+		groupName := r.URL.Query().Get("name")
+		if groupName == "" {
+			http.Error(w, "Group name is required", http.StatusBadRequest)
+			return
+		}
+
+		// Get pagination parameters
+		page, err := strconv.Atoi(r.URL.Query().Get("page"))
+		if err != nil || page < 1 {
+			page = 1
+		}
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil || limit < 1 {
+			limit = 10
+		}
+
+		// Get posts for the group
+		posts, totalCount, err := database.GetGroupPosts(db, groupName, page, limit)
+		if err != nil {
+			log.Printf("Error fetching group posts: %v", err)
+			http.Error(w, "Failed to fetch group posts", http.StatusInternalServerError)
+			return
+		}
+
+		// Calculate total pages
+		totalPages := (totalCount + limit - 1) / limit
+
+		// Set headers
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Total-Pages", strconv.Itoa(totalPages))
+
+		// Return posts
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"posts": posts,
+			"total": totalCount,
+			"page":  page,
+			"limit": limit,
+		})
 	}
 }

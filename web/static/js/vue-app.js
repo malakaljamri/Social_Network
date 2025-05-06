@@ -9,9 +9,15 @@ const app = createApp({
         // State variables
         const posts = ref([]);
         const selectedGroup = ref(null);
+        const groups = ref([]);
 
         function selectGroup(group) {
             selectedGroup.value = group;
+            // Reset pagination
+            currentPage.value = 1;
+            totalPages.value = 1;
+            // Fetch posts for the selected group
+            fetchGroupPosts(1);
         }            
         const loading = ref(true);
         loading.value = false;
@@ -86,6 +92,14 @@ const app = createApp({
             // }
             
             return result;
+        });
+
+        // Computed property for reordered groups (selected group at top)
+        const orderedGroups = computed(() => {
+            if (!selectedGroup.value) return groups.value;
+            const selected = groups.value.find(g => g.ID === selectedGroup.value.ID);
+            const rest = groups.value.filter(g => g.ID !== selectedGroup.value.ID);
+            return selected ? [selected, ...rest] : groups.value;
         });
 
         // Methods
@@ -649,6 +663,49 @@ const app = createApp({
             }, 3000);
         };
 
+        // Add fetchGroupPosts function
+        const fetchGroupPosts = async (page = 1) => {
+            if (!selectedGroup.value) return;
+            
+            loading.value = true;
+            try {
+                const response = await fetch(`/api/groups/${selectedGroup.value.name}/posts?page=${page}&limit=10`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch group posts');
+                
+                const data = await response.json();
+                posts.value = data.posts || [];
+                currentPage.value = page;
+                
+                // Get total pages from header if available
+                const totalPagesHeader = response.headers.get('X-Total-Pages');
+                if (totalPagesHeader) {
+                    totalPages.value = parseInt(totalPagesHeader);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error fetching group posts:', error);
+                showAlert('Failed to load group posts');
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // Fetch groups from API
+        const fetchGroups = async () => {
+            try {
+                const response = await fetch('/api/groups');
+                if (!response.ok) throw new Error('Failed to fetch groups');
+                const data = await response.json();
+                groups.value = data || [];
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+        };
+
         // Called when component is mounted
         onMounted(async () => {
             await fetchUserStatus();
@@ -657,7 +714,7 @@ const app = createApp({
                 await fetchCategories();
                 await fetchPosts();
                 await fetchOnlineUsers();
-                // Initialize websocket for real-time features
+                await fetchGroups();
                 setTimeout(() => {
                     initializeWebSocket();
                 }, 1000);
@@ -756,7 +813,11 @@ const app = createApp({
             formatDate,
             searchUsers,
             goToGroups,
-            showAlert
+            showAlert,
+            fetchGroupPosts,
+            groups,
+            orderedGroups,
+            fetchGroups
         };
     }
 });
