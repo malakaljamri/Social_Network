@@ -11,6 +11,8 @@ const app = createApp({
         const selectedGroup = ref(null);
         const groups = ref([]);
         const selectedGroupId = ref(null);
+        const groupSearchQuery = ref('');
+        const groupPosts = ref([]);
 
         function selectGroup(group) {
             selectedGroup.value = group;
@@ -88,6 +90,15 @@ const app = createApp({
             // }
             
             return result;
+        });
+
+        // Computed property for filtered groups
+        const filteredGroups = computed(() => {
+            if (!groupSearchQuery.value) return groups.value;
+            const query = groupSearchQuery.value.toLowerCase();
+            return groups.value.filter(group => 
+                group.Name.toLowerCase().includes(query)
+            );
         });
 
         // Methods
@@ -665,12 +676,39 @@ const app = createApp({
         };
 
         // Select group by ID
-        const selectGroupById = (groupId) => {
+        const selectGroupById = async (groupId) => {
             selectedGroupId.value = groupId;
             const group = groups.value.find(g => g.ID === groupId);
             if (group) {
-                selectedGroup.value = group;
+                selectedGroup.value = {
+                    name: group.Name,
+                    creatorUsername: group.Creator?.Username || 'unknown',
+                    createdAt: group.CreatedAt,
+                    description: group.Description || 'No description available.'
+                };
+                // Fetch group posts
+                await fetchGroupPosts(groupId);
             }
+        };
+
+        // Fetch group posts
+        const fetchGroupPosts = async (groupId) => {
+            try {
+                const response = await fetch(`/api/groups/${groupId}/posts`);
+                if (!response.ok) throw new Error('Failed to fetch group posts');
+                groupPosts.value = await response.json();
+            } catch (error) {
+                console.error('Error fetching group posts:', error);
+                groupPosts.value = [];
+            }
+        };
+
+        // Format date helper
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            if (isNaN(date)) return 'N/A';
+            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
         };
 
         // Called when component is mounted
@@ -759,6 +797,9 @@ const app = createApp({
             // Groups state
             groups,
             selectedGroupId,
+            groupSearchQuery,
+            filteredGroups,
+            groupPosts,
             
             // Methods
             fetchPosts,
@@ -787,6 +828,7 @@ const app = createApp({
             showAlert,
             fetchGroups,
             selectGroupById,
+            fetchGroupPosts,
         };
     }
 });
@@ -798,8 +840,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // }, 1000); // Delay to ensure DOM is ready
     window.__VUE_APP__ = app._instance.proxy;
 });
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-}

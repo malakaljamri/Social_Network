@@ -60,96 +60,12 @@ function updateUserStatusUI(data) {
             e.preventDefault();
         
             const vueApp = window.__VUE_APP__;
-            if (vueApp && vueApp.goToGroups) vueApp.goToGroups();
-        
-            // Clear sidebar
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.innerHTML = '';
-        
-            // Update headings
-            const h2 = document.querySelector('h2');
-            if (h2 && h2.textContent.trim() === 'Social Network') h2.textContent = 'Group Description';
-        
-            const h1 = document.querySelector('h1');
-            if (h1 && h1.textContent.trim() === 'Welcome To Social Network') h1.textContent = 'Group Posts';
-        
-            // Adjust forum container layout
-            const forumContainer = document.getElementById('forum-container');
-            forumContainer.classList.add('groups-view');
-        
-            // Remove existing group list
-            const oldList = document.getElementById('group-list-container');
-            if (oldList) oldList.remove();
-        
-            // Create new container
-            const groupListContainer = document.createElement('div');
-            groupListContainer.id = 'group-list-container';
-            groupListContainer.className = 'group-list-container';
-        
-            const listHeader = document.createElement('h3');
-            listHeader.textContent = 'List of Groups';
-            listHeader.className = 'group-list-header';
-        
-            const searchInput = document.createElement('input');
-            searchInput.type = 'text';
-            searchInput.placeholder = 'Search groups...';
-            searchInput.className = 'group-search';
-        
-            groupListContainer.appendChild(listHeader);
-            groupListContainer.appendChild(searchInput);
-        
-            const listDiv = document.createElement('div');
-            const groupButtons = [];
-        
-            try {
-                const res = await fetch('/api/groups');
-                const groups = await res.json();
-        
-                groups.forEach(group => {
-                    const btn = document.createElement('button');
-                    btn.textContent = group.Name;
-                    btn.className = 'group-list-btn';
-        
-                    btn.addEventListener('click', () => {
-                        const username = group.Creator && group.Creator.Username ? group.Creator.Username : 'unknown';
-                    
-                        let formatted = '';
-                        if (group.CreatedAt) {
-                            const createdDate = new Date(group.CreatedAt);
-                            if (!isNaN(createdDate)) {
-                                formatted = `${createdDate.getDate().toString().padStart(2, '0')}/${(createdDate.getMonth() + 1).toString().padStart(2, '0')}/${createdDate.getFullYear()}`;
-                            }
-                        }
-                    
-                        vueApp.selectGroup({
-                            name: group.Name,
-                            creatorUsername: username,
-                            createdAt: formatted || 'N/A',
-                            description: group.Description || 'No description available.'
-                        });
-                    });                    
-        
-                    listDiv.appendChild(btn);
-                    groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
-                });
-        
-                searchInput.addEventListener('input', () => {
-                    const query = searchInput.value.toLowerCase();
-                    groupButtons.forEach(({ name, element }) => {
-                        element.style.display = name.includes(query) ? 'block' : 'none';
-                    });
-                });
-        
-            } catch (error) {
-                listDiv.innerHTML = '<p>Error loading groups.</p>';
-                console.error('Failed to fetch groups:', error);
+            if (vueApp) {
+                vueApp.goToGroups();
+                // Fetch groups when navigating to groups page
+                await vueApp.fetchGroups();
             }
-        
-            groupListContainer.appendChild(listDiv);
-            document.body.appendChild(groupListContainer);
         });
-        
-        
         
         // Add event listener for the profile link
         document.getElementById('profile-link').addEventListener('click', function() {

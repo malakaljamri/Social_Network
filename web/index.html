@@ -90,43 +90,6 @@
     </div>
 
     <div id="forum-container">
-        <!-- Groups View -->
-        <div v-show="currentView === 'groups'" class="groups-view">
-            <h2 style="text-align: center;">Group Description</h2>
-            <div id="group-description-section" class="card" style="margin: 1em;">
-                <template v-if="!selectedGroup">
-                    <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
-                </template>
-                <template v-else>
-                    <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
-                    <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
-                    <p>[[selectedGroup.description]]</p>
-                </template>
-            </div>
-        </div>
-        <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
-        <!-- User Search Bar (now inside Vue app root) -->
-        <div id="user-search" v-show="currentView !== 'groups'">
-            <input
-                type="text"
-                v-model="userSearchQuery"
-                @input="searchUsers"
-                placeholder="Search users..."
-                autocomplete="off"
-                class="search-input"
-            />
-            <ul v-if="userSearchResults.length" class="search-dropdown">
-                <li
-                    v-for="user in userSearchResults"
-                    :key="user.id"
-                    @click="viewUserProfile(user.id)"
-                    class="search-result"
-                >
-                    [[ user.username ]]
-                </li>
-            </ul>
-        </div>
-        
         <!-- Posts Feed View -->
         <div id="posts-feed" v-show="currentView === 'posts'">
             <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
@@ -177,6 +140,56 @@
                     </div>
                 </div>
             </main>
+        </div>
+
+        <!-- Groups View -->
+        <div id="group-main" v-show="currentView === 'groups'" class="groups-view">
+            <!-- Groups List Container -->
+            <div class="group-list-container">
+                <h3 class="group-list-header">List of Groups</h3>
+                <input type="text" placeholder="Search groups..." class="group-search" v-model="groupSearchQuery">
+                <div class="group-list">
+                    <div v-for="group in filteredGroups" :key="group.ID"
+                         :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                         @click="selectGroupById(group.ID)">
+                        [[ group.Name ]]
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Description Section -->
+            <div class="group-description">
+                <h2>Group Description</h2>
+                <div class="card">
+                    <template v-if="!selectedGroup">
+                        <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+                    </template>
+                    <template v-else>
+                        <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
+                        <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
+                        <p>[[selectedGroup.description]]</p>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Group Posts Section -->
+            <div class="group-posts">
+                <h2>Group Posts</h2>
+                <div class="card">
+                    <div v-if="!selectedGroup">
+                        <p style="color: grey;">Select a group to view its posts</p>
+                    </div>
+                    <div v-else>
+                        <!-- Group posts will be populated here -->
+                        <div v-if="groupPosts.length === 0" class="no-posts">
+                            No posts in this group yet
+                        </div>
+                        <div v-for="post in groupPosts" :key="post.ID" class="post-card">
+                            <!-- Post content will be similar to main feed posts -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Profile View -->

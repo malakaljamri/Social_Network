@@ -1320,3 +1320,130 @@ button.pagination-button.active {
   margin-left: auto;
 }
 
+/* Group Main Container Styles */
+#group-main {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 72px auto 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
+/* Group List Container */
+.group-list-container {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.group-list-header {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.group-search {
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.group-list-item {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.group-list-item:hover {
+    background-color: #f0f0f0;
+}
+
+.group-list-item.active {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+
+/* Group Description Section */
+.group-description {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.group-description h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.8rem;
+}
+
+.group-description .card {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Group Posts Section */
+.group-posts {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.group-posts h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.8rem;
+}
+
+.group-posts .card {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #group-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+
+    .group-list-container {
+        grid-column: 1;
+        grid-row: 1;
+        height: auto;
+        max-height: 300px;
+    }
+
+    .group-description {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .group-posts {
+        grid-column: 1;
+        grid-row: 3;
+    }
+}
+
