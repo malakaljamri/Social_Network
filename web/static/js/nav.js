@@ -231,7 +231,8 @@ if (window.__VUE_APP__) {
 
 document.addEventListener('click', function(e) {
     const target = e.target.closest('.create-post-btn');
-    if (target) {
+    // Only trigger if Vue app is in posts view
+    if (target && window.__VUE_APP__ && window.__VUE_APP__.currentView === 'posts') {
         e.preventDefault();
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;';

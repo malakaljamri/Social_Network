@@ -106,6 +106,16 @@ const app = createApp({
             );
         });
 
+        // Groups state
+        const showCreateGroupPostForm = ref(false);
+        const newGroupPost = reactive({
+            title: '',
+            content: '',
+            privacy_setting: 'public',
+            category_id: null,
+            file_path: ''
+        });
+
         // Methods
         const fetchUserStatus = async () => {
             try {
@@ -699,7 +709,7 @@ const app = createApp({
         // Fetch group posts
         const fetchGroupPosts = async (groupId) => {
             try {
-                const response = await fetch(`/api/groups/${groupId}/posts`);
+                const response = await fetch(`/api/groups/posts?group_id=${groupId}`);
                 if (!response.ok) throw new Error('Failed to fetch group posts');
                 groupPosts.value = await response.json();
             } catch (error) {
@@ -714,6 +724,58 @@ const app = createApp({
             const date = new Date(dateString);
             if (isNaN(date)) return 'N/A';
             return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        };
+
+        // Create group post
+        const createGroupPost = async () => {
+            if (!selectedGroupId.value) {
+                showAlert('Please select a group first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/groups/posts/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        ...newGroupPost,
+                        group_id: selectedGroupId.value
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create group post');
+                }
+
+                showAlert('Group post created successfully!');
+                showCreateGroupPostForm.value = false;
+                
+                // Reset form
+                newGroupPost.title = '';
+                newGroupPost.content = '';
+                newGroupPost.privacy_setting = 'public';
+                newGroupPost.category_id = null;
+                newGroupPost.file_path = '';
+
+                // Refresh group posts
+                await fetchGroupPosts(selectedGroupId.value);
+            } catch (error) {
+                console.error('Error creating group post:', error);
+                showAlert('Failed to create group post');
+            }
+        };
+
+        // Handle file upload
+        const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Here you would typically upload the file to your server
+                // and get back a file path. For now, we'll just store the file name
+                newGroupPost.file_path = file.name;
+            }
         };
 
         // Called when component is mounted
@@ -812,6 +874,8 @@ const app = createApp({
             groupSearchQuery,
             filteredGroups,
             groupPosts,
+            showCreateGroupPostForm,
+            newGroupPost,
             
             // UI state
             showSidebar,
@@ -844,6 +908,8 @@ const app = createApp({
             fetchGroups,
             selectGroupById,
             fetchGroupPosts,
+            createGroupPost,
+            handleFileUpload,
         };
     }
 });

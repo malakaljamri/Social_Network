@@ -10,7 +10,6 @@ import (
 	"social_network/internal/database"
 	"social_network/internal/handlers"
 	"social_network/internal/websocket"
-	
 )
 
 func main() {
@@ -28,14 +27,13 @@ func main() {
 	// handlers with hub
 	authHandlers := auth.NewAuthHandlers(websocket.MainHub)
 	chatHandlers := handlers.NewChatHandlers(websocket.MainHub)
-	
+
 	// Create a new ServeMux
 	mux := http.NewServeMux()
 	// Get the directory of the current file
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)
 
-	
 	// Serve static files from the "web" directory
 	mux.Handle("/web/", http.StripPrefix("/web/uploads", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
 
@@ -77,6 +75,8 @@ func main() {
 	mux.HandleFunc("/post/dislike", handlers.DislikePost)
 	mux.HandleFunc("/api/groups/create", handlers.CreateGroupHandler(db))
 	mux.HandleFunc("/api/groups", handlers.GetAllGroupsHandler(db))
+	mux.HandleFunc("/api/groups/posts/create", handlers.CreateGroupPostHandler(db))
+	mux.HandleFunc("/api/groups/posts", handlers.GetGroupPostsHandler(db))
 
 	// mux.HandleFunc("/comment/like", handlers.LikeComment)
 	// mux.HandleFunc("/comment/dislike", handlers.DislikeComment)

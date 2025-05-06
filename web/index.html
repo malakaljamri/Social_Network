@@ -165,10 +165,60 @@
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                     </template>
                     <template v-else>
+                        <button v-if="selectedGroup" @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-plus-circle"></i> Create Group Post
+                        </button>
                         <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
                         <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
                         <p>[[selectedGroup.description]]</p>
                     </template>
+                </div>
+            </div>
+
+            <!-- Create Group Post Form Modal -->
+            <div v-if="showCreateGroupPostForm" class="modal-overlay" @click="showCreateGroupPostForm = false">
+                <div class="modal-content" @click.stop>
+                    <h2>Create Group Post</h2>
+                    <form @submit.prevent="createGroupPost">
+                        <div class="form-group">
+                            <label for="post-title">Enter Post Title:</label>
+                            <input type="text" id="post-title" v-model="newGroupPost.title" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-content">Write your post content here...</label>
+                            <textarea id="post-content" v-model="newGroupPost.content" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="privacy-setting">Privacy Setting:</label>
+                            <select id="privacy-setting" v-model="newGroupPost.privacy_setting" required>
+                                <option value="public">Public</option>
+                                <option value="followers">Followers</option>
+                                <option value="chosen_followers">Chosen Followers</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-category">Category:</label>
+                            <select id="post-category" v-model="newGroupPost.category_id">
+                                <option value="">Select a category</option>
+                                <option v-for="category in categories" :key="category.ID" :value="category.ID">
+                                    [[category.Name]]
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-file">Choose file:</label>
+                            <input type="file" id="post-file" @change="handleFileUpload">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn">Submit</button>
+                            <button type="button" class="cancel-btn" @click="showCreateGroupPostForm = false">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -184,8 +234,23 @@
                         <div v-if="groupPosts.length === 0" class="no-posts">
                             No posts in this group yet
                         </div>
-                        <div v-for="post in groupPosts" :key="post.ID" class="post-card">
-                            <!-- Post content will be similar to main feed posts -->
+                        <div v-for="post in groupPosts" :key="post.id" class="post-card">
+                            <div class="post-header">
+                                <h2>[[post.title]]</h2>
+                                <div class="post-meta">
+                                    <span class="post-author">Posted by <span class="user-clickable">[[post.username]]</span></span>
+                                    <span class="post-date">[[new Date(post.created_at).toLocaleString()]]</span>
+                                </div>
+                            </div>
+                            <div class="post-content">[[post.content]]</div>
+                            <div class="post-footer">
+                                <div class="post-interactions">
+                                    <!-- Like/Dislike for group posts can be added here if implemented -->
+                                </div>
+                                <div class="post-category" v-if="post.category_id">
+                                    <span>[[getCategoryName(post.category_id)]]</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
