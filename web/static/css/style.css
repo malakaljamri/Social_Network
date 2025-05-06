@@ -1268,18 +1268,18 @@ button.pagination-button.active {
 
 /* GROUPS PAGE STYLING */
 .group-list-container {
-  position: fixed;
-  top: 152.5px; /* Leave space below nav */
-  left: 24px;
-  width: 250px;
-  height: calc(100vh - 84px);
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  z-index: 2;
+    position: fixed;
+    top: 152.5px; /* Leave space below nav */
+    left: 24px;
+    width: 250px;
+    max-height: calc(100vh - 180px); /* Prevents overflow below the taskbar, adjust as needed */
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 16px 16px 32px 16px !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 2;
 }
 
 .group-list-header {
@@ -1445,5 +1445,10 @@ button.pagination-button.active {
         grid-column: 1;
         grid-row: 3;
     }
+}
+
+/* Add extra margin to the last group list item */
+.group-list-item:last-child {
+    margin-bottom: 24px !important;
 }
 

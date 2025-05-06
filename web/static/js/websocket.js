@@ -170,39 +170,20 @@ function handleWebSocketMessage(message) {
             console.error("Server error:", message.content);
             break;
         case 'new_group':
-            const group = message.content;
-            const groupListContainer = document.getElementById('group-list-container');
-            if (!groupListContainer) return;
-
-            const listDiv = groupListContainer.querySelector('div:last-child');
-            if (!listDiv) return;
-
-            const exists = Array.from(listDiv.querySelectorAll('button')).some(btn =>
-                btn.textContent.trim().toLowerCase() === group.name.toLowerCase()
-            );
-            if (exists) return;
-
-            const btn = document.createElement('button');
-            btn.textContent = group.name;
-            btn.className = 'group-list-btn';
-            
-            btn.addEventListener('click', () => {
-                const username = group.creator && group.creator.username ? group.creator.username : 'unknown';
-                const createdDate = new Date(group.created_at);
-                const formatted = `${createdDate.getDate().toString().padStart(2, '0')}/${(createdDate.getMonth() + 1).toString().padStart(2, '0')}/${createdDate.getFullYear()}`;
-                
-                const vueApp = window.__VUE_APP__;
-                if (vueApp && vueApp.selectGroup) {
-                    vueApp.selectGroup({
-                        name: group.name,
-                        creatorUsername: username,
-                        createdAt: formatted,
-                        description: group.description || 'No description available.'
-                    });
+            const vueApp = window.__VUE_APP__;
+            if (vueApp && vueApp.groups) {
+                const groupObj = {
+                    ID: message.content.id,
+                    Name: message.content.name,
+                    Description: message.content.description,
+                    CreatedAt: message.content.created_at,
+                    Creator: { Username: message.content.creator.username }
+                };
+                // Avoid duplicates
+                if (!vueApp.groups.some(g => g.ID === groupObj.ID)) {
+                    vueApp.groups.push(groupObj);
                 }
-            });
-
-            listDiv.appendChild(btn);
+            }
             break;
         default:
             console.warn('Unknown message type:', message);
