@@ -76,6 +76,7 @@ func main() {
 	mux.HandleFunc("/api/groups/create", handlers.CreateGroupHandler(db))
 	mux.HandleFunc("/api/groups", handlers.GetAllGroupsHandler(db))
 	mux.HandleFunc("/api/groups/posts", handlers.GetGroupPostsHandler(db))
+	mux.HandleFunc("/api/groups/create-post", handlers.CreateGroupPostHandler(db))
 
 	// mux.HandleFunc("/comment/like", handlers.LikeComment)
 	// mux.HandleFunc("/comment/dislike", handlers.DislikeComment)

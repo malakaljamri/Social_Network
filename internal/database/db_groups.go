@@ -139,3 +139,15 @@ func GetGroupPosts(db *sql.DB, groupName string, page, limit int) ([]models.Post
 
 	return posts, totalCount, nil
 }
+
+// Create a group post in the new group_posts table
+func CreateGroupPost(db *sql.DB, title, text, categoryID string, userID int, groupID, imagePath string) (int64, error) {
+	res, err := db.Exec(`
+		INSERT INTO group_posts (group_id, title, content, user_id, category_id, image)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		groupID, title, text, userID, categoryID, imagePath)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}

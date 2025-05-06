@@ -127,3 +127,43 @@ func GetGroupPostsHandler(db *sql.DB) http.HandlerFunc {
 		})
 	}
 }
+
+func CreateGroupPostHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		// Parse multipart form
+		err = r.ParseMultipartForm(10 << 20) // 10 MB
+		if err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+		title := r.FormValue("title")
+		text := r.FormValue("text")
+		categoryID := r.FormValue("categoryID")
+		groupID := r.FormValue("groupID")
+		// Optional image
+		var imagePath string
+		file, handler, err := r.FormFile("image")
+		if err == nil {
+			defer file.Close()
+			// Save image (optional, similar to CreatePost)
+			imagePath = "/uploads/" + handler.Filename
+			// (You may want to save the file to disk here)
+		}
+		// Call DB function to create group post
+		postID, err := database.CreateGroupPost(db, title, text, categoryID, userID, groupID, imagePath)
+		if err != nil {
+			http.Error(w, "Failed to create group post", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "success",
+			"post_id": postID,
+		})
+	}
+}

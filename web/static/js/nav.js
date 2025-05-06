@@ -77,14 +77,14 @@ function updateUserStatusUI(data) {
             const forumContainer = document.getElementById('forum-container');
             forumContainer.classList.add('groups-view');
         
-            // Remove existing group list
-            const oldList = document.getElementById('group-list-container');
-            if (oldList) oldList.remove();
+            // // Remove existing group list
+            // const oldList = document.getElementById('group-list-container');
+            // if (oldList) oldList.remove();
         
-            // Create new container
-            const groupListContainer = document.createElement('div');
-            groupListContainer.id = 'group-list-container';
-            groupListContainer.className = 'group-list-container';
+            // // Create new container
+            // const groupListContainer = document.createElement('div');
+            // groupListContainer.id = 'group-list-container';
+            // groupListContainer.className = 'group-list-container';
         
             const listHeader = document.createElement('h3');
             listHeader.textContent = 'List of Groups';

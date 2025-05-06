@@ -64,6 +64,9 @@ const app = createApp({
         const userSearchQuery = ref('');
         const userSearchResults = ref([]);
 
+        // Group search state
+        const groupSearchQuery = ref('');
+
         // Computed properties for Derived Data that depend on other reactive data:
         // This updates automatically when posts or filters change
         const filteredPosts = computed(() => {
@@ -763,6 +766,72 @@ const app = createApp({
             });
         });
 
+        // Modal state for Create Group Post
+        const showGroupPostModal = ref(false);
+        const groupPostForm = reactive({
+            title: '',
+            text: '',
+            categoryID: '',
+            image: null
+        });
+        const groupPostLoading = ref(false);
+
+        // Handle login success: reset overlays, set view to posts
+        function handleLoginSuccess() {
+            currentView.value = 'posts';
+            // Hide overlays/modals if any
+            showGroupPostModal.value = false;
+            // Optionally reset forms
+        }
+
+        // Handle logout: reset state, set view to posts
+        function handleLogout() {
+            currentView.value = 'posts';
+            selectedGroup.value = null;
+            showGroupPostModal.value = false;
+            // Optionally reset forms and user state
+        }
+
+        // Show/hide Create Group Post modal
+        function openGroupPostModal() {
+            showGroupPostModal.value = true;
+        }
+        function closeGroupPostModal() {
+            showGroupPostModal.value = false;
+            groupPostForm.title = '';
+            groupPostForm.text = '';
+            groupPostForm.categoryID = '';
+            groupPostForm.image = null;
+        }
+
+        // Submit handler for group post creation
+        async function submitGroupPost() {
+            if (!selectedGroup.value) return;
+            groupPostLoading.value = true;
+            try {
+                const formData = new FormData();
+                formData.append('title', groupPostForm.title);
+                formData.append('text', groupPostForm.text);
+                formData.append('categoryID', groupPostForm.categoryID);
+                formData.append('groupID', selectedGroup.value.ID);
+                if (groupPostForm.image) {
+                    formData.append('image', groupPostForm.image);
+                }
+                const response = await fetch('/api/groups/create-post', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('Failed to create group post');
+                closeGroupPostModal();
+                fetchGroupPosts(1);
+                showAlert('Group post created!');
+            } catch (error) {
+                showAlert('Failed to create group post');
+            } finally {
+                groupPostLoading.value = false;
+            }
+        }
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -788,6 +857,9 @@ const app = createApp({
             // User search state
             userSearchQuery,
             userSearchResults,
+            
+            // Group search state
+            groupSearchQuery,
             
             // Methods
             fetchPosts,
@@ -817,7 +889,15 @@ const app = createApp({
             fetchGroupPosts,
             groups,
             orderedGroups,
-            fetchGroups
+            fetchGroups,
+            handleLoginSuccess,
+            handleLogout,
+            showGroupPostModal,
+            openGroupPostModal,
+            closeGroupPostModal,
+            groupPostForm,
+            groupPostLoading,
+            submitGroupPost
         };
     }
 });

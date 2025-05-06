@@ -89,11 +89,33 @@
                     <p>[[selectedGroup.description]]</p>
                 </template>
             </div>
-            <!-- Dynamic Group Posts Header -->
-            <h2 style="text-align: center;">
+            <!-- Dynamic Group Posts Header with Create Group Post button -->
+            <h2 style="text-align: center; display: flex; align-items: center; justify-content: center; gap: 1em;">
                 <template v-if="!selectedGroup">Group Posts</template>
-                <template v-else>[[selectedGroup.name]] Posts</template>
+                <template v-else>[[selectedGroup.name]] Posts
+                    <button v-if="currentUser.isLoggedIn" @click="openGroupPostModal" class="create-group-post-btn">Create Group Post</button>
+                </template>
             </h2>
+            <!-- Create Group Post Modal -->
+            <div v-if="showGroupPostModal" class="modal-overlay">
+                <div class="modal-card">
+                    <h3>Create Group Post</h3>
+                    <form @submit.prevent="submitGroupPost">
+                        <input v-model="groupPostForm.title" type="text" placeholder="Title" required>
+                        <textarea v-model="groupPostForm.text" placeholder="Content" required></textarea>
+                        <select v-model="groupPostForm.categoryID" required>
+                            <option value="" disabled>Select Category</option>
+                            <option v-for="cat in categories" :key="cat.ID" :value="cat.ID">[[cat.Name]]</option>
+                        </select>
+                        <input type="file" @change="e => groupPostForm.image = e.target.files[0]">
+                        <div class="modal-actions">
+                            <button type="button" @click="closeGroupPostModal">Cancel</button>
+                            <button type="submit" :disabled="groupPostLoading">Submit</button>
+                        </div>
+                    </form>
+                    <div v-if="groupPostLoading" class="loading-indicator">Posting...</div>
+                </div>
+            </div>
             <!-- Group Posts Section, seamless style (no extra card) -->
             <div id="group-posts-section" style="margin: 1em 0;">
                 <template v-if="!selectedGroup">
