@@ -9,6 +9,8 @@ const app = createApp({
         // State variables
         const posts = ref([]);
         const selectedGroup = ref(null);
+        const groups = ref([]);
+        const selectedGroupId = ref(null);
 
         function selectGroup(group) {
             selectedGroup.value = group;
@@ -649,6 +651,28 @@ const app = createApp({
             }, 3000);
         };
 
+        // Fetch groups from backend
+        const fetchGroups = async () => {
+            try {
+                const response = await fetch('/api/groups');
+                if (!response.ok) throw new Error('Failed to fetch groups');
+                const data = await response.json();
+                groups.value = data || [];
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                groups.value = [];
+            }
+        };
+
+        // Select group by ID
+        const selectGroupById = (groupId) => {
+            selectedGroupId.value = groupId;
+            const group = groups.value.find(g => g.ID === groupId);
+            if (group) {
+                selectedGroup.value = group;
+            }
+        };
+
         // Called when component is mounted
         onMounted(async () => {
             await fetchUserStatus();
@@ -657,7 +681,7 @@ const app = createApp({
                 await fetchCategories();
                 await fetchPosts();
                 await fetchOnlineUsers();
-                // Initialize websocket for real-time features
+                await fetchGroups();
                 setTimeout(() => {
                     initializeWebSocket();
                 }, 1000);
@@ -732,6 +756,10 @@ const app = createApp({
             userSearchQuery,
             userSearchResults,
             
+            // Groups state
+            groups,
+            selectedGroupId,
+            
             // Methods
             fetchPosts,
             fetchCategories,
@@ -756,7 +784,9 @@ const app = createApp({
             formatDate,
             searchUsers,
             goToGroups,
-            showAlert
+            showAlert,
+            fetchGroups,
+            selectGroupById,
         };
     }
 });

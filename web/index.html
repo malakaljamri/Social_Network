@@ -14,6 +14,20 @@
     <div id="sidebar">
         <div id="sidebarContent">
             <div id="resultsCounter" style="text-align: center;"></div>
+            <!-- Vue Groups List -->
+            <div v-if="currentView === 'groups'" class="filter-section">
+                <h3 class="collapsible">List of Groups</h3>
+                <input type="text" placeholder="Search groups..." style="width: 100%; margin-bottom: 10px;" v-model="groupSearchQuery">
+                <div>
+                    <div v-for="group in groups" :key="group.ID"
+                        :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                        @click="selectGroupById(group.ID)"
+                        style="cursor:pointer; margin-bottom: 6px; padding: 8px; border-radius: 6px; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">
+                        [[ group.Name ]]
+                    </div>
+                </div>
+            </div>
+            <!-- End Vue Groups List -->
             <div class="filter-section">
                 <h3 class="collapsible">Categories</h3>
                 <div id="categories-list" class="content"> 
@@ -77,19 +91,19 @@
 
     <div id="forum-container">
         <!-- Groups View -->
-<div v-show="currentView === 'groups'" class="groups-view">
-    <h2 style="text-align: center;">Group Description</h2>
-    <div id="group-description-section" class="card" style="margin: 1em;">
-        <template v-if="!selectedGroup">
-            <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
-        </template>
-        <template v-else>
-            <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
-            <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
-            <p>[[selectedGroup.description]]</p>
-        </template>
-    </div>
-</div>
+        <div v-show="currentView === 'groups'" class="groups-view">
+            <h2 style="text-align: center;">Group Description</h2>
+            <div id="group-description-section" class="card" style="margin: 1em;">
+                <template v-if="!selectedGroup">
+                    <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+                </template>
+                <template v-else>
+                    <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
+                    <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
+                    <p>[[selectedGroup.description]]</p>
+                </template>
+            </div>
+        </div>
         <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
         <!-- User Search Bar (now inside Vue app root) -->
         <div id="user-search" v-show="currentView !== 'groups'">
