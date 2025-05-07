@@ -34,6 +34,7 @@ function createNavbar() {
 function updateUserStatusUI(data) {
     const userStatusElement = document.getElementById('userStatus');
     let chatSection = document.querySelector("#chat-section")
+
     if (data.loggedIn) {
         userStatusElement.innerHTML = `
             <a title="Create New Post" href="/create-post" class="create-post-btn">
@@ -121,26 +122,31 @@ function updateUserStatusUI(data) {
         });
         
         // Create Group Form
-        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('group-name').value.trim();
-            const description = document.getElementById('group-description').value.trim();
-        
-            const response = await fetch('/api/groups/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ name, description })
+        const createGroupForm = document.getElementById('create-group-form');
+        if (!createGroupForm) {
+            console.warn('Create Group Form not found!');
+        } else {
+            createGroupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('group-name').value.trim();
+                const description = document.getElementById('group-description').value.trim();
+
+                const response = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, description })
+                });
+
+                if (response.ok) {
+                    alert('✅ Group created successfully!');
+                    overlay.remove();
+                } else {
+                    const err = await response.text();
+                    alert(`❌ Failed: ${err}`);
+                }
             });
-        
-            if (response.ok) {
-                alert('✅ Group created successfully!');
-                overlay.remove();
-            } else {
-                const err = await response.text();
-                alert(`❌ Failed: ${err}`);
-            }
-        });
+        }
         
         if (chatSection) {
             chatSection.style.display = "block";
@@ -165,6 +171,89 @@ function updateUserStatusUI(data) {
                     <p>Don't have an account? <a href="/register">Sign Up</a></p>
                 </div>
             </div>`;
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const userIdentifier = document.querySelector('#login-form [name="user_identifier"]').value.trim();
+            const password = document.querySelector('#login-form [type="password"]').value.trim();
+            const loginResponse = document.getElementById('login-response');
+            
+            if (!userIdentifier || !password) {
+                loginResponse.innerText = 'Email and password are required fields.';
+                return;
+            }
+        
+            loginResponse.style.color = 'Green';
+            loginResponse.innerText = 'Logging in...';
+            
+        
+            try {
+                // First do the login
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        identifier: userIdentifier,
+                        password: password
+                    })
+                });
+        
+                const data = await response.json();
+                if (!response.ok) {
+                    loginResponse.textContent = data.message || 'Login failed. Please try again.';
+                    loginResponse.style.color = 'red';
+                    throw new Error(data.message || 'Login failed');
+                } else if (data.message === "Invalid credentials.") {
+                    loginResponse.textContent = data.message || 'Login failed. Please try again.';
+                    loginResponse.style.color = 'red';
+                }
+        
+                handleLogin(data)
+            } catch (error) {
+                console.error('Login error:', error);
+                loginResponse.textContent = error.message || 'Login failed. Please try again.';
+                loginResponse.style.color = 'red';
+            }
+        });
+    }
+}
+
+async function handleLogin(data) {
+    if (data.message === "Logged in successfully") {
+        currentUserID = data.user_id;
+        currentUserName = data.username;
+        
+        try {
+            // Initialize WebSocket first
+            await initializeWebSocket();
+            
+            // Then update UI and fetch posts
+            console.log("CALLING UPDATE USER STATUS UI")
+            updateUserStatusUI({ loggedIn: true, username: data.username });
+            console.log("FINISHED CALLING UPDATE USER STATUS UI")
+            console.log("CALLING fetchPosts")
+            fetchPosts();
+            console.log("FINISHED CALLING fetchPosts")
+
+            console.log(document.getElementById('loggedInUserFilter').disabled);
+
+            document.getElementById('loggedInUserFilter').disabled = false;
+            
+            // Broadcast user status to all clients
+            if (socket?.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'user_status',
+                    content: {
+                        user_id: data.user_id,
+                        status: 'online',
+                        username: data.username
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('Error during login:', error);
+            // fetchPosts(); // Still fetch posts even if WebSocket fails
+        }
     }
 }
 
