@@ -11,10 +11,24 @@
 </head>
 <body>
     <!-- User Search Bar -->
-    <div id="sidebar">
-        <div id="sidebarContent">
+    <div id="sidebar" v-show="showSidebar">
+        <div id="sidebarContent" v-show="showSidebar">
             <div id="resultsCounter" style="text-align: center;"></div>
-            <div class="filter-section">
+            <!-- Vue Groups List -->
+            <!-- <div v-if="currentView === 'groups'" class="filter-section">
+                <h3 class="collapsible">List of Groups</h3>
+                <input type="text" placeholder="Search groups..." style="width: 100%; margin-bottom: 10px;" v-model="groupSearchQuery">
+                <div>
+                    <div v-for="group in groups" :key="group.ID"
+                        :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                        @click="selectGroupById(group.ID)"
+                        style="cursor:pointer; margin-bottom: 6px; padding: 8px; border-radius: 6px; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">
+                        [[ group.Name ]]
+                    </div>
+                </div>
+            </div> -->
+            <!-- End Vue Groups List -->
+            <div class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">Categories</h3>
                 <div id="categories-list" class="content"> 
                     <!-- Vue categories list -->
@@ -29,21 +43,21 @@
                     </div>
                 </div>
             </div>
-            <div id="filterByUser" class="filter-section">
+            <div id="filterByUser" class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">User</h3>
                 <div class="content">
                     <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn"> 
                     Show only my posts
                 </div>
             </div>
-            <div class="filter-section">
+            <div class="filter-section" v-show="showSidebar">
                 <h3 class="collapsible">Date Range</h3>
                 <div class="content">
                     <input type="date" id="fromDate" v-model="filters.dateFrom">
                     <input type="date" id="toDate" v-model="filters.dateTo">
                 </div>
             </div>
-            <div class="filter-section liked-section">
+            <div class="filter-section liked-section" v-show="showSidebar">
                 <h3 class="collapsible">Liked Posts</h3>
                 <div class="content">
                 <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts
@@ -76,43 +90,6 @@
     </div>
 
     <div id="forum-container">
-        <!-- Groups View -->
-<div v-show="currentView === 'groups'" class="groups-view">
-    <h2 style="text-align: center;">Group Description</h2>
-    <div id="group-description-section" class="card" style="margin: 1em;">
-        <template v-if="!selectedGroup">
-            <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
-        </template>
-        <template v-else>
-            <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
-            <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
-            <p>[[selectedGroup.description]]</p>
-        </template>
-    </div>
-</div>
-        <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
-        <!-- User Search Bar (now inside Vue app root) -->
-        <div id="user-search" v-show="currentView !== 'groups'">
-            <input
-                type="text"
-                v-model="userSearchQuery"
-                @input="searchUsers"
-                placeholder="Search users..."
-                autocomplete="off"
-                class="search-input"
-            />
-            <ul v-if="userSearchResults.length" class="search-dropdown">
-                <li
-                    v-for="user in userSearchResults"
-                    :key="user.id"
-                    @click="viewUserProfile(user.id)"
-                    class="search-result"
-                >
-                    [[ user.username ]]
-                </li>
-            </ul>
-        </div>
-        
         <!-- Posts Feed View -->
         <div id="posts-feed" v-show="currentView === 'posts'">
             <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
@@ -163,6 +140,160 @@
                     </div>
                 </div>
             </main>
+        </div>
+
+        <!-- Groups View -->
+        <div id="group-main" v-show="currentView === 'groups'" class="groups-view">
+            <!-- Groups List Container -->
+            <div class="group-list-container">
+                <h3 class="group-list-header">List of Groups</h3>
+                <input type="text" placeholder="Search groups..." class="group-search" v-model="groupSearchQuery">
+                <div class="group-list">
+                    <div v-for="group in filteredGroups" :key="group.ID"
+                         :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                         @click="selectGroupById(group.ID)">
+                        [[ group.Name ]]
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Description Section -->
+            <div class="group-description">
+                <h2>Group Description</h2>
+                <div class="card">
+                    <template v-if="!selectedGroup">
+                        <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
+                    </template>
+                    <template v-else>
+                        <button v-if="selectedGroup" @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                            <i class="fas fa-plus-circle"></i> Create Group Post
+                        </button>
+                        <button v-if="selectedGroup" @click="showGroupEventsModal = true" class="group-events-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-calendar-alt"></i> Group Events
+                        </button>
+                        <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
+                        <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
+                        <p>[[selectedGroup.description]]</p>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Create Group Post Form Modal -->
+            <div v-if="showCreateGroupPostForm" class="modal-overlay" @click="showCreateGroupPostForm = false">
+                <div class="modal-content" @click.stop>
+                    <h2>Create Group Post</h2>
+                    <form @submit.prevent="createGroupPost">
+                        <div class="form-group">
+                            <label for="post-title">Enter Post Title:</label>
+                            <input type="text" id="post-title" v-model="newGroupPost.title" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-content">Write your post content here...</label>
+                            <textarea id="post-content" v-model="newGroupPost.content" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="privacy-setting">Privacy Setting:</label>
+                            <select id="privacy-setting" v-model="newGroupPost.privacy_setting" required>
+                                <option value="public">Public</option>
+                                <option value="followers">Followers</option>
+                                <option value="chosen_followers">Chosen Followers</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-category">Category:</label>
+                            <select id="post-category" v-model="newGroupPost.category_id">
+                                <option value="">Select a category</option>
+                                <option v-for="category in categories" :key="category.ID" :value="category.ID">
+                                    [[category.Name]]
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="post-file">Choose file:</label>
+                            <input type="file" id="post-file" @change="handleFileUpload">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn">Submit</button>
+                            <button type="button" class="cancel-btn" @click="showCreateGroupPostForm = false">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Group Events Modal -->
+            <div v-if="showGroupEventsModal" class="modal-overlay" @click="showGroupEventsModal = false">
+                <div class="modal-content" @click.stop style="max-width: 400px;">
+                    <h2>Group Events</h2>
+                    <div class="form-group">
+                        <strong>Today's Date:</strong> <span>[[ todayDate ]]</span>
+                    </div>
+                    <div class="form-group">
+                        <strong>Upcoming Events</strong>
+                        <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
+                            <div v-if="groupEvents.upcoming.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
+                            <div v-for="event in groupEvents.upcoming" :key="event.id" class="event-item">
+                                <span style="font-weight: 500;">[[ event.title ]]</span>
+                                <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
+                                <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="margin: 18px 0;">
+                    <div class="form-group">
+                        <strong>Past Events</strong>
+                        <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
+                            <div v-if="groupEvents.past.length === 0" style="color: #888; padding: 8px;">No past events</div>
+                            <div v-for="event in groupEvents.past" :key="event.id" class="event-item">
+                                <span style="font-weight: 500;">[[ event.title ]]</span>
+                                <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
+                                <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" @click="showGroupEventsModal = false">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Posts Section -->
+            <div class="group-posts">
+                <h2>[[ selectedGroup ? (selectedGroup.name + ' Posts') : 'Group Posts' ]]</h2>
+                <div class="card">
+                    <div v-if="!selectedGroup">
+                        <p style="color: grey;">Select a group to view its posts</p>
+                    </div>
+                    <div v-else>
+                        <!-- Group posts will be populated here -->
+                        <div v-if="groupPosts.length === 0" class="no-posts">
+                            No posts in this group yet
+                        </div>
+                        <div v-for="post in groupPosts" :key="post.id" class="post-card">
+                            <div class="post-header">
+                                <h2>[[post.title]]</h2>
+                                <div class="post-meta">
+                                    <span class="post-author">Posted by <span class="user-clickable">[[post.username]]</span></span>
+                                    <span class="post-date">[[new Date(post.created_at).toLocaleString()]]</span>
+                                </div>
+                            </div>
+                            <div class="post-content">[[post.content]]</div>
+                            <div class="post-footer">
+                                <div class="post-interactions">
+                                    <!-- Like/Dislike for group posts can be added here if implemented -->
+                                </div>
+                                <div class="post-category" v-if="post.category_id">
+                                    <span>[[getCategoryName(post.category_id)]]</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Profile View -->

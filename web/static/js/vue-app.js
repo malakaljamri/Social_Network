@@ -1,5 +1,5 @@
 // Vue App Implementation
-const { createApp, ref, reactive, computed, onMounted } = Vue;
+const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
 // Main Vue Application
 const app = createApp({
@@ -9,6 +9,16 @@ const app = createApp({
         // State variables
         const posts = ref([]);
         const selectedGroup = ref(null);
+        const groups = ref([]);
+        const selectedGroupId = ref(null);
+        const groupSearchQuery = ref('');
+        const groupPosts = ref([]);
+        const currentView = ref('posts'); // 'posts', 'profile', 'groups'
+
+        // Computed property for sidebar visibility
+        const showSidebar = computed(() => {
+            return currentView.value !== 'groups';
+        });
 
         function selectGroup(group) {
             selectedGroup.value = group;
@@ -33,7 +43,6 @@ const app = createApp({
         });
         
         // Profile page state - all arrays must be initialized to empty arrays
-        const currentView = ref('posts'); // 'posts', 'profile'
         function goToGroups() {
             currentView.value = 'groups';
         }
@@ -87,6 +96,30 @@ const app = createApp({
             
             return result;
         });
+
+        // Computed property for filtered groups
+        const filteredGroups = computed(() => {
+            if (!groupSearchQuery.value) return groups.value;
+            const query = groupSearchQuery.value.toLowerCase();
+            return groups.value.filter(group => 
+                group.Name.toLowerCase().includes(query)
+            );
+        });
+
+        // Groups state
+        const showCreateGroupPostForm = ref(false);
+        const newGroupPost = reactive({
+            title: '',
+            content: '',
+            privacy_setting: 'public',
+            category_id: null,
+            file_path: ''
+        });
+
+        // Group Events modal state
+        const showGroupEventsModal = ref(false);
+        const groupEvents = reactive({ upcoming: [], past: [] });
+        const todayDate = new Date().toLocaleDateString();
 
         // Methods
         const fetchUserStatus = async () => {
@@ -649,6 +682,110 @@ const app = createApp({
             }, 3000);
         };
 
+        // Fetch groups from backend
+        const fetchGroups = async () => {
+            try {
+                const response = await fetch('/api/groups');
+                if (!response.ok) throw new Error('Failed to fetch groups');
+                const data = await response.json();
+                groups.value = data || [];
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                groups.value = [];
+            }
+        };
+
+        // Select group by ID
+        const selectGroupById = async (groupId) => {
+            selectedGroupId.value = groupId;
+            const group = groups.value.find(g => g.ID === groupId);
+            if (group) {
+                selectedGroup.value = {
+                    name: group.Name,
+                    creatorUsername: group.Creator?.Username || 'unknown',
+                    createdAt: group.CreatedAt,
+                    description: group.Description || 'No description available.'
+                };
+                // Initialize groupPosts as an empty array before fetching
+                groupPosts.value = [];
+                // Fetch group posts
+                await fetchGroupPosts(groupId);
+            }
+        };
+
+        // Fetch group posts
+        const fetchGroupPosts = async (groupId) => {
+            try {
+                const response = await fetch(`/api/groups/posts?group_id=${groupId}`);
+                if (!response.ok) throw new Error('Failed to fetch group posts');
+                const data = await response.json();
+                groupPosts.value = Array.isArray(data) ? data : [];
+            } catch (error) {
+                console.error('Error fetching group posts:', error);
+                groupPosts.value = [];
+            }
+        };
+
+        // Format date helper
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            if (isNaN(date)) return 'N/A';
+            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        };
+
+        // Create group post
+        const createGroupPost = async () => {
+            if (!selectedGroupId.value) {
+                showAlert('Please select a group first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/groups/posts/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        ...newGroupPost,
+                        group_id: selectedGroupId.value
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create group post');
+                }
+
+                showAlert('Group post created successfully!');
+                showCreateGroupPostForm.value = false;
+                
+                // Reset form
+                newGroupPost.title = '';
+                newGroupPost.content = '';
+                newGroupPost.privacy_setting = 'public';
+                newGroupPost.category_id = null;
+                newGroupPost.file_path = '';
+
+                // Refresh group posts
+                await fetchGroupPosts(selectedGroupId.value);
+            } catch (error) {
+                console.error('Error creating group post:', error);
+                showAlert('Failed to create group post');
+            }
+        };
+
+        // Handle file upload
+        const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Here you would typically upload the file to your server
+                // and get back a file path. For now, we'll just store the file name
+                newGroupPost.file_path = file.name;
+            }
+        };
+
         // Called when component is mounted
         onMounted(async () => {
             await fetchUserStatus();
@@ -657,7 +794,7 @@ const app = createApp({
                 await fetchCategories();
                 await fetchPosts();
                 await fetchOnlineUsers();
-                // Initialize websocket for real-time features
+                await fetchGroups();
                 setTimeout(() => {
                     initializeWebSocket();
                 }, 1000);
@@ -706,6 +843,42 @@ const app = createApp({
             });
         });
 
+        // Watch for showSidebar changes and trigger sidebar logic
+        watch(showSidebar, () => {
+            if (window.handleScreenChange) {
+                window.handleScreenChange(window.matchMedia('(max-width: 1300px)'));
+            }
+        });
+
+        // Fetch group events
+        const fetchGroupEvents = async (groupId) => {
+            try {
+                const response = await fetch(`/api/groups/events?group_id=${groupId}`);
+                if (!response.ok) throw new Error('Failed to fetch group events');
+                const data = await response.json();
+                groupEvents.upcoming = data.upcoming || [];
+                groupEvents.past = data.past || [];
+            } catch (error) {
+                groupEvents.upcoming = [];
+                groupEvents.past = [];
+            }
+        };
+
+        // Format event date
+        const formatEventDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date)) return dateString;
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        // Watch for modal open to fetch events
+        watch(showGroupEventsModal, (val) => {
+            if (val && selectedGroupId.value) {
+                fetchGroupEvents(selectedGroupId.value);
+            }
+        });
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -732,6 +905,18 @@ const app = createApp({
             userSearchQuery,
             userSearchResults,
             
+            // Groups state
+            groups,
+            selectedGroupId,
+            groupSearchQuery,
+            filteredGroups,
+            groupPosts,
+            showCreateGroupPostForm,
+            newGroupPost,
+            
+            // UI state
+            showSidebar,
+            
             // Methods
             fetchPosts,
             fetchCategories,
@@ -756,7 +941,18 @@ const app = createApp({
             formatDate,
             searchUsers,
             goToGroups,
-            showAlert
+            showAlert,
+            fetchGroups,
+            selectGroupById,
+            fetchGroupPosts,
+            createGroupPost,
+            handleFileUpload,
+            
+            // Group Events state
+            showGroupEventsModal,
+            groupEvents,
+            todayDate,
+            formatEventDate,
         };
     }
 });
@@ -768,8 +964,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // }, 1000); // Delay to ensure DOM is ready
     window.__VUE_APP__ = app._instance.proxy;
 });
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-}

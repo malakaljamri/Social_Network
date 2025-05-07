@@ -115,6 +115,20 @@ CREATE TABLE IF NOT EXISTS group_messages (
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (sender_id) REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS group_posts (
+    id INTEGER PRIMARY KEY,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    privacy_setting TEXT CHECK (privacy_setting IN ('public', 'followers', 'chosen_followers')) DEFAULT 'public',
+    category_id INTEGER,
+    file_path TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
     group_id INTEGER NOT NULL,

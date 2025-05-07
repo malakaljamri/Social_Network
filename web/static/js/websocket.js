@@ -140,21 +140,6 @@ function handleWebSocketMessage(message) {
                 });
             }
             break;
-        // case 'users_update':
-        //     // Handle bulk updates to online users list
-        //     if (message.content.users) {
-        //         onlineUsers.clear();
-        //         message.content.users.forEach(user => {
-        //             if (user.ID !== currentUserID) {
-        //                 onlineUsers.set(user.ID, {
-        //                     online: true,
-        //                     username: user.Username
-        //                 });
-        //             }
-        //         });
-        //         updateOnlineUsersList();
-        //     }
-        //     break;
         case 'chat':
             if (message.content.Receiver_id === 0) { // Public chat message
                 const publicChatContainer = document.querySelector('.public_chat_messagesContainer');
@@ -184,6 +169,22 @@ function handleWebSocketMessage(message) {
             break;
         case 'error':
             console.error("Server error:", message.content);
+            break;
+        case 'new_group':
+            const vueApp = window.__VUE_APP__;
+            if (vueApp && vueApp.groups) {
+                const groupObj = {
+                    ID: message.content.id,
+                    Name: message.content.name,
+                    Description: message.content.description,
+                    CreatedAt: message.content.created_at,
+                    Creator: { Username: message.content.creator.username }
+                };
+                // Avoid duplicates
+                if (!vueApp.groups.some(g => g.ID === groupObj.ID)) {
+                    vueApp.groups.push(groupObj);
+                }
+            }
             break;
         default:
             console.warn('Unknown message type:', message);

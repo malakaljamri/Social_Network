@@ -33,7 +33,7 @@ function createNavbar() {
 
 function updateUserStatusUI(data) {
     const userStatusElement = document.getElementById('userStatus');
-    let sideDivs = document.querySelectorAll("#sidebar, #chat-section")
+    let chatSection = document.querySelector("#chat-section")
     if (data.loggedIn) {
         userStatusElement.innerHTML = `
             <a title="Create New Post" href="/create-post" class="create-post-btn">
@@ -60,256 +60,12 @@ function updateUserStatusUI(data) {
             e.preventDefault();
         
             const vueApp = window.__VUE_APP__;
-            if (vueApp && vueApp.goToGroups) vueApp.goToGroups();
-        
-            // Get the sidebar element
-            const sidebar = document.getElementById('sidebar');
-            if (!sidebar) return;
-        
-            // Check if the group list already exists
-            const existingGroupList = document.getElementById('group-list-container');
-            if (existingGroupList) {
-                console.log('Group list already exists.');
-                return;
-            }
-        
-            // Create a new container for the group list
-            const groupListContainer = document.createElement('div');
-            groupListContainer.id = 'group-list-container';
-            groupListContainer.className = 'group-list-container';
-        
-            // Add a header for the group list
-            const listHeader = document.createElement('h3');
-            listHeader.textContent = 'List of Groups';
-            listHeader.className = 'group-list-header';
-        
-            // Add a button to remove the group list
-            const removeButton = document.createElement('button');
-            removeButton.textContent = 'Remove Groups';
-            removeButton.className = 'remove-groups-btn';
-            removeButton.style.cssText = 'margin-left: 10px; background: red; color: white; border: none; padding: 5px; cursor: pointer;';
-            removeButton.addEventListener('click', () => {
-                groupListContainer.remove();
-            });
-        
-            // Add a search input for filtering groups
-            const searchInput = document.createElement('input');
-            searchInput.type = 'text';
-            searchInput.placeholder = 'Search groups...';
-            searchInput.className = 'group-search';
-        
-            // Append the header and remove button to the group list container
-            groupListContainer.appendChild(listHeader);
-            groupListContainer.appendChild(removeButton);
-            groupListContainer.appendChild(searchInput);
-        
-            // Add a container for the group buttons
-            const listDiv = document.createElement('div');
-            const groupButtons = [];
-        
-            try {
-                // Fetch the list of groups from the server
-                const res = await fetch('/api/groups');
-                const groups = await res.json();
-        
-                if (!groups || !Array.isArray(groups)) {
-                    listDiv.innerHTML = '<p>No groups available.</p>';
-                } else {
-                    groups.forEach(group => {
-                        const btn = document.createElement('button');
-                        btn.textContent = group.Name;
-                        btn.className = 'group-list-btn';
-            
-                        btn.addEventListener('click', () => {
-                            if (vueApp && vueApp.selectGroup) {
-                                vueApp.selectGroup({
-                                    creatorUsername: group.Creator?.Username || 'unknown',
-                                    createdAt: group.CreatedAt || '',
-                                    description: group.Description || 'No description available.',
-                                });
-                            }
-                        });
-            
-                        listDiv.appendChild(btn);
-                        groupButtons.push({ name: group.Name.toLowerCase(), element: btn });
-                    });
-            
-                    // Add functionality to filter groups based on the search input
-                    searchInput.addEventListener('input', () => {
-                        const query = searchInput.value.toLowerCase();
-                        groupButtons.forEach(({ name, element }) => {
-                            element.style.display = name.includes(query) ? 'block' : 'none';
-                        });
-                    });
-                }
-            } catch (error) {
-                listDiv.innerHTML = '<p>Error loading groups.</p>';
-                console.error('Failed to fetch groups:', error);
-            }
-        
-            // Append the list of groups to the group list container
-            groupListContainer.appendChild(listDiv);
-        
-            // Add the group list container as the first child of the sidebar
-            sidebar.prepend(groupListContainer);
-        });
-        
-        
-        
-        // Add event listener for the profile link
-        document.getElementById('profile-link').addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            console.log("Clicking profile button for user ID:", userId);
-            
-            if (userId) {
-                // Create a custom event that Vue app can listen for
-                const event = new CustomEvent('showUserProfile', { 
-                    detail: { userId: parseInt(userId) } 
-                });
-                console.log("Dispatching showUserProfile event with ID:", userId);
-                document.dispatchEvent(event);
-                
-                // Try direct DOM manipulation as a fallback
-                const forumContainer = document.getElementById('forum-container');
-                const postsView = document.getElementById('posts-feed');
-                const profileView = document.getElementById('profile-view');
-                
-                if (forumContainer && postsView && profileView) {
-                    // Try to show profile view via DOM manipulation
-                    postsView.style.display = 'none';
-                    profileView.style.display = 'block';
-                    console.log("Profile view displayed via DOM manipulation");
-                }
+            if (vueApp) {
+                vueApp.goToGroups();
+                // Fetch groups when navigating to groups page
+                await vueApp.fetchGroups();
             }
         });
-        // Create Post Listener
-        document.querySelector('a[href="/create-post"]').addEventListener('click', function(e) {
-            e.preventDefault();
-            const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;';
-            
-            overlay.innerHTML = `
-                <div class="card">
-                    <div id="create-post-response"></div>
-                    <form id="create-post-form">
-                        <input type="text" id="post-title" placeholder="Post Title" required
-                            minlength="3" 
-                            maxlength="100"
-                            title="Title must be between 3 and 100 characters and contain only letters, numbers, spaces, and basic punctuation."
-                            oninvalid="this.setCustomValidity('Please enter a valid title.')"
-                            oninput="this.setCustomValidity('')"
-                        >
-                        <textarea id="post-content" placeholder="Write your post content here..." required
-                            minlength="10" 
-                            maxlength="5000" 
-                            title="Content must be between 10 and 5000 characters."
-                            oninvalid="this.setCustomValidity('Please enter valid content.')"
-                            oninput="this.setCustomValidity('')"
-                        ></textarea>
-                        <select id="post-category" required>
-                            <option value="6" selected>Other categories</option>
-                        </select>
-                        <select id="post-privacy" required>
-                            <option value="public" selected>Public</option>
-                            <option value="almost_private">Followers</option>
-                            <option value="private">Chosen followers</option>
-                        </select>
-                        <input type="file" id="post-image" accept="image/jpeg, image/png, image/gif" />
-                        <button type="submit" id="submit-post-btn">Create Post</button>
-                    </form>
-                </div>`;
-            document.body.appendChild(overlay);
-
-            // Add file validation for size and dimensions
-            document.getElementById('post-image').addEventListener('change', function () {
-                const file = this.files[0];
-                const maxSize = 2 * 1024 * 1024; // 2MB
-                const maxWidth = 2000;
-                const maxHeight = 2000;
-
-                if (file) {
-                    if (file.size > maxSize) {
-                        alert('File size must not exceed 2MB.');
-                        this.value = ''; // Clear the input
-                        return;
-                    }
-
-                    const img = new Image();
-                    img.onload = function () {
-                        if (img.width > maxWidth || img.height > maxHeight) {
-                            alert(`Image dimensions must not exceed ${maxWidth}x${maxHeight}px.`);
-                            document.getElementById('post-image').value = ''; // Clear the input
-                        }
-                    };
-                    img.src = URL.createObjectURL(file);
-                }
-            });
-        
-            // Fetch categories dynamically
-            fetch('/categories')
-                .then(response => response.json())
-                .then(categories => {
-                    const categorySelect = document.getElementById('post-category');
-                    categories.forEach(category => {
-                        const option = document.createElement('option');
-                        option.value = category.ID;
-                        option.textContent = category.Name;
-                        categorySelect.appendChild(option);
-                    });
-                });
-        
-            document.getElementById('create-post-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const responseElement = document.getElementById('create-post-response');
-                responseElement.textContent = 'Creating post...';
-                
-                const title = document.getElementById('post-title').value;
-                const content = document.getElementById('post-content').value;
-                const category = document.getElementById('post-category').value;
-                const privacy = document.getElementById('post-privacy').value;
-                const formData = new FormData();
-                    formData.append('Title', title);
-                    formData.append('Text', content);
-                    formData.append('CategoryID', parseInt(category));
-                    formData.append('UserID', parseInt(currentUserID));
-                    formData.append('Privacy', privacy);
-                    const imageFile = document.getElementById('post-image').files[0];
-                        if (imageFile)  formData.append('Image', imageFile);
-        
-                try {
-                    const response = await fetch('/post/create', {
-                        method: 'POST',
-                        credentials: 'include',
-                        body: formData,
-                    });
-                    
-                    try {
-                        const data = await response.json();
-                        if (response.ok) {
-                            overlay.remove();
-                            window.scrollTo(0, 0);
-                            document.querySelector("#categories-list input").dispatchEvent(new Event('change'));
-                        } else {
-                            throw new Error(data.error || 'Failed to create post');
-                        }
-                    } catch (error) {
-                        if (response.status === 400) {
-                            responseElement.textContent = await response.text();
-                        } else {
-                            responseElement.textContent = error.message;
-                        }
-                        responseElement.style.color = 'red';
-                    }
-                } catch (error) {
-                    responseElement.textContent = 'An error occurred while creating the post.';
-                    responseElement.style.color = 'red';
-                }
-            });
-        
-            overlay.addEventListener('click', e => {
-                if (e.target === overlay) overlay.remove();
-            });
-        });        
         
         // Create Group Listener
         document.querySelector('.create-group-btn').addEventListener('click', function(e) {
@@ -365,7 +121,7 @@ function updateUserStatusUI(data) {
         });
         
         // Create Group Form
-        /*document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('group-name').value.trim();
             const description = document.getElementById('group-description').value.trim();
@@ -384,16 +140,16 @@ function updateUserStatusUI(data) {
                 const err = await response.text();
                 alert(`❌ Failed: ${err}`);
             }
-        });*/
-        
-        sideDivs.forEach(function(element) {
-            element.style.display = "block";
         });
+        
+        if (chatSection) {
+            chatSection.style.display = "block";
+        }
     } else {
         document.getElementById('pagination-container').innerHTML = "";
-        sideDivs.forEach(function(element) {
-            element.style.display = "none";
-        });
+        if (chatSection) {
+            chatSection.style.display = "none";
+        }
         userStatusElement.innerHTML = `<i class="fas fa-info-circle"></i> Please login to continue 🔑`;
         document.querySelector("#posts-container").innerHTML = `<div class="container" style="position: absolute;left: 50%;transform: translateX(-50%);">
                 <div class="card">
@@ -409,171 +165,6 @@ function updateUserStatusUI(data) {
                     <p>Don't have an account? <a href="/register">Sign Up</a></p>
                 </div>
             </div>`;
-            document.querySelector('a[href="/register"]').addEventListener('click', function(e) {
-                e.preventDefault();
-                const overlay = document.createElement('div');
-                overlay.style.cssText = `
-                    position: fixed;top: 0;left: 0;
-                    width: 100%;height: 100%;
-                    background: rgba(0, 0, 0, 0.7);
-                    display: flex;justify-content: center;
-                    align-items: center;z-index: 1000;
-                `;
-                overlay.innerHTML = `<div class="container">
-                        <div class="card">
-                            <h2>Register</h2>
-                            <form id="register-form" method="POST" style="display: table-caption;">
-                                <input type="text" name="username" placeholder="Nickname" required>
-                                <input type="email" name="email" placeholder="Email" required>
-                                <input type="password" name="password" placeholder="Password" required>
-                                <!-- <input type="date" name="birthDate" placeholder="yyyy-mm-dd" required> -->
-                                <input type="number" name="Age" min="4" max="99" required oninvalid="this.setCustomValidity('Please enter a valid age between 4 and 99')" oninput="this.setCustomValidity('')" placeholder="Age">
-                                <select name="Gender" required>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Prefer not to say">Prefer not to say</option>
-                                </select>
-                                <input type="text" name="First_Name" placeholder="First Name" required>
-                                <input type="text" name="Last_Name" placeholder="Last Name" required>
-                                <button type="submit" class="button">Register</button>
-                                <span id="register-response"></span>
-                            </form>
-                        </div>
-                    </div>`
-                    document.body.appendChild(overlay);
-                    document.getElementById('register-form').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const username = this.username.value;const email = this.email.value;
-                    const password = this.password.value;const age = this.Age.value;
-                    const gender = this.Gender.value;const firstName = this.First_Name.value;
-                    const lastName = this.Last_Name.value;
-                    register();
-                    function register() {
-                        const responseElement = document.getElementById('register-response');
-                        const birthDate = convertAgeToBirthDate(age);
-                        // console.log("🎂📅 birthDate: ", age, birthDate);
-                        fetch('/api/register', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', },
-                            body: JSON.stringify({ username, email, password, birthDate, gender, firstName, lastName }),
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            responseElement.textContent = "Registring...";
-                            if (data.message === "User registered and logged in successfully") {
-                                window.location.reload();  // Redirect to home page
-                                // updateUserStatusUI({ loggedIn: true, username: data.username });
-                                // fetchPosts();
-                                // updateUserStatus({user_id: data.user_id, status: "online"});
-                                // overlay.remove();
-                                // responseElement.textContent = "Registration successful. Welcome to the forum!";
-                                // alert('Registration successful. Welcome to the forum!');
-                                // fetchOnlineUsers();
-                            } else {
-                                responseElement.textContent = data.error;
-                                if (data.error == "failed to execute query: UNIQUE constraint failed: users.email") {
-                                    responseElement.textContent = "Email already exists. Please use a different email.";
-                                } else if (data.error == "failed to execute query: UNIQUE constraint failed: users.username") {
-                                    responseElement.textContent = "Username already exists. Please use a different username.";
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error: ', error);
-                            responseElement.textContent = 'Error: ', error
-                        });
-                        function convertAgeToBirthDate(age) {
-                            const currentDate = new Date(); const currentYear = currentDate.getFullYear(); const birthYear = currentYear - age; const birthDate = new Date(birthYear, 0, 1);
-                            const formattedBirthDate = birthDate.toISOString().split('T')[0];
-                            return formattedBirthDate+"T00:00:00.000Z";
-                        }
-                    }
-                });
-                overlay.addEventListener('click', function(e) {
-                    if (e.target === overlay) {
-                        overlay.remove();
-                    }
-                });
-            });
-
-            document.getElementById('login-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const userIdentifier = document.querySelector('#login-form [name="user_identifier"]').value.trim();
-                const password = document.querySelector('#login-form [type="password"]').value.trim();
-                const loginResponse = document.getElementById('login-response');
-                
-                if (!userIdentifier || !password) {
-                    loginResponse.innerText = 'Email and password are required fields.';
-                    return;
-                }
-            
-                loginResponse.style.color = 'Green';
-                loginResponse.innerText = 'Logging in...';
-                
-            
-                try {
-                    // First do the login
-                    const response = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            identifier: userIdentifier,
-                            password: password
-                        })
-                    });
-            
-                    const data = await response.json();
-                    if (!response.ok) {
-                        loginResponse.textContent = data.message || 'Login failed. Please try again.';
-                        loginResponse.style.color = 'red';
-                        throw new Error(data.message || 'Login failed');
-                    } else if (data.message === "Invalid credentials.") {
-                        loginResponse.textContent = data.message || 'Login failed. Please try again.';
-                        loginResponse.style.color = 'red';
-                    }
-            
-                    handleLogin(data)
-                } catch (error) {
-                    console.error('Login error:', error);
-                    loginResponse.textContent = error.message || 'Login failed. Please try again.';
-                    loginResponse.style.color = 'red';
-                }
-            });
-    }
-  updateOnlineUsersList();
-}
-async function handleLogin(data) {
-    if (data.message === "Logged in successfully") {
-        currentUserID = data.user_id;
-        currentUserName = data.username;
-        
-        try {
-            // Initialize WebSocket first
-            await initializeWebSocket();
-            
-            // Then update UI and fetch posts
-            updateUserStatusUI({ loggedIn: true, username: data.username });
-            fetchPosts();
-
-            console.log(document.getElementById('loggedInUserFilter').disabled);
-
-            document.getElementById('loggedInUserFilter').disabled = false;
-            
-            // Broadcast user status to all clients
-            if (socket?.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'user_status',
-                    content: {
-                        user_id: data.user_id,
-                        status: 'online',
-                        username: data.username
-                    }
-                }));
-            }
-        } catch (error) {
-            console.error('Error during login:', error);
-            // fetchPosts(); // Still fetch posts even if WebSocket fails
-        }
     }
 }
 
@@ -603,6 +194,16 @@ const sidebarContent = document.getElementById('sidebarContent');
 sidebarContent.parentNode.insertBefore(toggleButton, sidebarContent);
 
 function handleScreenChange(e) {
+    // Get Vue's showSidebar state
+    const vueApp = window.__VUE_APP__;
+    const shouldShowSidebar = vueApp ? vueApp.showSidebar.value : true;
+
+    if (!shouldShowSidebar) {
+        sidebarContent.style.display = 'none';
+        toggleButton.style.display = 'none';
+        return;
+    }
+
     if (e.matches) {
         sidebarContent.style.display = 'none';
         toggleButton.style.display = 'block';
@@ -615,74 +216,152 @@ function handleScreenChange(e) {
     }
 }
 
+window.handleScreenChange = handleScreenChange;
+
 mediaQuery.addEventListener('change', handleScreenChange);
 handleScreenChange(mediaQuery);
 
-// class WebSocketClient {
-//     constructor(url) {
-//         this.url = url;
-//         this.socket = null;
-//         this.connected = false;
-//     }
+// Also watch for showSidebar changes from Vue
+if (window.__VUE_APP__) {
+    window.__VUE_APP__.showSidebar.effect.run = () => handleScreenChange(mediaQuery);
+}
 
-//     connect() {
-//         this.socket = new WebSocket(this.url);
+// Remove previous attachCreatePostListener and related code
+// Add event delegation for Create Post button
 
-//         this.socket.onopen = () => {
-//             console.log('Connected to server');
-//             this.connected = true;
-//         };
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('.create-post-btn');
+    // Only trigger if Vue app is in posts view
+    if (target && window.__VUE_APP__ && window.__VUE_APP__.currentView === 'posts') {
+        e.preventDefault();
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;';
+        overlay.innerHTML = `
+            <div class="card">
+                <div id="create-post-response"></div>
+                <form id="create-post-form">
+                    <input type="text" id="post-title" placeholder="Post Title" required
+                        minlength="3" 
+                        maxlength="100"
+                        title="Title must be between 3 and 100 characters and contain only letters, numbers, spaces, and basic punctuation."
+                        oninvalid="this.setCustomValidity('Please enter a valid title.')"
+                        oninput="this.setCustomValidity('')"
+                    >
+                    <textarea id="post-content" placeholder="Write your post content here..." required
+                        minlength="10" 
+                        maxlength="5000" 
+                        title="Content must be between 10 and 5000 characters."
+                        oninvalid="this.setCustomValidity('Please enter valid content.')"
+                        oninput="this.setCustomValidity('')"
+                    ></textarea>
+                    <select id="post-category" required>
+                        <option value="6" selected>Other categories</option>
+                    </select>
+                    <select id="post-privacy" required>
+                        <option value="public" selected>Public</option>
+                        <option value="almost_private">Followers</option>
+                        <option value="private">Chosen followers</option>
+                    </select>
+                    <input type="file" id="post-image" accept="image/jpeg, image/png, image/gif" />
+                    <button type="submit" id="submit-post-btn">Create Post</button>
+                </form>
+            </div>`;
+        document.body.appendChild(overlay);
 
-//         this.socket.onmessage = (event) => {
-//             try {
-//                 const data = JSON.parse(event.data);
-//                 this.handleMessage(data);
-//             } catch (error) {
-//                 console.error('Error parsing message:', error);
-//             }
-//         };
+        // Add file validation for size and dimensions
+        document.getElementById('post-image').addEventListener('change', function () {
+            const file = this.files[0];
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            const maxWidth = 2000;
+            const maxHeight = 2000;
 
-//         this.socket.onclose = () => {
-//             console.log('Disconnected from server');
-//             this.connected = false;
-//             // Attempt to reconnect after 5 seconds
-//             setTimeout(() => this.connect(), 5000);
-//         };
+            if (file) {
+                if (file.size > maxSize) {
+                    alert('File size must not exceed 2MB.');
+                    this.value = ''; // Clear the input
+                    return;
+                }
 
-//         this.socket.onerror = (error) => {
-//             console.error('WebSocket error:', error);
-//         };
-//     }
+                const img = new Image();
+                img.onload = function () {
+                    if (img.width > maxWidth || img.height > maxHeight) {
+                        alert(`Image dimensions must not exceed ${maxWidth}x${maxHeight}px.`);
+                        document.getElementById('post-image').value = ''; // Clear the input
+                    }
+                };
+                img.src = URL.createObjectURL(file);
+            }
+        });
+    
+        // Fetch categories dynamically
+        fetch('/categories')
+            .then(response => response.json())
+            .then(categories => {
+                const categorySelect = document.getElementById('post-category');
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.ID;
+                    option.textContent = category.Name;
+                    categorySelect.appendChild(option);
+                });
+            });
+    
+        document.getElementById('create-post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const responseElement = document.getElementById('create-post-response');
+            responseElement.textContent = 'Creating post...';
+            
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const category = document.getElementById('post-category').value;
+            const privacy = document.getElementById('post-privacy').value;
+            const formData = new FormData();
+                formData.append('Title', title);
+                formData.append('Text', content);
+                formData.append('CategoryID', parseInt(category));
+                formData.append('UserID', parseInt(currentUserID));
+                formData.append('Privacy', privacy);
+                const imageFile = document.getElementById('post-image').files[0];
+                    if (imageFile)  formData.append('Image', imageFile);
+    
+            try {
+                const response = await fetch('/post/create', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                });
+                
+                try {
+                    const data = await response.json();
+                    if (response.ok) {
+                        overlay.remove();
+                        window.scrollTo(0, 0);
+                        document.querySelector("#categories-list input").dispatchEvent(new Event('change'));
+                    } else {
+                        throw new Error(data.error || 'Failed to create post');
+                    }
+                } catch (error) {
+                    if (response.status === 400) {
+                        responseElement.textContent = await response.text();
+                    } else {
+                        responseElement.textContent = error.message;
+                    }
+                    responseElement.style.color = 'red';
+                }
+            } catch (error) {
+                responseElement.textContent = 'An error occurred while creating the post.';
+                responseElement.style.color = 'red';
+            }
+        });
+    
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) overlay.remove();
+        });
+    }
+});
 
-//     handleMessage(data) {
-//         // Handle different types of messages from the server
-//         switch (data.type) {
-//             case 'chat':
-//                 // Handle chat messages
-//                 break;
-//             case 'notification':
-//                 // Handle notifications
-//                 break;
-//             case 'status':
-//                 // Handle status updates
-//                 break;
-//             default:
-//                 console.log('Received message:', data);
-//         }
-//     }
-
-//     send(message) {
-//         if (this.connected && this.socket) {
-//             this.socket.send(JSON.stringify(message));
-//         } else {
-//             console.error('Not connected to server');
-//         }
-//     }
-// }
-
-// // Usage example:
-// const wsClient = new WebSocketClient('ws://localhost:8080/ws'); // Adjust the URL to match your server
-// wsClient.connect();
-
-// To send a message:
-// wsClient.send({ type: 'chat', message: 'Hello!', userId: 123 });
+// Also call after updateUserStatusUI, since it rewrites the navbar
+const originalUpdateUserStatusUI = updateUserStatusUI;
+updateUserStatusUI = function(data) {
+    originalUpdateUserStatusUI(data);
+}
