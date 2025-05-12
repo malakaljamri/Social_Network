@@ -13,7 +13,7 @@ const app = createApp({
         const selectedGroupId = ref(null);
         const groupSearchQuery = ref('');
         const groupPosts = ref([]);
-        const currentView = ref('posts'); // 'posts', 'profile', 'groups'
+        const currentView = ref('login'); // 'login', 'register', 'posts', 'profile', 'groups'
 
         // Computed property for sidebar visibility
         const showSidebar = computed(() => {
@@ -66,6 +66,22 @@ const app = createApp({
         // User search state
         const userSearchQuery = ref('');
         const userSearchResults = ref([]);
+
+        // Login/Register form state
+        const loginForm = reactive({
+            user_identifier: 'example1@gmail.com',
+            password: '12',
+            error: '',
+            loading: false
+        });
+        const registerForm = reactive({
+            username: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            error: '',
+            loading: false
+        });
 
         // Computed properties for Derived Data that depend on other reactive data:
         // This updates automatically when posts or filters change
@@ -120,6 +136,9 @@ const app = createApp({
         const showGroupEventsModal = ref(false);
         const groupEvents = reactive({ upcoming: [], past: [] });
         const todayDate = new Date().toLocaleDateString();
+
+        // Navbar/modal state
+        const showCreateGroupModal = ref(false);
 
         // Methods
         const fetchUserStatus = async () => {
@@ -789,12 +808,17 @@ const app = createApp({
 
         // Called when component is mounted
         onMounted(async () => {
-            await fetchUserStatus();
+            const status = await fetchUserStatus();
+            if (status && status.loggedIn) {
+                await fetchOnlineUsers();
+                currentView.value = 'posts';
+            } else {
+                currentView.value = 'login';
+            }
 
             if (currentUser.isLoggedIn) {
                 await fetchCategories();
                 await fetchPosts();
-                await fetchOnlineUsers();
                 await fetchGroups();
                 setTimeout(() => {
                     initializeWebSocket();
@@ -896,6 +920,110 @@ const app = createApp({
             }
         };
 
+        // Login method
+        const handleLogin = async () => {
+            loginForm.error = '';
+            loginForm.loading = true;
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        identifier: loginForm.user_identifier,
+                        password: loginForm.password
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.message === 'Invalid credentials.') {
+                    loginForm.error = data.message || 'Login failed. Please try again.';
+                    loginForm.loading = false;
+                    return;
+                }
+                // On success, update user state and switch view
+                await fetchUserStatus();
+                await fetchOnlineUsers();
+                currentView.value = 'posts';
+            } catch (error) {
+                loginForm.error = error.message || 'Login failed. Please try again.';
+            } finally {
+                loginForm.loading = false;
+            }
+        };
+
+        // Register method (placeholder, to be expanded)
+        const handleRegister = async () => {
+            registerForm.error = '';
+            registerForm.loading = true;
+            if (registerForm.password !== registerForm.confirmPassword) {
+                registerForm.error = 'Passwords do not match.';
+                registerForm.loading = false;
+                return;
+            }
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: registerForm.username,
+                        email: registerForm.email,
+                        password: registerForm.password
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    registerForm.error = data.message || 'Registration failed. Please try again.';
+                    registerForm.loading = false;
+                    return;
+                }
+                // On success, switch to login view
+                currentView.value = 'login';
+            } catch (error) {
+                registerForm.error = error.message || 'Registration failed. Please try again.';
+            } finally {
+                registerForm.loading = false;
+            }
+        };
+
+        // Navigation methods
+        const goToLogin = () => {
+            currentView.value = 'login';
+            loginForm.error = '';
+        };
+        const goToRegister = () => {
+            currentView.value = 'register';
+            registerForm.error = '';
+        };
+
+        // Navbar navigation methods
+        const goToCreatePost = () => {
+            // You can implement a modal or view switch here
+            // For now, just alert as a placeholder
+            alert('Create Post modal not yet implemented in Vue.');
+        };
+        const goToProfile = () => {
+            currentView.value = 'profile';
+        };
+        const handleLogout = () => {
+            // Clear user state and return to login view
+            currentUser.id = null;
+            currentUser.username = null;
+            currentUser.isLoggedIn = false;
+            currentView.value = 'login';
+            // Optionally clear other state as needed
+        };
+        const goToHome = () => {
+            currentView.value = 'posts';
+        };
+
+        // Watch filters and trigger post filtering
+        watch(filters, () => {
+            if (typeof fetchPostsFiltered === 'function') {
+                fetchPostsFiltered();
+            } else if (typeof fetchPosts === 'function') {
+                fetchPosts();
+            }
+        }, { deep: true });
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -971,6 +1099,21 @@ const app = createApp({
             todayDate,
             formatEventDate,
             openUserChat,
+            
+            // Login/Register form state
+            loginForm,
+            registerForm,
+            handleLogin,
+            handleRegister,
+            goToLogin,
+            goToRegister,
+
+            // Navbar/modal state
+            showCreateGroupModal,
+            goToCreatePost,
+            goToProfile,
+            handleLogout,
+            goToHome,
         };
     }
 });
