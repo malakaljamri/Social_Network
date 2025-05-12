@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"social_network/internal/models"
@@ -37,7 +36,7 @@ func CreatePost(post *models.Post) error {
 
 	// Then, fetch the posts for the current page
 	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author, privacy
-		  
+
           FROM posts ORDER BY id DESC LIMIT ? OFFSET ?`
 	rows, err := FetchData(query, limit, offset)
 	if err != nil {
@@ -133,12 +132,12 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 				p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?) and
 				p.id in      (select post_id    from post_viewers where viewer_id = ?)
 			)
-	)`
+	)
+	AND p.group_id IS NULL`
 
 	var args []interface{}
 	userID, erruserID := GetUserIDFromSession(r)
 	if erruserID != nil {
-		// log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
 		return nil, 0, erruserID
 	}
 	args = append(args, userID, userID, userID, userID)
@@ -181,13 +180,6 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	query += " GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?"
 	args = append(args, limit, (page-1)*limit)
 
-	finalQuery := query
-	for _, arg := range args {
-		finalQuery = strings.Replace(finalQuery, "?", fmt.Sprintf("%v", arg), 1)
-	}
-	// log.Println("🎬🎬🎬🎬Final query:", finalQuery)
-
-	// log.Printf("Executing query with args: %v", args)
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
@@ -204,7 +196,6 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 			log.Printf("Error scanning row: %v", err)
 			return nil, 0, err
 		}
-		// log.Printf("Scanned post: %+v", post)
 		if categoryIDsStr.Valid {
 			categoryIDs := strings.Split(categoryIDsStr.String, ",")
 			post.Categories = make([]int, len(categoryIDs))
@@ -216,22 +207,13 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		posts = append(posts, post)
 	}
 
-	// log.Printf("Total posts retrieved: %d", len(posts))
-
 	var totalCount int
 	countQuery := "SELECT COUNT(DISTINCT p.id) " + query[strings.Index(query, "FROM posts p"):]
 	countQuery = strings.Replace(countQuery, "GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?", "", 1)
-	finalQuery2 := countQuery
-	for _, arg := range args {
-		finalQuery2 = strings.Replace(finalQuery2, "?", fmt.Sprintf("%v", arg), 1)
-	}
-	// log.Println("🎬🎬🎬🎬Final countQuery:", finalQuery2)
 	err = db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	// log.Printf("Total count from database: %d", totalCount)
 
 	return posts, totalCount, nil
 }

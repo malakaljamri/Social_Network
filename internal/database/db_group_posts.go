@@ -28,34 +28,92 @@ type GroupEvent struct {
 	CreatedBy   int    `json:"created_by"`
 }
 
-// CreateGroupPost creates a new post in a group
+// CreateGroupPost creates a new post in a group using the main posts table
 func CreateGroupPost(db *sql.DB, post *GroupPost) error {
 	if post == nil {
 		return errors.New("post cannot be nil")
 	}
 
-	query := `
-		INSERT INTO group_posts (group_id, user_id, title, content, privacy_setting, category_id, file_path)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`
-	_, err := db.Exec(query, post.GroupID, post.UserID, post.Title, post.Content, post.PrivacySetting, post.CategoryID, post.FilePath)
-	if err != nil {
-		return fmt.Errorf("failed to insert group post: %v", err)
+	// Validate required fields
+	if post.GroupID <= 0 {
+		return errors.New("invalid group ID")
+	}
+	if post.UserID <= 0 {
+		return errors.New("invalid user ID")
+	}
+	if post.Title == "" {
+		return errors.New("title is required")
+	}
+	if post.Content == "" {
+		return errors.New("content is required")
 	}
 
+	// Start a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	// Verify group exists
+	var groupExists bool
+	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM groups WHERE id = ?)", post.GroupID).Scan(&groupExists)
+	if err != nil {
+		return fmt.Errorf("failed to verify group existence: %v", err)
+	}
+	if !groupExists {
+		return fmt.Errorf("group with ID %d does not exist", post.GroupID)
+	}
+
+	// Insert into posts table with group_id
+	query := `
+		INSERT INTO posts (user_id, title, content, privacy, image, group_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+	`
+	result, err := tx.Exec(query, post.UserID, post.Title, post.Content, post.PrivacySetting, post.FilePath, post.GroupID)
+	if err != nil {
+		return fmt.Errorf("failed to insert post: %v", err)
+	}
+
+	// Get the last inserted ID
+	postID, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %v", err)
+	}
+
+	// If there's a category, add it
+	if post.CategoryID != nil {
+		categoryQuery := `
+			INSERT INTO post_categories (post_id, category_id)
+			VALUES (?, ?)
+		`
+		_, err = tx.Exec(categoryQuery, postID, *post.CategoryID)
+		if err != nil {
+			return fmt.Errorf("failed to insert post category: %v", err)
+		}
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	// Update the post ID in the struct
+	post.ID = int(postID)
 	return nil
 }
 
-// GetGroupPosts retrieves all posts for a specific group
+// GetGroupPosts retrieves all posts for a specific group from the main posts table
 func GetGroupPosts(db *sql.DB, groupID int) ([]GroupPost, error) {
 	query := `
-		SELECT gp.id, gp.group_id, gp.user_id, gp.title, gp.content, 
-			   gp.privacy_setting, gp.category_id, gp.file_path, gp.created_at,
+		SELECT p.id, p.group_id, p.user_id, p.title, p.content, 
+			   p.privacy, pc.category_id, p.image, p.created_at,
 			   u.username
-		FROM group_posts gp
-		JOIN users u ON gp.user_id = u.id
-		WHERE gp.group_id = ?
-		ORDER BY gp.created_at DESC
+		FROM posts p
+		JOIN users u ON p.user_id = u.id
+		LEFT JOIN post_categories pc ON p.id = pc.post_id
+		WHERE p.group_id = ?
+		ORDER BY p.created_at DESC
 	`
 
 	rows, err := db.Query(query, groupID)

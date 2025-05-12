@@ -758,6 +758,7 @@ const app = createApp({
                     throw new Error('Failed to create group post');
                 }
 
+                const result = await response.json();
                 showAlert('Group post created successfully!');
                 showCreateGroupPostForm.value = false;
                 
@@ -876,6 +877,13 @@ const app = createApp({
         watch(showGroupEventsModal, (val) => {
             if (val && selectedGroupId.value) {
                 fetchGroupEvents(selectedGroupId.value);
+            }
+        });
+
+        // Add watcher for create group post form
+        watch(showCreateGroupPostForm, async (newVal) => {
+            if (newVal && (!categories.value || categories.value.length === 0)) {
+                await fetchCategories();
             }
         });
 

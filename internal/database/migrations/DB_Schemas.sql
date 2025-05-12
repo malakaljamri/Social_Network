@@ -1,10 +1,19 @@
+-- Drop old tables that are no longer needed
+DROP TABLE IF EXISTS group_posts;
+DROP TABLE IF EXISTS group_post_metadata;
+
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, image TEXT, privacy TEXT CHECK (privacy IN ('public', 'almost_private', 'private')) DEFAULT 'public',
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    image TEXT,
+    privacy TEXT CHECK (privacy IN ('public', 'almost_private', 'private')) DEFAULT 'public',
+    group_id INTEGER,
+    post_type TEXT CHECK (post_type IN ('regular', 'group')) DEFAULT 'regular',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
@@ -114,20 +123,6 @@ CREATE TABLE IF NOT EXISTS group_messages (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (sender_id) REFERENCES users(id)
-);
-CREATE TABLE IF NOT EXISTS group_posts (
-    id INTEGER PRIMARY KEY,
-    group_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    privacy_setting TEXT CHECK (privacy_setting IN ('public', 'followers', 'chosen_followers')) DEFAULT 'public',
-    category_id INTEGER,
-    file_path TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups(id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
