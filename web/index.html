@@ -66,83 +66,75 @@
         </div>
     </div>
     
-    <div id="chat-section">
-        <div id="online-users" class="online-users-list card">
-            <h3>Users</h3>
-            <div class="users-container">
-                <!-- Vue online users list -->
-                <div v-if="onlineUsers && onlineUsers.length">
-                    <div v-for="user in onlineUsers" :key="user.id" class="user-item profile-link" @click="viewUserProfile(user.id)">
-                        <span class="online-indicator" :class="{'is-online': user.online}"></span>
-                        <span class="username">[[user.username]]</span> 
-                        <span class="view-profile-hint">View Profile</span> 
+    <div id="app">
+        <div id="chat-section" v-if="currentUser.isLoggedIn">
+            <div id="online-users" class="online-users-list card">
+                <h3>Users</h3>
+                <div class="users-container">
+                    <div v-if="onlineUsers && onlineUsers.length">
+                        <div v-for="user in onlineUsers" :key="user.id" class="user-item profile-link" @click="openUserChat(user.id)">
+                            <span class="online-indicator" :class="{'is-online': user.online}"></span>
+                            <span class="username">[[user.username]]</span>
+                            <span class="view-profile-hint">Chat</span>
+                        </div>
                     </div>
+                    <div v-else>No users online</div>
                 </div>
-                <div v-else>No users online</div>
             </div>
         </div>
-        <div style="display: none;" id="publicChatMessages" class="card">
-            <h3>Chat Messages</h3>
-            <div class="public_chat_messagesContainer"></div>
-        </div>
-        <input style="display: none;" type="text" id="publicChatInput" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendPublicChatMessage(this.value.trim())">
-        <button style="display: none;" onclick="sendPublicChatMessage(document.querySelector('#publicChatInput').value.trim())">Send</button>
-    </div>
-
-    <div id="forum-container">
-        <!-- Posts Feed View -->
-        <div id="posts-feed" v-show="currentView === 'posts'">
-            <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
-                <h1 style="text-align: center;">Welcome To Social Network</h1>
-                
-                <!-- Loading indicator -->
-                <div v-if="loading" class="loading-indicator">Loading posts...</div>
-                
-                <!-- Pagination controls -->
-                <div id="pagination-container">
-                    <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
-                    <span>Page [[currentPage]] of [[totalPages]]</span>
-                    <button @click="fetchPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
-                </div>
-                
-                <!-- Posts container with Vue -->
-                <div id="posts-container">
-                    <div v-if="filteredPosts.length === 0 && !loading" class="no-posts">
-                        No posts match your filters
+        <div id="forum-container" v-show="currentView !== 'groups'">
+            <div id="posts-feed" v-show="currentView === 'posts'">
+                <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
+                    <h1 style="text-align: center;">Welcome To Social Network</h1>
+                    
+                    <!-- Loading indicator -->
+                    <div v-if="loading" class="loading-indicator">Loading posts...</div>
+                    
+                    <!-- Pagination controls -->
+                    <div id="pagination-container">
+                        <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
+                        <span>Page [[currentPage]] of [[totalPages]]</span>
+                        <button @click="fetchPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
                     </div>
-                    <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
-                        <div class="post-header">
-                            <h2>[[post.Title]]</h2>
-                            <div class="post-meta">
-                                <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">[[post.Author]]</span></span>
-                                <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
-                            </div>
+                    
+                    <!-- Posts container with Vue -->
+                    <div id="posts-container">
+                        <div v-if="filteredPosts.length === 0 && !loading" class="no-posts">
+                            No posts match your filters
                         </div>
-                        <div class="post-content">[[post.Text]]</div>
-                        <div class="post-footer">
-                            <div class="post-interactions">
-                                <button @click="likePost(post.ID)" class="like-btn" 
-                                        :disabled="!currentUser.isLoggedIn">
-                                    [[post.Likes || 0]]
-                                </button>
-                                <button @click="dislikePost(post.ID)" class="dislike-btn" 
-                                        :disabled="!currentUser.isLoggedIn">
-                                    [[post.Dislikes || 0]]
-                                </button>
+                        <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
+                            <div class="post-header">
+                                <h2>[[post.Title]]</h2>
+                                <div class="post-meta">
+                                    <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">[[post.Author]]</span></span>
+                                    <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
+                                </div>
                             </div>
-                            <!-- Category This directive is what allows us to display all categories, posts, or users without manually coding each one. -->
-                            <div class="post-category" v-if="post.Categories && post.Categories.length">
-                                <span v-for="catId in post.Categories" :key="catId">
-                                    [[getCategoryName(catId)]]
-                                </span>
+                            <div class="post-content">[[post.Text]]</div>
+                            <div class="post-footer">
+                                <div class="post-interactions">
+                                    <button @click="likePost(post.ID)" class="like-btn" 
+                                            :disabled="!currentUser.isLoggedIn">
+                                        [[post.Likes || 0]]
+                                    </button>
+                                    <button @click="dislikePost(post.ID)" class="dislike-btn" 
+                                            :disabled="!currentUser.isLoggedIn">
+                                        [[post.Dislikes || 0]]
+                                    </button>
+                                </div>
+                                <!-- Category This directive is what allows us to display all categories, posts, or users without manually coding each one. -->
+                                <div class="post-category" v-if="post.Categories && post.Categories.length">
+                                    <span v-for="catId in post.Categories" :key="catId">
+                                        [[getCategoryName(catId)]]
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
+            <div id="profile-view" v-show="currentView === 'profile'" style="display: none;"></div>
         </div>
-
-        <!-- Groups View -->
         <div id="group-main" v-show="currentView === 'groups'" class="groups-view">
             <!-- Groups List Container -->
             <div class="group-list-container">
@@ -289,175 +281,6 @@
                                 <div class="post-category" v-if="post.category_id">
                                     <span>[[getCategoryName(post.category_id)]]</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Profile View -->
-        <div id="profile-view" v-show="currentView === 'profile'" style="display: block !important;">
-            <div class="profile-container">
-                <!-- Loading indicator -->
-                <div v-if="profileLoading" class="loading-indicator">Loading profile...</div>
-                
-                <!-- Debug info -->
-                <div v-if="!profileUser.id && !profileLoading" style="text-align: center; margin: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-                    <h3>💡 Profile Information</h3>
-                    <p><strong>Username:</strong> [[profileUser.username]]</p>
-                    <p><strong>Email:</strong> [[profileUser.email]]</p>
-                    <p><strong>Private:</strong> [[profileUser.is_private ? 'Yes' : 'No']]</p>
-                    <p><strong>Posts Count:</strong> [[profileUser.posts_count]]</p>
-                    <p><strong>Followers Count:</strong> [[profileUser.followers_count]]</p>
-
-                </div>
-                
-                <!-- Profile Header -->
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        [[profileUser.username ? profileUser.username.charAt(0).toUpperCase() : '?']]
-                    </div>
-                    <div class="profile-info">
-                        <div class="profile-username">
-                            [[profileUser.username]]
-                            <span v-if="profileUser.is_private" class="privacy-badge" title="Private profile">🔒</span>
-                            <span v-if="profileUser.is_own_profile" class="own-profile-badge" title="This is your profile">👤 (You)</span>
-                        </div>
-                        <div class="profile-email">[[profileUser.email]]</div>
-                        <div class="profile-stats">
-                            <div class="stat-item" @click="changeProfileTab('posts')">
-                                <div class="stat-value">[[profileUser.posts_count]]</div>
-                                <div class="stat-label">Posts</div>
-                            </div>
-                            <div class="stat-item" @click="changeProfileTab('followers')">
-                                <div class="stat-value">[[profileUser.followers_count]]</div>
-                                <div class="stat-label">Followers</div>
-                            </div>
-                            <div class="stat-item" @click="changeProfileTab('following')">
-                                <div class="stat-value">[[profileUser.following_count]]</div>
-                                <div class="stat-label">Following</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="profile-actions">
-                        <button class="back-btn" @click="returnToFeed">Back to Feed</button>
-                        <!-- Only show these buttons when NOT viewing your own profile -->
-                        <button v-if="currentUser.isLoggedIn && !profileUser.is_own_profile" 
-                                class="follow-btn" 
-                                @click="followUser(profileUser.id)" 
-                                v-show="!profileUser.is_following">Follow</button>
-                        <button v-if="currentUser.isLoggedIn && !profileUser.is_own_profile" 
-                                class="unfollow-btn" 
-                                @click="unfollowUser(profileUser.id)" 
-                                v-show="profileUser.is_following">Unfollow</button>
-                        <button class="chat-btn" 
-                                v-if="currentUser.isLoggedIn && !profileUser.is_own_profile"
-                                @click="openChat(profileUser.id)">Message</button>
-                        <!-- Privacy Settings Dropdown - only show on your own profile -->
-                        <div v-if="profileUser.is_own_profile" class="privacy-dropdown">
-                            <select @change="updatePrivacySetting($event)" :value="profileUser.is_private ? 'private' : 'public'" class="privacy-select">
-                                <option value="public">🌍 Public Profile</option>
-                                <option value="private">🔒 Private Profile</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Private Profile Notice -->
-                <div v-if="profileUser.is_private && !profileUser.is_following && currentUser.id !== profileUser.id && profileTab === 'posts'"
-                     class="private-profile-notice">
-                    <div style="text-align: center; padding: 40px 0;">
-                        <div style="font-size: 80px; margin-bottom: 20px;">🔒</div>
-                        <h3>This Account is Private</h3>
-                        <p>Follow this account to see their photos and videos.</p>
-                    </div>
-                </div>
-                
-                <!-- Profile Tabs -->
-                <div class="profile-tabs">
-                    <div class="profile-tab" 
-                         :class="{ active: profileTab === 'posts' }" 
-                         @click="changeProfileTab('posts')">Posts</div>
-                    <div class="profile-tab" 
-                         :class="{ active: profileTab === 'followers' }" 
-                         @click="changeProfileTab('followers')">Followers</div>
-                    <div class="profile-tab" 
-                         :class="{ active: profileTab === 'following' }" 
-                         @click="changeProfileTab('following')">Following</div>
-                </div>
-                
-                <!-- Tab Content -->
-                <div class="tab-content">
-                    <!-- Posts Tab -->
-                    <div v-if="profileTab === 'posts'">
-                        <div v-if="(!profilePosts || profilePosts.length === 0) && !profileLoading" class="no-posts">
-                            <div style="text-align: center; padding: 40px 0;">
-                                <div style="font-size: 80px; margin-bottom: 20px;">📷</div>
-                                <h3>No Posts Yet</h3>
-                                <p>When this user shares photos, they'll appear here.</p>
-                            </div>
-                        </div>
-                        <div v-if="profilePosts && profilePosts.length > 0" class="posts-grid">
-                            <div v-for="post in profilePosts" :key="post.ID" class="post-card">
-                                <div class="post-header">
-                                    <h2>[[post.Title]]</h2>
-                                    <div class="post-meta">
-                                        <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
-                                    </div>
-                                </div>
-                                <div class="post-content">[[post.Text]]</div>
-                                <div class="post-footer">
-                                    <div class="post-interactions">
-                                        <button @click="likePost(post.ID)" class="like-btn" 
-                                                :disabled="!currentUser.isLoggedIn">
-                                            [[post.Likes || 0]]
-                                        </button>
-                                        <button @click="dislikePost(post.ID)" class="dislike-btn" 
-                                                :disabled="!currentUser.isLoggedIn">
-                                            [[post.Dislikes || 0]]
-                                        </button>
-                                    </div>
-                                    <div class="post-category" v-if="post.Categories && post.Categories.length">
-                                        <span v-for="catId in post.Categories" :key="catId">
-                                            [[getCategoryName(catId)]]
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Followers Tab -->
-                    <div v-if="profileTab === 'followers'">
-                        <div v-if="(!profileFollowers || profileFollowers.length === 0) && !profileLoading" class="no-followers">
-                            <div style="text-align: center; padding: 40px 0;">
-                                <div style="font-size: 80px; margin-bottom: 20px;">👥</div>
-                                <h3>No Followers Yet</h3>
-                                <p>When people follow this account, they'll show up here.</p>
-                            </div>
-                        </div>
-                        <div v-if="profileFollowers && profileFollowers.length > 0" class="user-list">
-                            <div v-for="user in profileFollowers" :key="user.ID" class="user-card" @click="viewUserProfile(user.ID)">
-                                <div class="user-avatar">[[user.Username.charAt(0).toUpperCase()]]</div>
-                                <div class="user-name">[[user.Username]]</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Following Tab -->
-                    <div v-if="profileTab === 'following'">
-                        <div v-if="(!profileFollowing || profileFollowing.length === 0) && !profileLoading" class="no-following">
-                            <div style="text-align: center; padding: 40px 0;">
-                                <div style="font-size: 80px; margin-bottom: 20px;">👤</div>
-                                <h3>Not Following Anyone Yet</h3>
-                                <p>When this user follows others, they'll show up here.</p>
-                            </div>
-                        </div>
-                        <div v-if="profileFollowing && profileFollowing.length > 0" class="user-list">
-                            <div v-for="user in profileFollowing" :key="user.ID" class="user-card" @click="viewUserProfile(user.ID)">
-                                <div class="user-avatar">[[user.Username.charAt(0).toUpperCase()]]</div>
-                                <div class="user-name">[[user.Username]]</div>
                             </div>
                         </div>
                     </div>

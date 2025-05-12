@@ -887,6 +887,15 @@ const app = createApp({
             }
         });
 
+        // Add this method to open chat window from Vue
+        const openUserChat = (userId) => {
+            if (typeof openChatWindow === 'function') {
+                openChatWindow(userId);
+            } else {
+                showAlert('Chat functionality is not available.');
+            }
+        };
+
         // Return reactive state and methods for template use
         return {
             // Main feed state
@@ -961,6 +970,7 @@ const app = createApp({
             groupEvents,
             todayDate,
             formatEventDate,
+            openUserChat,
         };
     }
 });
@@ -968,7 +978,7 @@ const app = createApp({
 // Register and mount the app when document is ready
 document.addEventListener('DOMContentLoaded', () => {
     // setTimeout(() => {
-        app.mount('#forum-container');
+        app.mount('#app');
     // }, 1000); // Delay to ensure DOM is ready
     window.__VUE_APP__ = app._instance.proxy;
 });

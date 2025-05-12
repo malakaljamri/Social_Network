@@ -245,6 +245,13 @@ async function handleLogin(data) {
                     }
                 }));
             }
+
+            // Update Vue app state for user and online users
+            if (window.__VUE_APP__) {
+                window.__VUE_APP__.fetchUserStatus().then(() => {
+                    window.__VUE_APP__.fetchOnlineUsers();
+                });
+            }
         } catch (error) {
             console.error('Error during login:', error);
             // fetchPosts(); // Still fetch posts even if WebSocket fails
