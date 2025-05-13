@@ -80,7 +80,7 @@
     <div id="forum-container"  v-if="currentUser.isLoggedIn">
         <h2 style="text-align:center;margin-top:20px;">Social Network</h2>
         <!-- User Search Bar (now inside Vue app root) -->
-        <div id="user-search">
+        <div id="user-search" v-if="currentUser.isLoggedIn">
             <input
                 type="text"
                 v-model="userSearchQuery"

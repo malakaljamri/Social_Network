@@ -435,6 +435,11 @@ const app = createApp({
                 // Ensure we always have an array
                 profileFollowing.value = Array.isArray(data) ? data : [];
                 
+                // Update following and follower and post count finally 
+                profileUser.following_count = profileFollowing.value.length;
+                profileUser.followers_count = profileFollowers.value.length;
+                profileUser.posts_count = profilePosts.value.length;
+                
                 return profileFollowing.value;
             } catch (error) {
                 console.error('Error fetching following:', error);
