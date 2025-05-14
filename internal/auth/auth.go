@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+
 	// "log"
 	"net/http"
 	"time"
@@ -24,24 +25,31 @@ func NewAuthHandlers(hub *websocket.Hub) *AuthHandlers {
 	return &AuthHandlers{hub: hub}
 }
 
+// Helper to write JSON error
+func writeJSONError(w http.ResponseWriter, message string, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
 // RegisterHandler handles user registration
 func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate required fields
 	if user.Username == "" || /* user.BirthDate == (time.Time{}) ||*/ user.Gender == "" || user.FirstName == "" || user.LastName == "" || user.Email == "" || user.Password == "" {
-		http.Error(w, "All fields are required", http.StatusBadRequest)
+		writeJSONError(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		writeJSONError(w, "Error hashing password", http.StatusInternalServerError)
 		return
 	}
 	user.Password = string(hashedPassword)
@@ -49,11 +57,7 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Create the user in the database
 	err = database.CreateUser(&user)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   err.Error(),
-			"message": "Error creating user",
-		})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -145,7 +149,7 @@ func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
 		Expires:    expiresAt,
 		RawExpires: "",
 		MaxAge:     int(24 * time.Hour.Seconds()), // Set MaxAge in seconds (24 hours)
-		Secure:     false, // Set to false for local development (no HTTPS)
+		Secure:     false,                         // Set to false for local development (no HTTPS)
 		HttpOnly:   true,
 		SameSite:   http.SameSiteLaxMode, // Changed from StrictMode to LaxMode for better browser compatibility
 		Raw:        "",

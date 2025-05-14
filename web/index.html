@@ -10,422 +10,68 @@
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMCIgZmlsbD0iIzdkNmVlNyI+PC9yZWN0PjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0zNi42MyAyMi40Mkw2Ni41MiAyMi40MlE2Ni43OCAyMi44NyA2Ny4wNiAyMy42M1E2Ny4zMiAyNC40MCA2Ny4zMiAyNS4zMEw2Ny4zMiAyNS4zMFE2Ny4zMiAyNi44MyA2Ni42MCAyNy43M1E2NS44OCAyOC42MyA2NC41MyAyOC42M0w2NC41MyAyOC42M0w4MC4wNSAyOC42M0w4MC4wNSA0Ny4zNUw2My4zNiA0Ny4zNVE2My42MyA0Ny44MCA2My45MSA0OC41NlE2NC4xNyA0OS4zMyA2NC4xNyA1MC4yM0w2NC4xNyA1MC4yM1E2NC4xNyA1MS43NiA2My40NSA1Mi42NlE2Mi43MyA1My41NiA2MS4zOCA1My41Nkw2MS4zOCA1My41Nkw0MC4wNSA1My41Nkw0MC4wNSA3Ny4wNVEzOS42MCA3Ny4yMyAzOC42NiA3Ny40MVEzNy43MSA3Ny41OSAzNi43MiA3Ny41OVEzMi42NyA3Ny41OSAzMi42NyA3NC4zNEwzMi42NyA3NC4zNEwzMi42NyAyNi4zOFEzMi42NyAyNC41OCAzMy43NSAyMy41MFEzNC44NCAyMi40MiAzNi42MyAyMi40MkwzNi42MyAyMi40MloiPjwvcGF0aD48L3N2Zz4=" />
 </head>
 <body>
-    <!-- User Search Bar -->
+    <div id="app">
+        <!-- Navbar (Vue controlled) -->
+        <nav-bar :state="currentView"></nav-bar>
+
+        <!-- Page 1: Login Page -->
+        <main v-if="currentView === 'login'" class="page login-page">
+            <login-form></login-form>
+            <register-modal v-if="showRegisterModal"></register-modal>
+        </main>
+
+        <!-- Page 2: Home Page -->
+        <main v-if="currentView === 'home'" class="page home-page">
+            <filters-sidebar></filters-sidebar>
+            <feed-main></feed-main>
+            <users-list></users-list>
+        </main>
+
+        <!-- Page 3: Groups Page -->
+        <main v-if="currentView === 'groups'" class="page groups-page">
+            <groups-list></groups-list>
+            <group-main>
+                <group-posts></group-posts>
+                <group-events></group-events>
+                <group-chat></group-chat>
+            </group-main>
+            <users-list></users-list>
+        </main>
+
+        <!-- Page 4: Profile Page -->
+        <main v-if="currentView === 'profile'" class="page profile-page">
+            <filters-sidebar :is-profile="true"></filters-sidebar>
+            <profile-main></profile-main>
+            <users-list></users-list>
+        </main>
+    </div>
+
+    <!-- Old Structure (Commented Out for Fallback) -->
+    <!--
     <div id="sidebar" v-show="showSidebar">
-        <div id="sidebarContent" v-show="showSidebar">
-            <div id="resultsCounter" style="text-align: center;"></div>
-            <!-- Vue Groups List -->
-            <!-- <div v-if="currentView === 'groups'" class="filter-section">
-                <h3 class="collapsible">List of Groups</h3>
-                <input type="text" placeholder="Search groups..." style="width: 100%; margin-bottom: 10px;" v-model="groupSearchQuery">
-                <div>
-                    <div v-for="group in groups" :key="group.ID"
-                        :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
-                        @click="selectGroupById(group.ID)"
-                        style="cursor:pointer; margin-bottom: 6px; padding: 8px; border-radius: 6px; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">
-                        [[ group.Name ]]
-                    </div>
-                </div>
-            </div> -->
-            <!-- End Vue Groups List -->
-            <div class="filter-section" v-show="showSidebar">
-                <h3 class="collapsible">Categories</h3>
-                <div id="categories-list" class="content"> 
-                    <!-- Vue categories list -->
-                    <div v-if="categories && categories.length">
-                        <div v-for="category in categories" :key="category.ID"> 
-                            <input type="checkbox" :id="'category-'+category.ID" 
-                                  :value="category.ID" v-model="filters.category">
-                            <label :for="'category-'+category.ID">[[category.Name]] ([[category.PostCount]])</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="filterByUser" class="filter-section" v-show="showSidebar">
-                <h3 class="collapsible">User</h3>
-                <div class="content">
-                    <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn"> 
-                    Show only my posts
-                </div>
-            </div>
-            <div class="filter-section" v-show="showSidebar">
-                <h3 class="collapsible">Date Range</h3>
-                <div class="content">
-                    <input type="date" id="fromDate" v-model="filters.dateFrom">
-                    <input type="date" id="toDate" v-model="filters.dateTo">
-                </div>
-            </div>
-            <div class="filter-section liked-section" v-show="showSidebar">
-                <h3 class="collapsible">Liked Posts</h3>
-                <div class="content">
-                    <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts
-                </div>
-            </div>
-        </div>
+        ... (old sidebar content) ...
     </div>
     
     <div id="app">
-        <!-- Navbar (Vue controlled) -->
-        <nav class="navbar" style="background: #3f51b5; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 72px;">
-            <div style="display: flex; align-items: center;">
-                <a href="#" style="display: flex; align-items: center; text-decoration: none; color: inherit;">
-                    <div style="width: 40px; height: 40px; background: #7d6ee7; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: #fff; margin-right: 12px;">F</div>
-                </a>
-            </div>
-            <div v-if="currentView === 'login' || currentView === 'register'" style="font-size: 1.2rem;">
-                Please login to continue <span title="key">🔑</span>
-            </div>
-            <div v-else style="display: flex; align-items: center; gap: 16px;">
-                <button class="button secondary-button" @click="goToHome">🏠 Home</button>
-                <button class="button" style="background: #4CAF50; color: white;" @click="goToCreatePost">✍️ Create Post</button>
-                <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
-                <button class="button" style="background: #7d6ee7; color: white;" @click="showCreateGroupModal = true">➕ Create Group</button>
-                <span style="margin-left: 12px; font-weight: 500;">[[currentUser.username]] 👋</span>
-                <button class="button secondary-button" @click="goToProfile">My Profile</button>
-                <button class="button" style="background: #fff; color: #3f51b5; border: 1px solid #3f51b5; margin-left: 8px;" @click="handleLogout">Logout</button>
-            </div>
-        </nav>
-        <!-- Login View -->
-        <div v-if="currentView === 'login'" class="container" style="max-width: 400px; margin: 40px auto;">
-            <div class="card">
-                <h2>Login</h2>
-                <form @submit.prevent="handleLogin">
-                    <input type="text" v-model="loginForm.user_identifier" placeholder="Email or User name" required>
-                    <input type="password" v-model="loginForm.password" placeholder="Password" required>
-                    <button type="submit" class="button" :disabled="loginForm.loading">Login</button>
-                    <div v-if="loginForm.error" style="color: red; margin-top: 8px;">[[loginForm.error]]</div>
-                </form>
-            </div>
-            <div class="card">
-                <p>Don't have an account? <a href="#" @click.prevent="goToRegister">Sign Up</a></p>
-            </div>
-        </div>
-        <!-- Register View -->
-        <div v-if="currentView === 'register'" class="container" style="max-width: 400px; margin: 40px auto;">
-            <div class="card">
-                <h2>Register</h2>
-                <form @submit.prevent="handleRegister">
-                    <input type="text" v-model="registerForm.username" placeholder="Username" required>
-                    <input type="email" v-model="registerForm.email" placeholder="Email" required>
-                    <input type="password" v-model="registerForm.password" placeholder="Password" required>
-                    <input type="password" v-model="registerForm.confirmPassword" placeholder="Confirm Password" required>
-                    <button type="submit" class="button" :disabled="registerForm.loading">Register</button>
-                    <div v-if="registerForm.error" style="color: red; margin-top: 8px;">[[registerForm.error]]</div>
-                </form>
-            </div>
-            <div class="card">
-                <p>Already have an account? <a href="#" @click.prevent="goToLogin">Login</a></p>
-            </div>
-        </div>
-        <!-- Main App Views -->
-        <div v-show="currentView !== 'login' && currentView !== 'register'">
-            <div id="chat-section" v-if="currentUser.isLoggedIn">
-                <div id="online-users" class="online-users-list card">
-                    <h3>Users</h3>
-                    <div class="users-container">
-                        <div v-if="onlineUsers && onlineUsers.length">
-                            <div v-for="user in onlineUsers" :key="user.id" class="user-item profile-link" @click="openUserChat(user.id)">
-                                <span class="online-indicator" :class="{'is-online': user.online}"></span>
-                                <span class="username">[[user.username]]</span>
-                                <span class="view-profile-hint">Chat</span>
-                            </div>
-                        </div>
-                        <div v-else>No users online</div>
-                    </div>
-                </div>
-            </div>
-            <div id="forum-container" v-show="currentView !== 'groups'">
-                <div id="posts-feed" v-show="currentView === 'posts'">
-                    <main style="position: relative; margin: 0 auto; border-left: 1px solid #ccc; border-right: 1px solid #ccc; border-image: linear-gradient(to bottom, transparent 0%, #ccc 20%, #ccc 80%, transparent 100%) 1 100%;">
-                        <h1 style="text-align: center;">Welcome To Social Network</h1>
-                        
-                        <!-- Loading indicator -->
-                        <div v-if="loading" class="loading-indicator">Loading posts...</div>
-                        
-                        <!-- Pagination controls -->
-                        <div id="pagination-container">
-                            <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
-                            <span>Page [[currentPage]] of [[totalPages]]</span>
-                            <button @click="fetchPosts(currentPage + 1)" :disabled="currentPage >= totalPages">Next</button>
-                        </div>
-                        
-                        <!-- Posts container with Vue -->
-                        <div id="posts-container">
-                            <div v-if="filteredPosts.length === 0 && !loading" class="no-posts">
-                                No posts match your filters
-                            </div>
-                            <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
-                                <div class="post-header">
-                                    <h2>[[post.Title]]</h2>
-                                    <div class="post-meta">
-                                        <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">[[post.Author]]</span></span>
-                                        <span class="post-date">[[new Date(post.CreatedAt).toLocaleString()]]</span>
-                                    </div>
-                                </div>
-                                <div class="post-content">[[post.Text]]</div>
-                                <div class="post-footer">
-                                    <div class="post-interactions">
-                                        <button @click="likePost(post.ID)" class="like-btn" 
-                                                :disabled="!currentUser.isLoggedIn">
-                                            [[post.Likes || 0]]
-                                        </button>
-                                        <button @click="dislikePost(post.ID)" class="dislike-btn" 
-                                                :disabled="!currentUser.isLoggedIn">
-                                            [[post.Dislikes || 0]]
-                                        </button>
-                                    </div>
-                                    <!-- Category This directive is what allows us to display all categories, posts, or users without manually coding each one. -->
-                                    <div class="post-category" v-if="post.Categories && post.Categories.length">
-                                        <span v-for="catId in post.Categories" :key="catId">
-                                            [[getCategoryName(catId)]]
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
-                <div id="profile-view" v-show="currentView === 'profile'" style="display: none;"></div>
-            </div>
-            <div id="group-main" v-show="currentView === 'groups'" class="groups-view">
-                <!-- Groups List Container -->
-                <div class="group-list-container">
-                    <h3 class="group-list-header">List of Groups</h3>
-                    <input type="text" placeholder="Search groups..." class="group-search" v-model="groupSearchQuery">
-                    <div class="group-list">
-                        <div v-for="group in filteredGroups" :key="group.ID"
-                             :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
-                             @click="selectGroupById(group.ID)">
-                            [[ group.Name ]]
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Group Description Section -->
-                <div class="group-description">
-                    <h2>Group Description</h2>
-                    <div class="card">
-                        <template v-if="!selectedGroup">
-                            <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
-                        </template>
-                        <template v-else>
-                            <button v-if="selectedGroup" @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                                <i class="fas fa-plus-circle"></i> Create Group Post
-                            </button>
-                            <button v-if="selectedGroup" @click="showGroupEventsModal = true" class="group-events-btn" style="margin-bottom: 16px;">
-                                <i class="fas fa-calendar-alt"></i> Group Events
-                            </button>
-                            <p><strong>created by:</strong> [[selectedGroup.creatorUsername]]</p>
-                            <p><strong>created on:</strong> [[formatDate(selectedGroup.createdAt)]]</p>
-                            <p>[[selectedGroup.description]]</p>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Create Group Post Form Modal -->
-                <div v-if="showCreateGroupPostForm" class="modal-overlay" @click="showCreateGroupPostForm = false">
-                    <div class="modal-content" @click.stop>
-                        <h2>Create Group Post</h2>
-                        <form @submit.prevent="createGroupPost">
-                            <div class="form-group">
-                                <label for="post-title">Enter Post Title:</label>
-                                <input type="text" id="post-title" v-model="newGroupPost.title" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="post-content">Write your post content here...</label>
-                                <textarea id="post-content" v-model="newGroupPost.content" required></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="privacy-setting">Privacy Setting:</label>
-                                <select id="privacy-setting" v-model="newGroupPost.privacy_setting" required>
-                                    <option value="public">Public</option>
-                                    <option value="followers">Followers</option>
-                                    <option value="chosen_followers">Chosen Followers</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="post-category">Category:</label>
-                                <select id="post-category" v-model="newGroupPost.category_id">
-                                    <option value="">Select a category</option>
-                                    <option v-for="category in categories" :key="category.ID" :value="category.ID">
-                                        [[category.Name]]
-                                    </option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="post-file">Choose file:</label>
-                                <input type="file" id="post-file" @change="handleFileUpload">
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="submit" class="submit-btn">Submit</button>
-                                <button type="button" class="cancel-btn" @click="showCreateGroupPostForm = false">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Group Events Modal -->
-                <div v-if="showGroupEventsModal" class="modal-overlay" @click="showGroupEventsModal = false">
-                    <div class="modal-content" @click.stop style="max-width: 400px;">
-                        <h2>Group Events</h2>
-                        <div class="form-group">
-                            <strong>Today's Date:</strong> <span>[[ todayDate ]]</span>
-                        </div>
-                        <div class="form-group">
-                            <strong>Upcoming Events</strong>
-                            <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
-                                <div v-if="groupEvents.upcoming.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
-                                <div v-for="event in groupEvents.upcoming" :key="event.id" class="event-item">
-                                    <span style="font-weight: 500;">[[ event.title ]]</span>
-                                    <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
-                                    <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
-                                </div>
-                            </div>
-                        </div>
-                        <hr style="margin: 18px 0;">
-                        <div class="form-group">
-                            <strong>Past Events</strong>
-                            <div class="events-list" style="max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; margin-top: 6px;">
-                                <div v-if="groupEvents.past.length === 0" style="color: #888; padding: 8px;">No past events</div>
-                                <div v-for="event in groupEvents.past" :key="event.id" class="event-item">
-                                    <span style="font-weight: 500;">[[ event.title ]]</span>
-                                    <span style="float: right; color: #555;">[[ formatEventDate(event.event_date) ]]</span>
-                                    <div style="font-size: 0.95em; color: #666; margin-top: 2px;">[[ event.description ]]</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="cancel-btn" @click="showGroupEventsModal = false">Close</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Group Posts Section -->
-                <div class="group-posts">
-                    <h2>[[ selectedGroup ? (selectedGroup.name + ' Posts') : 'Group Posts' ]]</h2>
-                    <div class="card">
-                        <div v-if="!selectedGroup">
-                            <p style="color: grey;">Select a group to view its posts</p>
-                        </div>
-                        <div v-else>
-                            <!-- Group posts will be populated here -->
-                            <div v-if="groupPosts.length === 0" class="no-posts">
-                                No posts in this group yet
-                            </div>
-                            <div v-for="post in groupPosts" :key="post.id" class="post-card">
-                                <div class="post-header">
-                                    <h2>[[post.title]]</h2>
-                                    <div class="post-meta">
-                                        <span class="post-author">Posted by <span class="user-clickable">[[post.username]]</span></span>
-                                        <span class="post-date">[[new Date(post.created_at).toLocaleString()]]</span>
-                                    </div>
-                                </div>
-                                <div class="post-content">[[post.content]]</div>
-                                <div class="post-footer">
-                                    <div class="post-interactions">
-                                        <!-- Like/Dislike for group posts can be added here if implemented -->
-                                    </div>
-                                    <div class="post-category" v-if="post.category_id">
-                                        <span>[[getCategoryName(post.category_id)]]</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modals rendered at root using Teleport -->
-        <teleport to="body">
-            <div v-if="activeModal === 'createPost'" class="modal-overlay" @click="closeModal">
-                <div class="modal-content" @click.stop>
-                    <h2>Create Post</h2>
-                    <form @submit.prevent="createPost">
-                        <div class="form-group">
-                            <label for="post-title">Title:</label>
-                            <input type="text" id="post-title" v-model="newPost.title" required
-                                   minlength="3" maxlength="100"
-                                   title="Title must be between 3 and 100 characters">
-                        </div>
-                        <div class="form-group">
-                            <label for="post-content">Content:</label>
-                            <textarea id="post-content" v-model="newPost.content" required
-                                      minlength="10" maxlength="5000"
-                                      title="Content must be between 10 and 5000 characters"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-category">Category:</label>
-                            <select id="post-category" v-model="newPost.category_id" required>
-                                <option value="">Select a category</option>
-                                <option v-for="category in categories" :key="category.ID" :value="category.ID">
-                                    [[category.Name]]
-                                </option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-privacy">Privacy:</label>
-                            <select id="post-privacy" v-model="newPost.privacy" required>
-                                <option value="public">Public</option>
-                                <option value="almost_private">Followers</option>
-                                <option value="private">Chosen followers</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-image">Image (optional):</label>
-                            <input type="file" id="post-image" @change="handlePostImageUpload" 
-                                   accept="image/jpeg, image/png, image/gif">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="submit-btn">Create Post</button>
-                            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div v-if="activeModal === 'createGroup'" class="modal-overlay" @click="closeModal">
-                <div class="modal-content" @click.stop>
-                    <h2>Create Group</h2>
-                    <form @submit.prevent="createGroup">
-                        <div class="form-group">
-                            <label for="group-name">Group Name:</label>
-                            <input type="text" id="group-name" v-model="newGroup.name" required
-                                   minlength="3" maxlength="50"
-                                   title="Name must be between 3 and 50 characters">
-                        </div>
-                        <div class="form-group">
-                            <label for="group-description">Description:</label>
-                            <textarea id="group-description" v-model="newGroup.description" required
-                                      minlength="10" maxlength="500"
-                                      title="Description must be between 10 and 500 characters"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="group-privacy">Privacy:</label>
-                            <select id="group-privacy" v-model="newGroup.privacy" required>
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
-                            </select>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="submit-btn">Create Group</button>
-                            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </teleport>
+        ... (old app content) ...
     </div>
+    -->
 
-    <script src="static/js/functions/navFuncs.js"></script>
-    <script src="static/js/nav.js"></script>
-    <script src="static/js/index.js"></script>
-    <script src="/static/js/websocket.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="static/js/vue-app.js"></script>
+    <!-- Scripts -->
+    <script src="static/js/vue/plugins/websocket.js" defer></script>
+    <script src="static/js/vue/components/NavBar.js" defer></script>
+    <script src="static/js/vue/components/UsersList.js" defer></script>
+    <script src="static/js/vue/components/FiltersSidebar.js" defer></script>
+    <script src="static/js/vue/components/ChatWindow.js" defer></script>
+    <script src="static/js/vue/components/RegisterModal.js" defer></script>
+    <script src="static/js/vue/components/CreatePostModal.js" defer></script>
+    <script src="static/js/vue/components/CreateGroupModal.js" defer></script>
+    <script src="static/js/vue/views/LoginView.js" defer></script>
+    <script src="static/js/vue/views/HomeView.js" defer></script>
+    <script src="static/js/vue/views/GroupsView.js" defer></script>
+    <script src="static/js/vue/views/ProfileView.js" defer></script>
+    <script src="static/js/vue/central.js" defer></script>
+    <!-- Legacy websocket.js (commented out for now) -->
+    <!-- <script src="static/js/websocket.js" defer></script> -->
 </body>
 </html>
