@@ -37,7 +37,7 @@ const LoginView = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        user_identifier: this.loginForm.user_identifier,
+                        identifier: this.loginForm.user_identifier,
                         password: this.loginForm.password
                     }),
                     credentials: 'include'

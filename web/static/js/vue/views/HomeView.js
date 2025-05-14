@@ -8,26 +8,26 @@ const HomeView = {
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
                 <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
                     <div class="post-header">
-                        <h2>[[post.Title]]</h2>
+                        <h2>{{ post.Title }}</h2>
                         <div class="post-meta">
-                            <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">[[post.Author]]</span></span>
-                            <span class="post-date">[[formatDate(post.CreatedAt)]]</span>
+                            <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">{{ post.Author }}</span></span>
+                            <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
                         </div>
                     </div>
-                    <div class="post-content">[[post.Text]]</div>
+                    <div class="post-content">{{ post.Text }}</div>
                     <div class="post-footer">
                         <div class="post-interactions">
-                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUser.isLoggedIn">[[post.Likes || 0]]</button>
-                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUser.isLoggedIn">[[post.Dislikes || 0]]</button>
+                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUser.isLoggedIn">{{ post.Likes || 0 }}</button>
+                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUser.isLoggedIn">{{ post.Dislikes || 0 }}</button>
                         </div>
                         <div class="post-category" v-if="post.Categories && post.Categories.length">
-                            <span v-for="catId in post.Categories" :key="catId">[[getCategoryName(catId)]]</span>
+                            <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="pagination-controls">
                     <button @click="prevPage" :disabled="currentPage <= 1">Previous</button>
-                    <span>Page [[currentPage]] of [[totalPages]]</span>
+                    <span>Page {{ currentPage }} of {{ totalPages }}</span>
                     <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
                 </div>
             </div>
