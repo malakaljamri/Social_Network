@@ -50,8 +50,10 @@ const UsersList = {
             }
         },
         openChat(userId) {
-            // Emit event to parent to open chat
-            this.$emit('open-chat', userId);
+            const user = this.users.find(u => u.ID === userId);
+            if (user) {
+                this.$emit('open-chat', user);
+            }
         }
     },
     mounted() {

@@ -1,153 +1,127 @@
 // ChatWindow Component
 const ChatWindow = {
+    props: ['user', 'currentUser', 'onClose'],
     template: `
-        <div v-if="isVisible" class="chat-window" :style="windowStyle">
+        <div class="chat-window card">
             <div class="chat-header">
-                <span class="chat-title">Chat with [[user.username]]</span>
-                <div class="chat-controls">
-                    <span v-if="isTyping" class="typing-indicator">typing...</span>
-                    <button @click="minimize" class="minimize-btn">_</button>
-                    <button @click="close" class="close-btn">×</button>
-                </div>
+                Chat with {{ user.Username }}
+                <span class="close-span" @click="onClose">X</span>
             </div>
             <div class="chat-messages" ref="messagesContainer">
-                <div v-for="(message, index) in messages" 
-                     :key="index"
-                     :class="['message', message.from === currentUser.id ? 'sent' : 'received']">
-                    <div class="message-content">[[message.message]]</div>
-                    <div class="message-time">[[formatTime(message.timestamp)]]</div>
+                <div v-if="loading" class="loading-indicator">Loading...</div>
+                <div v-else-if="messages.length === 0" class="no-messages">Start Chatting!</div>
+                <div v-for="msg in messages" :key="msg.id || msg.timestamp + msg.content" class="chat-message">
+                    <span>[{{ formatTimestamp(msg.timestamp) }}]</span><br>
+                    <span :class="{'self-message': msg.sender_id === currentUser.id}">
+                        {{ msg.sender_id === currentUser.id ? currentUser.username : user.Username }}:
+                    </span>
+                    {{ msg.content }}
                 </div>
+                <div v-if="typing" class="typing-indicator">{{ user.Username }} is typing<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
             </div>
-            <div class="chat-input">
-                <input type="text" 
-                       v-model="newMessage" 
-                       @keyup.enter="sendMessage"
-                       @input="handleTyping"
-                       placeholder="Type a message...">
-                <button @click="sendMessage" :disabled="!newMessage.trim()">Send</button>
-            </div>
+            <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
+            <button @click="sendMessage">Send</button>
         </div>
     `,
-    props: {
-        userId: {
-            type: String,
-            required: true
+    data() {
+        return {
+            messages: [],
+            input: '',
+            loading: true,
+            typing: false,
+            ws: null,
+            typingTimeout: null,
+        };
+    },
+    methods: {
+        async fetchHistory() {
+            this.loading = true;
+            try {
+                const res = await fetch(`/api/chat-history?user_id=${this.user.ID}`);
+                const data = await res.json();
+                this.messages = Array.isArray(data) ? data : [];
+            } catch (e) {
+                this.messages = [];
+            }
+            this.loading = false;
+            this.$nextTick(this.scrollToBottom);
         },
-        position: {
-            type: Object,
-            default: () => ({ x: 0, y: 0 })
+        sendMessage() {
+            if (!this.input.trim()) return;
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'chat',
+                    Receiver_id: this.user.ID,
+                    content: this.input,
+                    sender_username: this.currentUser.username
+                }));
+                this.input = '';
+            }
+        },
+        handleTyping() {
+            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
+                window.socket.send(JSON.stringify({
+                    type: 'typing_status',
+                    content: {
+                        Receiver_id: this.user.ID,
+                        is_typing: true,
+                        username: this.currentUser.username
+                    }
+                }));
+                clearTimeout(this.typingTimeout);
+                this.typingTimeout = setTimeout(() => {
+                    window.socket.send(JSON.stringify({
+                        type: 'typing_status',
+                        content: {
+                            Receiver_id: this.user.ID,
+                            is_typing: false,
+                            username: this.currentUser.username
+                        }
+                    }));
+                }, 1000);
+            }
+        },
+        formatTimestamp(ts) {
+            if (!ts) return '';
+            return new Date(ts).toLocaleString();
+        },
+        scrollToBottom() {
+            const c = this.$refs.messagesContainer;
+            if (c) c.scrollTop = c.scrollHeight;
+        },
+        receiveMessage(msg) {
+            this.messages.push(msg);
+            this.$nextTick(this.scrollToBottom);
+        },
+        receiveTyping(isTyping) {
+            this.typing = isTyping;
         }
     },
-    setup(props) {
-        const { state: wsState, sendMessage: wsSendMessage, sendTyping } = Vue.inject('websocket');
-        const currentUser = Vue.inject('currentUser');
-        const messagesContainer = Vue.ref(null);
-        const newMessage = Vue.ref('');
-        const isVisible = Vue.ref(true);
-        const isTyping = Vue.ref(false);
-        let typingTimeout = null;
-
-        // Get user info
-        const user = Vue.computed(() => {
-            return wsState.onlineUsers.find(u => u.id === props.userId) || {};
-        });
-
-        // Get messages for this chat
-        const messages = Vue.computed(() => {
-            return wsState.chatWindows.get(props.userId) || [];
-        });
-
-        // Window style
-        const windowStyle = Vue.computed(() => ({
-            left: `${props.position.x}px`,
-            top: `${props.position.y}px`
-        }));
-
-        // Format message time
-        function formatTime(timestamp) {
-            return new Date(timestamp).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        }
-
-        // Send message
-        function sendMessage() {
-            if (!newMessage.value.trim()) return;
-            
-            wsSendMessage(props.userId, newMessage.value);
-            newMessage.value = '';
-            sendTyping(props.userId, false);
-            
-            // Scroll to bottom
-            Vue.nextTick(() => {
-                if (messagesContainer.value) {
-                    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-                }
-            });
-        }
-
-        // Handle typing indicator
-        function handleTyping() {
-            if (!isTyping.value) {
-                isTyping.value = true;
-                sendTyping(props.userId, true);
+    mounted() {
+        this.fetchHistory();
+        // Listen for incoming messages and typing events
+        window.addEventListener('chat-message', this._onChatMessage = (e) => {
+            const msg = e.detail;
+            if ((msg.sender_id === this.user.ID && msg.Receiver_id === this.currentUser.id) ||
+                (msg.sender_id === this.currentUser.id && msg.Receiver_id === this.user.ID)) {
+                this.receiveMessage(msg);
             }
-
-            // Clear existing timeout
-            if (typingTimeout) {
-                clearTimeout(typingTimeout);
-            }
-
-            // Set new timeout
-            typingTimeout = setTimeout(() => {
-                isTyping.value = false;
-                sendTyping(props.userId, false);
-            }, 1000);
-        }
-
-        // Minimize chat window
-        function minimize() {
-            isVisible.value = false;
-            // Emit event to show minimized window
-            window.dispatchEvent(new CustomEvent('minimize-chat', {
-                detail: { userId: props.userId }
-            }));
-        }
-
-        // Close chat window
-        function close() {
-            // Emit event to remove chat window
-            window.dispatchEvent(new CustomEvent('close-chat', {
-                detail: { userId: props.userId }
-            }));
-        }
-
-        // Watch for new messages to scroll to bottom
-        Vue.watch(messages, () => {
-            Vue.nextTick(() => {
-                if (messagesContainer.value) {
-                    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-                }
-            });
         });
-
-        return {
-            currentUser,
-            user,
-            messages,
-            newMessage,
-            isVisible,
-            isTyping,
-            windowStyle,
-            messagesContainer,
-            formatTime,
-            sendMessage,
-            handleTyping,
-            minimize,
-            close
-        };
+        window.addEventListener('chat-typing', this._onChatTyping = (e) => {
+            const { sender_id, Receiver_id, is_typing } = e.detail;
+            if (sender_id === this.user.ID && Receiver_id === this.currentUser.id) {
+                this.receiveTyping(is_typing);
+            }
+        });
+        this.$nextTick(() => {
+            if (this.$refs.inputBox) this.$refs.inputBox.focus();
+        });
+    },
+    beforeUnmount() {
+        window.removeEventListener('chat-message', this._onChatMessage);
+        window.removeEventListener('chat-typing', this._onChatTyping);
+        clearTimeout(this.typingTimeout);
     }
 };
 
-// No mount here, will be registered globally. 
+window.ChatWindow = ChatWindow; 

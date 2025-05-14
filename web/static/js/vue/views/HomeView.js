@@ -32,7 +32,10 @@ const HomeView = {
                     <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
                 </div>
             </div>
-            <users-list class="users-list"></users-list>
+            <users-list class="users-list" @open-chat="openChat"></users-list>
+            <div id="chat-section">
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
+            </div>
         </div>
     `,
     data() {
@@ -48,7 +51,8 @@ const HomeView = {
             loading: false,
             currentPage: 1,
             pageSize: 10,
-            totalPages: 1
+            totalPages: 1,
+            openChats: []
         };
     },
     computed: {
@@ -136,6 +140,14 @@ const HomeView = {
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleString();
+        },
+        openChat(user) {
+            if (!this.openChats.some(u => u.ID === user.ID)) {
+                this.openChats.push(user);
+            }
+        },
+        closeChat(userId) {
+            this.openChats = this.openChats.filter(u => u.ID !== userId);
         }
     },
     mounted() {
