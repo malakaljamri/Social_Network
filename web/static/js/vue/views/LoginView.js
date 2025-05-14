@@ -8,7 +8,7 @@ const LoginView = {
                     <input type="text" v-model="loginForm.user_identifier" placeholder="Email or Username" required>
                     <input type="password" v-model="loginForm.password" placeholder="Password" required>
                     <button type="submit" class="button" :disabled="loginForm.loading">Login</button>
-                    <div v-if="loginForm.error" class="error">[[loginForm.error]]</div>
+                    <div v-if="loginForm.error" class="error">{{ loginForm.error }}</div>
                 </form>
             </div>
             <div class="card">
@@ -44,7 +44,8 @@ const LoginView = {
                 });
                 if (!response.ok) {
                     const err = await response.json();
-                    this.loginForm.error = err.error || 'Login failed';
+                    this.loginForm.error = err.error || 'Incorrect credentials';
+                    this.loginForm.password = '';
                     this.loginForm.loading = false;
                     return;
                 }
@@ -52,6 +53,7 @@ const LoginView = {
                 this.$emit('login', data);
             } catch (e) {
                 this.loginForm.error = 'Network error';
+                this.loginForm.password = '';
             } finally {
                 this.loginForm.loading = false;
             }
