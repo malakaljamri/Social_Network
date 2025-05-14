@@ -84,7 +84,8 @@ const RegisterModal = {
                         gender: this.form.gender,
                         firstName: this.form.firstName,
                         lastName: this.form.lastName
-                    })
+                    }),
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (!response.ok) {

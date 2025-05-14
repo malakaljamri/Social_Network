@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
 	"strconv"
 )
 
@@ -16,13 +17,13 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("post_id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil {
-		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid post ID")
 		return
 	}
 
 	comments, err := database.GetCommentsByPostID(postID)
 	if err != nil {
-		http.Error(w, "Error fetching comments", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching comments")
 		return
 	}
 	json.NewEncoder(w).Encode(comments)
@@ -31,21 +32,21 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 func CreateComment(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "You must be logged in to post a comment", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to post a comment")
 		return
 	}
 
 	// Parse the multipart form
 	err = r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
-		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Failed to parse form data")
 		return
 	}
 
 	// Determine the root directory of the project
 	executablePath, err := os.Executable() // Get the path of the running executable
 	if err != nil {
-		http.Error(w, "Failed to determine executable path", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to determine executable path")
 		return
 	}
 	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
@@ -57,7 +58,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		err := os.MkdirAll(uploadDir, os.ModePerm)
 		if err != nil {
-			http.Error(w, "Failed to create uploads directory", http.StatusInternalServerError)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create uploads directory")
 			return
 		}
 	}
@@ -71,13 +72,13 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		uploadPath := filepath.Join(uploadDir, handler.Filename)
 		out, err := os.Create(uploadPath)
 		if err != nil {
-			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
 		defer out.Close()
 		_, err = io.Copy(out, file)
 		if err != nil {
-			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
 		imagePath = fmt.Sprintf("/uploads/userID%d/%s", userID, handler.Filename) // Relative path for serving
@@ -92,7 +93,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	// }
 	postID, err := strconv.Atoi(r.FormValue("PostID"))
 	if err != nil {
-		http.Error(w, "Invalid PostID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid PostID")
 		return
 	}
 	comment := models.Comment{
@@ -104,7 +105,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	err = database.CreateComment(&comment)
 	if err != nil {
-		http.Error(w, "Error creating comment", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating comment")
 		return
 	}
 
@@ -116,13 +117,13 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 	commentIDStr := r.URL.Query().Get("id")
 	commentID, err := strconv.Atoi(commentIDStr)
 	if err != nil {
-		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid comment ID")
 		return
 	}
 
 	err = database.DeleteComment(commentID)
 	if err != nil {
-		http.Error(w, "Error deleting comment", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error deleting comment")
 		return
 	}
 

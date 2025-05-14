@@ -87,7 +87,7 @@ document.addEventListener('click', function(e) {
         });
     
         // Fetch categories dynamically
-        fetch('/categories')
+        fetch('/api/categories')
             .then(response => response.json())
             .then(categories => {
                 const categorySelect = document.getElementById('post-category');
@@ -118,7 +118,7 @@ document.addEventListener('click', function(e) {
                     if (imageFile)  formData.append('Image', imageFile);
     
             try {
-                const response = await fetch('/post/create', {
+                const response = await fetch('/api/post/create', {
                     method: 'POST',
                     credentials: 'include',
                     body: formData,

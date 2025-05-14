@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"social_network/internal/database"
+	"social_network/internal/utils"
 	"strconv"
 )
 
@@ -17,7 +18,7 @@ func CreateGroupPostHandler(db *sql.DB) http.HandlerFunc {
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
 			log.Printf("❌ Failed to get user ID from session: %v", err)
-			http.Error(w, "Failed to get user ID from session", http.StatusUnauthorized)
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
 

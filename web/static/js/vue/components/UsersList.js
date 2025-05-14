@@ -4,7 +4,8 @@ const UsersList = {
         <div class="users-list card">
             <h3>Users</h3>
             <div class="users-container">
-                <div v-if="onlineUsers.length" class="users-list-content">
+                <div v-if="loading" class="loading-indicator">Loading users...</div>
+                <div v-else-if="onlineUsers.length" class="users-list-content">
                     <div v-for="user in sortedUsers" 
                          :key="user.id" 
                          class="user-item profile-link"
@@ -21,6 +22,7 @@ const UsersList = {
     setup() {
         const { state: wsState } = Vue.inject('websocket');
         const currentUser = Vue.inject('currentUser');
+        const loading = Vue.ref(true);
 
         // Computed property for sorted users
         const sortedUsers = Vue.computed(() => {
@@ -55,10 +57,16 @@ const UsersList = {
             }));
         }
 
+        // Watch for onlineUsers changes to update loading
+        Vue.watch(() => wsState.onlineUsers, () => {
+            loading.value = false;
+        });
+
         return {
             onlineUsers: wsState.onlineUsers,
             sortedUsers,
-            openUserChat
+            openUserChat,
+            loading
         };
     }
 };

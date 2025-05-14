@@ -67,7 +67,8 @@ const CreatePostModal = {
                 }
                 const response = await fetch('/api/posts', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'include'
                 });
                 if (!response.ok) {
                     const err = await response.json();
@@ -77,6 +78,7 @@ const CreatePostModal = {
                 }
                 const data = await response.json();
                 this.$emit('created', data);
+                window.dispatchEvent(new Event('post-created'));
                 this.close();
             } catch (e) {
                 this.form.error = 'Network error';

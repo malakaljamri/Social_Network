@@ -10,6 +10,7 @@ const WebSocketPlugin = {
         });
 
         // Initialize WebSocket connection
+        let lastErrorTime = 0;
         function initWebSocket() {
             const ws = new WebSocket(`ws://${window.location.host}/ws`);
             
@@ -23,6 +24,14 @@ const WebSocketPlugin = {
                 wsState.connected = false;
                 // Attempt to reconnect after 5 seconds
                 setTimeout(initWebSocket, 5000);
+            };
+
+            ws.onerror = (e) => {
+                const now = Date.now();
+                if (now - lastErrorTime > 30000) {
+                    console.warn('WebSocket connection failed. Will retry in 5s.');
+                    lastErrorTime = now;
+                }
             };
 
             ws.onmessage = (event) => {

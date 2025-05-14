@@ -7,6 +7,7 @@ import (
 	"slices"
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
 )
@@ -15,7 +16,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
@@ -52,7 +53,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
@@ -368,4 +369,30 @@ func getPaginationParams(r *http.Request) (page, limit int) {
 	}
 
 	return page, limit
+}
+
+// GetCurrentUser returns the currently logged-in user or {isLoggedIn: false}
+func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"isLoggedIn": false,
+		})
+		return
+	}
+	user, err := database.GetUserByID(userID)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"isLoggedIn": false,
+		})
+		return
+	}
+	user.Password = ""
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"isLoggedIn": true,
+		"id":         user.ID,
+		"username":   user.Username,
+		"email":      user.Email,
+	})
 }

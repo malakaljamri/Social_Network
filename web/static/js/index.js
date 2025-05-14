@@ -1,3 +1,4 @@
+/*
 document.addEventListener('DOMContentLoaded', function() {
     const myPostsLink = document.querySelector('a[href="/filter?by=myposts"]');
     if (myPostsLink) {
@@ -703,3 +704,4 @@ function formatDate(createdDate, dateSplitter = '-', timeSplitter = ':') {
         ${timeSplitter}
         ${createdDate.getMinutes().toString().padStart(2, '0')}`;
 }
+*/

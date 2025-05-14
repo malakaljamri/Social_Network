@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
 )
 
 func LikePost(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "You must be logged in to like a post", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to like a post")
 		return
 	}
 
@@ -55,7 +56,7 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 func DislikePost(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "You must be logged in to dislike a post", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to dislike a post")
 		return
 	}
 

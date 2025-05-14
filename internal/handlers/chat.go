@@ -9,6 +9,7 @@ import (
 
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
 	"social_network/internal/websocket"
 )
 
@@ -23,13 +24,13 @@ func NewChatHandlers(hub *websocket.Hub) *ChatHandlers {
 func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	conn, err := websocket.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		http.Error(w, "Could not upgrade connection", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Could not upgrade connection")
 		return
 	}
 

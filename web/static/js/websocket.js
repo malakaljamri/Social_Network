@@ -272,7 +272,7 @@ function updateOnlineUsersList() {
 
 function fetchOnlineUsers() {
     return new Promise((resolve, reject) => {   
-        fetch('/api/online-users')
+        fetch('/api/online-users', { credentials: 'include' })
             .then(response => response.json())
             .then(users => {
                 if (users && !users.hasOwnProperty('error')) {
@@ -357,7 +357,7 @@ function fetchChatHistory(userId, offset = 0) {
 
     const previousHeight = chatMessages.scrollHeight;
 
-    return fetch(`/api/chat-history?user_id=${userId}&offset=${offset}`)
+    return fetch(`/api/chat-history?user_id=${userId}&offset=${offset}`, { credentials: 'include' })
         .then(response => response.json())
         .then(messages => {
             if (messages && messages.length > 0) {

@@ -2,7 +2,6 @@
 const HomeView = {
     template: `
         <div class="home-view">
-            <filters-sidebar @filters-changed="onFiltersChanged"></filters-sidebar>
             <div class="feed-main">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
@@ -37,7 +36,6 @@ const HomeView = {
     data() {
         return {
             posts: [],
-            categories: [],
             filters: {
                 categories: [],
                 fromDate: '',
@@ -54,6 +52,10 @@ const HomeView = {
     computed: {
         currentUser() {
             return this.$root.currentUser;
+        },
+        filteredPosts() {
+            // Server-side filtering, so just return posts
+            return this.posts;
         }
     },
     methods: {
@@ -66,11 +68,14 @@ const HomeView = {
                     filters: JSON.stringify(this.filters)
                 });
 
-                const response = await fetch(`/api/posts?${queryParams}`);
+                const response = await fetch(`/api/posts?${queryParams}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch posts');
 
                 const totalCount = parseInt(response.headers.get('X-Total-Count'), 10);
-                this.totalPages = Math.ceil(totalCount / this.pageSize);
+                this.totalPages = Math.max(1, Math.ceil(totalCount / this.pageSize));
+                if (document.getElementById('resultsCounter')) {
+                    document.getElementById('resultsCounter').textContent = `Total Results: ${totalCount}`;
+                }
 
                 const data = await response.json();
                 this.posts = data;
@@ -80,15 +85,30 @@ const HomeView = {
                 this.loading = false;
             }
         },
-        async fetchCategories() {
+        async likePost(postId) {
+            if (!this.currentUser.isLoggedIn) return;
             try {
-                const response = await fetch('/api/categories');
-                if (!response.ok) throw new Error('Failed to fetch categories');
-                
-                const data = await response.json();
-                this.categories = data;
+                const response = await fetch(`/api/posts/${postId}/like`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to like post');
+                await this.fetchPosts();
             } catch (error) {
-                console.error('Error fetching categories:', error);
+                console.error('Error liking post:', error);
+            }
+        },
+        async dislikePost(postId) {
+            if (!this.currentUser.isLoggedIn) return;
+            try {
+                const response = await fetch(`/api/posts/${postId}/dislike`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to dislike post');
+                await this.fetchPosts();
+            } catch (error) {
+                console.error('Error disliking post:', error);
             }
         },
         onFiltersChanged(newFilters) {
@@ -108,48 +128,14 @@ const HomeView = {
                 this.fetchPosts();
             }
         },
-        async likePost(postId) {
-            if (!this.currentUser.isLoggedIn) return;
-            
-            try {
-                const response = await fetch(`/api/posts/${postId}/like`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                
-                if (!response.ok) throw new Error('Failed to like post');
-                
-                // Refresh posts to get updated like count
-                await this.fetchPosts();
-            } catch (error) {
-                console.error('Error liking post:', error);
-            }
-        },
-        async dislikePost(postId) {
-            if (!this.currentUser.isLoggedIn) return;
-            
-            try {
-                const response = await fetch(`/api/posts/${postId}/dislike`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                
-                if (!response.ok) throw new Error('Failed to dislike post');
-                
-                // Refresh posts to get updated dislike count
-                await this.fetchPosts();
-            } catch (error) {
-                console.error('Error disliking post:', error);
-            }
-        },
         viewPostsByUser(userId) {
-            // Navigate to user's profile
             this.$root.currentView = 'profile';
             this.$root.viewUserProfile(userId);
         },
         getCategoryName(catId) {
-            const cat = this.categories.find(c => c.ID === catId);
-            return cat ? cat.Name : '';
+            // This now expects categories to be provided by the sidebar or a global store
+            // For now, just return the ID as a fallback
+            return catId;
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleString();
@@ -157,7 +143,10 @@ const HomeView = {
     },
     mounted() {
         this.fetchPosts();
-        this.fetchCategories();
+        window.addEventListener('post-created', this.fetchPosts);
+    },
+    beforeUnmount() {
+        window.removeEventListener('post-created', this.fetchPosts);
     }
 };
 

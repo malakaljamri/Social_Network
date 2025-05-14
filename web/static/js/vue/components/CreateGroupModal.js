@@ -43,7 +43,8 @@ const CreateGroupModal = {
                         name: this.form.name,
                         description: this.form.description,
                         privacy: this.form.privacy
-                    })
+                    }),
+                    credentials: 'include'
                 });
                 if (!response.ok) {
                     const err = await response.json();

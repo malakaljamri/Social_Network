@@ -3,9 +3,11 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"social_network/internal/database"
+	"social_network/internal/utils"
 	"social_network/internal/websocket"
 )
 
@@ -15,14 +17,15 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
-			http.Error(w, "Failed to get user ID from session", http.StatusUnauthorized)
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
 
 		var group database.Group
 		err = json.NewDecoder(r.Body).Decode(&group)
 		if err != nil {
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			log.Printf("❌ Failed to decode request body: %v", err)
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
 
@@ -33,7 +36,7 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 		err = database.CreateGroup(db, &group)
 		if err != nil {
 			log.Printf("❌ Failed to insert group: %v", err)
-			http.Error(w, "Failed to create group", http.StatusInternalServerError)
+			utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create group: %v", err))
 			return
 		}
 

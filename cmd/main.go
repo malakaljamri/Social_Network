@@ -89,6 +89,7 @@ func main() {
 	mux.HandleFunc("/api/chat-history", handlers.GetChatHistory)
 	mux.HandleFunc("/api/online-users", handlers.GetOnlineUsers)
 	mux.HandleFunc("/api/search/users", handlers.SearchUsers)
+	mux.HandleFunc("/api/user", handlers.GetCurrentUser)
 
 	// Start the server
 	log.Println("Server starting on http://localhost:8080")

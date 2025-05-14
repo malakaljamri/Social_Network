@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"social_network/internal/database"
+	"social_network/internal/utils"
 	"strconv"
 	"time"
 )
@@ -18,17 +19,17 @@ func GetGroupEventsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupIDStr := r.URL.Query().Get("group_id")
 		if groupIDStr == "" {
-			http.Error(w, "Group ID is required", http.StatusBadRequest)
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
 			return
 		}
 		groupID, err := strconv.Atoi(groupIDStr)
 		if err != nil {
-			http.Error(w, "Invalid group ID", http.StatusBadRequest)
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
 			return
 		}
 		events, err := database.GetGroupEvents(db, groupID)
 		if err != nil {
-			http.Error(w, "Failed to fetch group events", http.StatusInternalServerError)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch group events")
 			return
 		}
 		now := time.Now()

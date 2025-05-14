@@ -4,7 +4,9 @@ const FiltersSidebar = {
         <div class="filters-sidebar">
             <div class="filter-section">
                 <h3>Categories</h3>
-                <div id="categories-list">
+                <div v-if="loading" class="loading-indicator">Loading categories...</div>
+                <div v-if="error" class="error-message">[[error]]</div>
+                <div v-if="!loading && !error" id="categories-list">
                     <div v-for="category in categories" :key="category.ID" class="category-item">
                         <input 
                             type="checkbox" 
@@ -84,7 +86,9 @@ const FiltersSidebar = {
             likedOnly: false,
             loggedInUserFilter: false,
             minDate: '2020-01-01', // Set this based on your oldest post
-            maxDate: new Date().toISOString().split('T')[0] // Today
+            maxDate: new Date().toISOString().split('T')[0], // Today
+            loading: false,
+            error: ''
         };
     },
     computed: {
@@ -94,6 +98,8 @@ const FiltersSidebar = {
     },
     methods: {
         async fetchCategories() {
+            this.loading = true;
+            this.error = '';
             try {
                 const response = await fetch('/api/categories');
                 if (!response.ok) throw new Error('Failed to fetch categories');
@@ -101,7 +107,10 @@ const FiltersSidebar = {
                 const data = await response.json();
                 this.categories = data;
             } catch (error) {
-                console.error('Error fetching categories:', error);
+                this.error = 'Failed to load categories.';
+                this.categories = [];
+            } finally {
+                this.loading = false;
             }
         },
         updateFilters() {
@@ -112,9 +121,15 @@ const FiltersSidebar = {
                 likedOnly: this.likedOnly,
                 loggedInUserFilter: this.loggedInUserFilter
             };
-            
             this.$emit('filters-changed', filters);
         }
+    },
+    watch: {
+        selectedCategories: 'updateFilters',
+        dateFrom: 'updateFilters',
+        dateTo: 'updateFilters',
+        likedOnly: 'updateFilters',
+        loggedInUserFilter: 'updateFilters'
     },
     mounted() {
         this.fetchCategories();

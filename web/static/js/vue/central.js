@@ -44,7 +44,8 @@ const app = Vue.createApp({
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(credentials)
+                    body: JSON.stringify(credentials),
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {
@@ -144,7 +145,16 @@ const app = Vue.createApp({
             // Try to fetch user status and update state
             try {
                 const response = await fetch('/api/user_status');
-                const userData = await response.json();
+                const text = await response.text();
+                let userData = {};
+                try {
+                    userData = JSON.parse(text);
+                } catch (e) {
+                    console.error('Error parsing /api/user_status response as JSON:', text);
+                    this.currentView = 'login';
+                    this.showRegisterModal = false;
+                    return;
+                }
                 if (userData.loggedIn) {
                     this.currentUser = {
                         isLoggedIn: true,
@@ -165,16 +175,21 @@ const app = Vue.createApp({
     mounted() {
         // Check if user is already logged in
         fetch('/api/user')
-            .then(response => response.json())
-            .then(data => {
-                if (data.isLoggedIn) {
-                    this.currentUser = {
-                        isLoggedIn: true,
-                        id: data.id,
-                        username: data.username,
-                        email: data.email
-                    };
-                    this.goToHome();
+            .then(async response => {
+                const text = await response.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (data.isLoggedIn) {
+                        this.currentUser = {
+                            isLoggedIn: true,
+                            id: data.id,
+                            username: data.username,
+                            email: data.email
+                        };
+                        this.goToHome();
+                    }
+                } catch (e) {
+                    console.error('Error parsing /api/user response as JSON:', text);
                 }
             })
             .catch(error => {
@@ -213,7 +228,6 @@ const app = Vue.createApp({
                 <register-modal v-if="showRegisterModal" @registered="onRegistered"></register-modal>
             </main>
             <main v-if="currentView === 'home'" class="page home-page">
-                <filters-sidebar></filters-sidebar>
                 <feed-main></feed-main>
                 <users-list></users-list>
             </main>

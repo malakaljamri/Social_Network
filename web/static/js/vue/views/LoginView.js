@@ -39,7 +39,8 @@ const LoginView = {
                     body: JSON.stringify({
                         user_identifier: this.loginForm.user_identifier,
                         password: this.loginForm.password
-                    })
+                    }),
+                    credentials: 'include'
                 });
                 if (!response.ok) {
                     const err = await response.json();
