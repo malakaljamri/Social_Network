@@ -3,120 +3,121 @@ const FiltersSidebar = {
     template: `
         <div class="filters-sidebar">
             <div class="filter-section">
-                <h3 class="collapsible">Categories</h3>
-                <div class="content">
-                    <div v-if="categories && categories.length">
-                        <div v-for="category in categories" :key="category.ID">
-                            <input type="checkbox" 
-                                   :id="'category-'+category.ID"
-                                   :value="category.ID"
-                                   v-model="filters.category">
-                            <label :for="'category-'+category.ID">
-                                [[category.Name]] ([[category.PostCount]])
-                            </label>
-                        </div>
+                <h3>Categories</h3>
+                <div id="categories-list">
+                    <div v-for="category in categories" :key="category.ID" class="category-item">
+                        <input 
+                            type="checkbox" 
+                            :id="'category-' + category.ID" 
+                            :value="category.ID"
+                            v-model="selectedCategories"
+                            @change="updateFilters"
+                        >
+                        <label :for="'category-' + category.ID">
+                            [[category.Name]] ([[category.PostCount || 0]])
+                        </label>
                     </div>
                 </div>
             </div>
 
             <div class="filter-section">
-                <h3 class="collapsible">User</h3>
-                <div class="content">
-                    <input type="checkbox" 
-                           id="loggedInUserFilter"
-                           v-model="filters.userOnly"
-                           :disabled="!currentUser.isLoggedIn">
-                    Show only my posts
+                <h3>Date Range</h3>
+                <div class="date-inputs">
+                    <label for="fromDate">From:</label>
+                    <input 
+                        type="date" 
+                        id="fromDate" 
+                        v-model="dateFrom"
+                        :max="dateTo || maxDate"
+                        @change="updateFilters"
+                    >
+                    
+                    <label for="toDate">To:</label>
+                    <input 
+                        type="date" 
+                        id="toDate" 
+                        v-model="dateTo"
+                        :min="dateFrom || minDate"
+                        :max="maxDate"
+                        @change="updateFilters"
+                    >
                 </div>
             </div>
 
             <div class="filter-section">
-                <h3 class="collapsible">Date Range</h3>
-                <div class="content">
-                    <input type="date" 
-                           id="fromDate"
-                           v-model="filters.dateFrom">
-                    <input type="date"
-                           id="toDate"
-                           v-model="filters.dateTo">
-                </div>
-            </div>
-
-            <div class="filter-section liked-section">
-                <h3 class="collapsible">Liked Posts</h3>
-                <div class="content">
-                    <input type="checkbox"
-                           id="likedPosts"
-                           v-model="filters.likedOnly">
-                    Show only liked posts
-                </div>
-            </div>
-
-            <div v-if="isProfile" class="filter-section">
-                <h3 class="collapsible">Profile Filters</h3>
-                <div class="content">
-                    <div class="profile-filter">
-                        <label>Show:</label>
-                        <select v-model="profileFilter">
-                            <option value="all">All Posts</option>
-                            <option value="posts">My Posts</option>
-                            <option value="likes">Liked Posts</option>
-                            <option value="followers">Followers</option>
-                            <option value="following">Following</option>
-                        </select>
+                <h3>Other Filters</h3>
+                <div class="checkbox-filters">
+                    <div class="filter-item">
+                        <input 
+                            type="checkbox" 
+                            id="likedPosts" 
+                            v-model="likedOnly"
+                            @change="updateFilters"
+                        >
+                        <label for="likedPosts">Show only liked posts</label>
+                    </div>
+                    
+                    <div class="filter-item">
+                        <input 
+                            type="checkbox" 
+                            id="loggedInUserFilter" 
+                            v-model="loggedInUserFilter"
+                            :disabled="!currentUser.isLoggedIn"
+                            @change="updateFilters"
+                        >
+                        <label for="loggedInUserFilter">Show only my posts</label>
                     </div>
                 </div>
+            </div>
+
+            <div class="results-counter">
+                <span id="resultsCounter">Total Results: 0</span>
             </div>
         </div>
     `,
-    props: {
-        isProfile: {
-            type: Boolean,
-            default: false
-        }
-    },
-    setup(props, { emit }) {
-        const currentUser = Vue.inject('currentUser');
-        const categories = Vue.ref([]);
-        const filters = Vue.reactive({
-            category: [],
-            userOnly: false,
+    data() {
+        return {
+            categories: [],
+            selectedCategories: [],
             dateFrom: '',
             dateTo: '',
-            likedOnly: false
-        });
-        const profileFilter = Vue.ref('all');
-
-        // Fetch categories
-        async function fetchCategories() {
+            likedOnly: false,
+            loggedInUserFilter: false,
+            minDate: '2020-01-01', // Set this based on your oldest post
+            maxDate: new Date().toISOString().split('T')[0] // Today
+        };
+    },
+    computed: {
+        currentUser() {
+            return this.$root.currentUser;
+        }
+    },
+    methods: {
+        async fetchCategories() {
             try {
                 const response = await fetch('/api/categories');
+                if (!response.ok) throw new Error('Failed to fetch categories');
+                
                 const data = await response.json();
-                categories.value = data;
+                this.categories = data;
             } catch (error) {
                 console.error('Error fetching categories:', error);
             }
+        },
+        updateFilters() {
+            const filters = {
+                categories: this.selectedCategories,
+                fromDate: this.dateFrom,
+                toDate: this.dateTo,
+                likedOnly: this.likedOnly,
+                loggedInUserFilter: this.loggedInUserFilter
+            };
+            
+            this.$emit('filters-changed', filters);
         }
-
-        // Watch for filter changes
-        Vue.watch(filters, (newFilters) => {
-            emit('filters-changed', newFilters);
-        }, { deep: true });
-
-        // Watch for profile filter changes
-        Vue.watch(profileFilter, (newFilter) => {
-            emit('profile-filter-changed', newFilter);
-        });
-
-        // Initialize
-        fetchCategories();
-
-        return {
-            currentUser,
-            categories,
-            filters,
-            profileFilter
-        };
+    },
+    mounted() {
+        this.fetchCategories();
     }
 };
 

@@ -7,7 +7,7 @@ const HomeView = {
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
-                <div v-for="post in paginatedPosts" :key="post.ID" class="post-card">
+                <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
                     <div class="post-header">
                         <h2>[[post.Title]]</h2>
                         <div class="post-meta">
@@ -38,40 +38,20 @@ const HomeView = {
         return {
             posts: [],
             categories: [],
-            filters: {},
+            filters: {
+                categories: [],
+                fromDate: '',
+                toDate: '',
+                likedOnly: false,
+                loggedInUserFilter: false
+            },
             loading: false,
             currentPage: 1,
-            pageSize: 10
+            pageSize: 10,
+            totalPages: 1
         };
     },
     computed: {
-        filteredPosts() {
-            // Apply filters to posts
-            let filtered = this.posts;
-            if (this.filters.category && this.filters.category.length) {
-                filtered = filtered.filter(post => post.Categories && post.Categories.some(cat => this.filters.category.includes(cat)));
-            }
-            if (this.filters.userOnly) {
-                filtered = filtered.filter(post => post.UserID === this.$root.currentUser.id);
-            }
-            if (this.filters.likedOnly) {
-                filtered = filtered.filter(post => post.LikedByCurrentUser);
-            }
-            if (this.filters.dateFrom) {
-                filtered = filtered.filter(post => new Date(post.CreatedAt) >= new Date(this.filters.dateFrom));
-            }
-            if (this.filters.dateTo) {
-                filtered = filtered.filter(post => new Date(post.CreatedAt) <= new Date(this.filters.dateTo));
-            }
-            return filtered;
-        },
-        paginatedPosts() {
-            const start = (this.currentPage - 1) * this.pageSize;
-            return this.filteredPosts.slice(start, start + this.pageSize);
-        },
-        totalPages() {
-            return Math.ceil(this.filteredPosts.length / this.pageSize) || 1;
-        },
         currentUser() {
             return this.$root.currentUser;
         }
@@ -80,7 +60,18 @@ const HomeView = {
         async fetchPosts() {
             this.loading = true;
             try {
-                const response = await fetch('/api/posts');
+                const queryParams = new URLSearchParams({
+                    page: this.currentPage,
+                    limit: this.pageSize,
+                    filters: JSON.stringify(this.filters)
+                });
+
+                const response = await fetch(`/api/posts?${queryParams}`);
+                if (!response.ok) throw new Error('Failed to fetch posts');
+
+                const totalCount = parseInt(response.headers.get('X-Total-Count'), 10);
+                this.totalPages = Math.ceil(totalCount / this.pageSize);
+
                 const data = await response.json();
                 this.posts = data;
             } catch (error) {
@@ -92,6 +83,8 @@ const HomeView = {
         async fetchCategories() {
             try {
                 const response = await fetch('/api/categories');
+                if (!response.ok) throw new Error('Failed to fetch categories');
+                
                 const data = await response.json();
                 this.categories = data;
             } catch (error) {
@@ -101,21 +94,58 @@ const HomeView = {
         onFiltersChanged(newFilters) {
             this.filters = newFilters;
             this.currentPage = 1;
+            this.fetchPosts();
         },
         prevPage() {
-            if (this.currentPage > 1) this.currentPage--;
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.fetchPosts();
+            }
         },
         nextPage() {
-            if (this.currentPage < this.totalPages) this.currentPage++;
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this.fetchPosts();
+            }
         },
-        likePost(postId) {
-            // Implement like logic
+        async likePost(postId) {
+            if (!this.currentUser.isLoggedIn) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${postId}/like`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to like post');
+                
+                // Refresh posts to get updated like count
+                await this.fetchPosts();
+            } catch (error) {
+                console.error('Error liking post:', error);
+            }
         },
-        dislikePost(postId) {
-            // Implement dislike logic
+        async dislikePost(postId) {
+            if (!this.currentUser.isLoggedIn) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${postId}/dislike`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('Failed to dislike post');
+                
+                // Refresh posts to get updated dislike count
+                await this.fetchPosts();
+            } catch (error) {
+                console.error('Error disliking post:', error);
+            }
         },
         viewPostsByUser(userId) {
-            // Implement view posts by user logic
+            // Navigate to user's profile
+            this.$root.currentView = 'profile';
+            this.$root.viewUserProfile(userId);
         },
         getCategoryName(catId) {
             const cat = this.categories.find(c => c.ID === catId);

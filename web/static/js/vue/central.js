@@ -128,6 +128,38 @@ const app = Vue.createApp({
         },
         handleNavigate(view) {
             this.currentView = view;
+        },
+        async onLogin(data) {
+            // Called when login-form emits 'login' with user data
+            this.currentUser = {
+                isLoggedIn: true,
+                id: data.user_id || data.id,
+                username: data.username,
+                email: data.email || ''
+            };
+            this.currentView = 'home';
+        },
+        async onRegistered(data) {
+            // Called when register-modal emits 'registered' with user data
+            // Try to fetch user status and update state
+            try {
+                const response = await fetch('/api/user_status');
+                const userData = await response.json();
+                if (userData.loggedIn) {
+                    this.currentUser = {
+                        isLoggedIn: true,
+                        id: userData.userID,
+                        username: userData.username,
+                        email: userData.email || ''
+                    };
+                    this.currentView = 'home';
+                } else {
+                    this.currentView = 'login';
+                }
+            } catch (e) {
+                this.currentView = 'login';
+            }
+            this.showRegisterModal = false;
         }
     },
     mounted() {
@@ -177,8 +209,8 @@ const app = Vue.createApp({
             <create-post-modal v-if="showCreatePostModal" @close="showCreatePostModal = false" @created="onPostCreated"></create-post-modal>
             <create-group-modal v-if="showCreateGroupModal" @close="showCreateGroupModal = false" @created="onGroupCreated"></create-group-modal>
             <main v-if="currentView === 'login'" class="page login-page">
-                <login-form></login-form>
-                <register-modal v-if="showRegisterModal"></register-modal>
+                <login-form @login="onLogin"></login-form>
+                <register-modal v-if="showRegisterModal" @registered="onRegistered"></register-modal>
             </main>
             <main v-if="currentView === 'home'" class="page home-page">
                 <filters-sidebar></filters-sidebar>
