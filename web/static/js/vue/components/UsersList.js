@@ -4,84 +4,67 @@ const UsersList = {
         <div class="users-list card">
             <h3>Users</h3>
             <div class="users-container">
-                <div v-if="loading" class="loading-indicator">Loading users...</div>
-                <div v-else-if="onlineUsers.length" class="users-list-content">
-                    <div v-for="user in sortedUsers" 
-                         :key="user.id" 
-                         class="user-item profile-link"
-                         @click="openUserChat(user.id)">
-                        <span class="online-indicator" :class="{'is-online': user.online}"></span>
-                        <span class="username">{{ user.username }}</span>
-                        <span class="view-profile-hint">Chat</span>
+                <div v-if="users && users.length">
+                    <div v-for="user in sortedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }" @click="openChat(user.ID)">
+                        <span class="status-dot" :class="{ 'online': user.Online }"></span>
+                        {{ user.Username }}
                     </div>
                 </div>
-                <div v-else class="no-users">No users online</div>
+                <div v-else>No users found</div>
             </div>
         </div>
     `,
-    setup() {
-        const { state: wsState } = Vue.inject('websocket');
-        const currentUser = Vue.inject('currentUser');
-        const loading = Vue.ref(true);
-
-        // Computed property for sorted users
-        const sortedUsers = Vue.computed(() => {
-            if (!currentUser.isLoggedIn) return [];
-            return [...wsState.onlineUsers].sort((a, b) => {
-                // First sort by online status
-                if (a.online !== b.online) {
-                    return b.online ? 1 : -1;
-                }
-                // Then by last message time
-                const aLastMessage = wsState.chatWindows.get(a.id)?.slice(-1)[0]?.timestamp || 0;
-                const bLastMessage = wsState.chatWindows.get(b.id)?.slice(-1)[0]?.timestamp || 0;
-                if (aLastMessage !== bLastMessage) {
-                    return bLastMessage - aLastMessage;
-                }
-                // Finally by username
-                return a.username.localeCompare(b.username);
-            });
-        });
-
-        // Open chat with user
-        function openUserChat(userId) {
-            if (!currentUser.isLoggedIn) return;
-            
-            // Create chat window if it doesn't exist
-            if (!wsState.chatWindows.has(userId)) {
-                wsState.chatWindows.set(userId, []);
-            }
-
-            // Emit event to show chat window
-            window.dispatchEvent(new CustomEvent('show-chat', {
-                detail: { userId }
-            }));
-        }
-
-        // Watch for onlineUsers changes to update loading
-        Vue.watch(
-            () => wsState.onlineUsers.length,
-            (newLen) => {
-                loading.value = false;
-            },
-            { immediate: true }
-        );
-        // Watch for currentUser changes to reset loading
-        Vue.watch(
-            () => currentUser.isLoggedIn,
-            (val) => {
-                loading.value = true;
-            }
-        );
-
+    data() {
         return {
-            onlineUsers: wsState.onlineUsers,
-            sortedUsers,
-            openUserChat,
-            loading,
-            currentUser
-        };
+            users: [],
+            refreshInterval: null
+        }
+    },
+    computed: {
+        sortedUsers() {
+            return [...this.users].sort((a, b) => {
+                // First sort by online status
+                if (a.Online !== b.Online) {
+                    return a.Online ? -1 : 1;
+                }
+                // Then sort by last message time if available
+                if (a.LastMessageTime && b.LastMessageTime) {
+                    return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
+                }
+                // If no messages or equal times, sort alphabetically by username
+                return a.Username.toLowerCase().localeCompare(b.Username.toLowerCase());
+            });
+        }
+    },
+    methods: {
+        async fetchUsers() {
+            try {
+                const response = await fetch('/api/users', {
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to fetch users');
+                this.users = await response.json();
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                this.users = [];
+            }
+        },
+        openChat(userId) {
+            // Emit event to parent to open chat
+            this.$emit('open-chat', userId);
+        }
+    },
+    mounted() {
+        this.fetchUsers();
+        // Refresh users list every 30 seconds
+        this.refreshInterval = setInterval(this.fetchUsers, 30000);
+    },
+    beforeUnmount() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
     }
 };
 
-// No mount here, will be registered globally. 
+// Remove export default and attach to window for global access
+window.UsersList = UsersList; 

@@ -34,15 +34,7 @@ func main() {
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)
 
-	// Serve static files from the "web" directory
-	mux.Handle("/web/", http.StripPrefix("/web/uploads", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
-
-	// Serve static files
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
-	// mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
-	mux.HandleFunc("/", handlers.IndexHandler(template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))))
-
-	// API routes
+	// --- API routes registered FIRST ---
 	mux.HandleFunc("/api/logout", authHandlers.LogoutHandler)
 	mux.HandleFunc("/api/login", authHandlers.LoginHandler)
 	mux.HandleFunc("/api/user_status", authHandlers.UserStatusHandler)
@@ -60,7 +52,7 @@ func main() {
 	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 
-	// Other routes (to be implemented)
+	// Other API routes
 	mux.HandleFunc("/api/categories", handlers.GetCategories)
 	mux.HandleFunc("/category/create", handlers.CreateCategory)
 	mux.HandleFunc("/category/delete", handlers.DeleteCategory)
@@ -78,21 +70,21 @@ func main() {
 	mux.HandleFunc("/api/groups/posts/create", handlers.CreateGroupPostHandler(db))
 	mux.HandleFunc("/api/groups/posts", handlers.GetGroupPostsHandler(db))
 	mux.HandleFunc("/api/groups/events", handlers.GetGroupEventsHandler(db))
-
-	// mux.HandleFunc("/comment/like", handlers.LikeComment)
-	// mux.HandleFunc("/comment/dislike", handlers.DislikeComment)
-
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})
-
 	mux.HandleFunc("/api/chat-history", handlers.GetChatHistory)
 	mux.HandleFunc("/api/online-users", handlers.GetOnlineUsers)
 	mux.HandleFunc("/api/search/users", handlers.SearchUsers)
 	mux.HandleFunc("/api/user", handlers.GetCurrentUser)
+	mux.HandleFunc("/api/users", handlers.GetAllUsers)
+
+	// --- Static file handlers registered LAST ---
+	mux.Handle("/web/", http.StripPrefix("/web/uploads", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
+	mux.HandleFunc("/", handlers.IndexHandler(template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))))
 
 	// Start the server
 	log.Println("Server starting on http://localhost:8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", mux))
-
 }

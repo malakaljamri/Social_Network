@@ -55,8 +55,8 @@ func GetUserByID(id int) (models.User, error) {
 	var user models.User
 	var profilePrivacy string
 	if rows.Next() {
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, 
-		                &user.IsPrivate, &profilePrivacy)
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password,
+			&user.IsPrivate, &profilePrivacy)
 		if err != nil {
 			return models.User{}, err
 		}
@@ -78,8 +78,8 @@ func UpdateUser(user models.User) error {
 	if user.IsPrivate {
 		profilePrivacy = "private"
 	}
-	_, err := ExecuteQuery(query, user.Username, user.Email, user.Password, 
-	                      user.IsPrivate, profilePrivacy, user.ID)
+	_, err := ExecuteQuery(query, user.Username, user.Email, user.Password,
+		user.IsPrivate, profilePrivacy, user.ID)
 	return err
 }
 
@@ -135,6 +135,54 @@ func GetOnlineUsersDetails(userIDs []int, userID int) ([]models.User, error) {
 		users = append(users, user)
 	}
 	// fmt.Println(users)
+	return users, nil
+}
+
+func GetAllUsers(currentUserID int) ([]models.User, error) {
+	query := `
+		SELECT 
+			u.id, 
+			u.username, 
+			u.birthDate, 
+			u.gender, 
+			u.first_name, 
+			u.last_name, 
+			u.email,
+			(SELECT MAX(timestamp) 
+				FROM chat_messages 
+				WHERE (sender_id = u.id and Receiver_id = ?) or (sender_id = ? AND Receiver_id = u.id)) as last_message_time
+		FROM users u
+		WHERE u.id != ?
+		ORDER BY last_message_time DESC, u.username ASC;
+	`
+
+	rows, err := db.Query(query, currentUserID, currentUserID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		var lastMessageTime sql.NullString
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.BirthDate,
+			&user.Gender,
+			&user.FirstName,
+			&user.LastName,
+			&user.Email,
+			&lastMessageTime,
+		)
+		if err != nil {
+			return nil, err
+		}
+		user.LastMessageTime = lastMessageTime.String
+		_, user.Online = OnlineUsers[user.ID]
+		users = append(users, user)
+	}
 	return users, nil
 }
 

@@ -397,3 +397,20 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		"email":      user.Email,
 	})
 }
+
+func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Error: Unauthorized")
+		return
+	}
+
+	users, err := database.GetAllUsers(currentUserID)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching users")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
+}
