@@ -28,13 +28,18 @@ function createNavbar() {
 
 function updateUserStatusUI(data) {
     const userStatusElement = document.getElementById('userStatus');
-    let chatSection = document.querySelector("#chat-section")
+    let chatSection = document.querySelector("#chat-section");
+
+    //Update Vue's reactive currentUser object
+    if (window.__VUE_APP__) {
+        const vueApp = window.__VUE_APP__;
+        vueApp.currentUser.isLoggedIn = data.loggedIn;
+        vueApp.currentUser.username = data.username || null;
+        vueApp.currentUser.userID = data.userID || null;
+    }
 
     if (data.loggedIn) {
         userStatusElement.innerHTML = `
-            <a title="Create New Post" href="/create-post" class="create-post-btn">
-                <i class="fas fa-plus-circle"></i> ✍️ Create Post
-            </a>
             <a title="Groups Page" href="/groups" class="groups-page-btn">
                 <i class="fas fa-users"></i> 👥 Groups
             </a>

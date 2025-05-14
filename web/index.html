@@ -97,7 +97,10 @@
                 
                 <!-- Loading indicator -->
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
-                
+                <!-- ✍️ Create Post -->
+                <a v-if="currentUser.isLoggedIn && currentView === 'posts'" title="Create New Post" href="/create-post" class="create-post-btn">
+                    <i class="fas fa-plus-circle"></i> ✍️ Create Post
+                </a>
                 <!-- Pagination controls -->
                 <div id="pagination-container">
                     <button @click="fetchPosts(currentPage - 1)" :disabled="currentPage <= 1">Previous</button>
