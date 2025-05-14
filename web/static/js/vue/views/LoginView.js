@@ -42,14 +42,13 @@ const LoginView = {
                     }),
                     credentials: 'include'
                 });
-                if (!response.ok) {
-                    const err = await response.json();
-                    this.loginForm.error = err.error || 'Incorrect credentials';
+                const data = await response.json();
+                if (!response.ok || data.message !== 'Logged in successfully') {
+                    this.loginForm.error = data.message || 'Incorrect credentials';
                     this.loginForm.password = '';
                     this.loginForm.loading = false;
                     return;
                 }
-                const data = await response.json();
                 this.$emit('login', data);
             } catch (e) {
                 this.loginForm.error = 'Network error';
