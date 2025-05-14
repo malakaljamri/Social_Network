@@ -15,6 +15,24 @@ const app = createApp({
         const groupPosts = ref([]);
         const currentView = ref('login'); // 'login', 'register', 'posts', 'profile', 'groups'
 
+        // Modal state
+        const activeModal = ref(''); // '', 'createPost', 'createGroup'
+        const newPost = reactive({
+            title: '',
+            content: '',
+            category_id: null,
+            privacy: 'public',
+            image: null
+        });
+        const newGroup = reactive({
+            name: '',
+            description: '',
+            privacy: 'public'
+        });
+        function openCreatePost() { activeModal.value = 'createPost'; }
+        function openCreateGroup() { activeModal.value = 'createGroup'; }
+        function closeModal() { activeModal.value = ''; }
+
         // Computed property for sidebar visibility
         const showSidebar = computed(() => {
             return currentView.value !== 'groups';
@@ -35,11 +53,11 @@ const app = createApp({
         const onlineUsers = ref([]);
         const categories = ref([]);
         const filters = reactive({
-            category: null,
-            //userOnly: false,
+            category: [],
+            userOnly: false,
             dateFrom: null,
-            dateTo: null
-            //likedOnly: false
+            dateTo: null,
+            likedOnly: false
         });
         
         // Profile page state - all arrays must be initialized to empty arrays
@@ -88,14 +106,21 @@ const app = createApp({
         const filteredPosts = computed(() => {
             let result = [...posts.value];
             
-            if (filters.category) {
-                result = result.filter(post => post.Categories.includes(parseInt(filters.category)));
+            // Category filter
+            if (filters.category && filters.category.length > 0) {
+                result = result.filter(post => 
+                    post.Categories && post.Categories.some(catId => 
+                        filters.category.includes(parseInt(catId))
+                    )
+                );
             }
             
-            if (filters.userOnly && currentUser.id) {
-                result = result.filter(post => post.UserID && post.UserID === currentUser.id);
+            // User filter
+            if (filters.userOnly && currentUser.isLoggedIn) {
+                result = result.filter(post => post.UserID === currentUser.id);
             }
             
+            // Date range filter
             if (filters.dateFrom) {
                 const fromDate = new Date(filters.dateFrom);
                 result = result.filter(post => new Date(post.CreatedAt) >= fromDate);
@@ -106,12 +131,21 @@ const app = createApp({
                 result = result.filter(post => new Date(post.CreatedAt) <= toDate);
             }
             
-            // if (filters.likedOnly) {
-                
-            // }
+            // Liked posts filter
+            if (filters.likedOnly && currentUser.isLoggedIn) {
+                // This will need to be implemented when we have the liked posts data
+                // result = result.filter(post => post.isLiked);
+            }
             
             return result;
         });
+
+        // Watch for filter changes to update posts
+        watch(filters, () => {
+            // The filteredPosts computed property will automatically update
+            // but we might want to trigger a posts refresh here if needed
+            console.log('Filters changed:', filters);
+        }, { deep: true });
 
         // Computed property for filtered groups
         const filteredGroups = computed(() => {
@@ -136,9 +170,6 @@ const app = createApp({
         const showGroupEventsModal = ref(false);
         const groupEvents = reactive({ upcoming: [], past: [] });
         const todayDate = new Date().toLocaleDateString();
-
-        // Navbar/modal state
-        const showCreateGroupModal = ref(false);
 
         // Methods
         const fetchUserStatus = async () => {
@@ -808,6 +839,7 @@ const app = createApp({
 
         // Called when component is mounted
         onMounted(async () => {
+            activeModal.value = '';
             const status = await fetchUserStatus();
             if (status && status.loggedIn) {
                 await fetchOnlineUsers();
@@ -827,23 +859,6 @@ const app = createApp({
          
             // Set up periodic refresh of online users
             setInterval(fetchOnlineUsers, 30000);
-            
-            // Set up filter change handlers
-            document.getElementById('fromDate')?.addEventListener('change', (e) => {
-                filters.dateFrom = e.target.value;
-            });
-            
-            document.getElementById('toDate')?.addEventListener('change', (e) => {
-                filters.dateTo = e.target.value;
-            });
-            
-            document.getElementById('loggedInUserFilter')?.addEventListener('change', (e) => {
-                filters.userOnly = e.target.checked;
-            });
-            
-            document.getElementById('likedPosts')?.addEventListener('change', (e) => {
-                filters.likedOnly = e.target.checked;
-            });
             
             // Listen for profile navigation events from nav.js
             document.addEventListener('showUserProfile', (event) => {
@@ -995,11 +1010,8 @@ const app = createApp({
         };
 
         // Navbar navigation methods
-        const goToCreatePost = () => {
-            // You can implement a modal or view switch here
-            // For now, just alert as a placeholder
-            alert('Create Post modal not yet implemented in Vue.');
-        };
+        const goToCreatePost = openCreatePost;
+        const goToCreateGroup = openCreateGroup;
         const goToProfile = () => {
             currentView.value = 'profile';
         };
@@ -1015,14 +1027,114 @@ const app = createApp({
             currentView.value = 'posts';
         };
 
-        // Watch filters and trigger post filtering
-        watch(filters, () => {
-            if (typeof fetchPostsFiltered === 'function') {
-                fetchPostsFiltered();
-            } else if (typeof fetchPosts === 'function') {
-                fetchPosts();
+        // Create post method
+        const createPost = async () => {
+            if (!currentUser.isLoggedIn) {
+                showAlert('Please log in to create a post');
+                return;
             }
-        }, { deep: true });
+
+            try {
+                const formData = new FormData();
+                formData.append('Title', newPost.title);
+                formData.append('Text', newPost.content);
+                formData.append('CategoryID', newPost.category_id);
+                formData.append('Privacy', newPost.privacy);
+                if (newPost.image) {
+                    formData.append('Image', newPost.image);
+                }
+
+                const response = await fetch('/post/create', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error || 'Failed to create post');
+                }
+
+                showAlert('Post created successfully!');
+                activeModal.value = '';
+                
+                // Reset form
+                newPost.title = '';
+                newPost.content = '';
+                newPost.category_id = null;
+                newPost.privacy = 'public';
+                newPost.image = null;
+
+                // Refresh posts
+                await fetchPosts(currentPage.value);
+            } catch (error) {
+                console.error('Error creating post:', error);
+                showAlert(error.message || 'Failed to create post');
+            }
+        };
+
+        // Create group method
+        const createGroup = async () => {
+            if (!currentUser.isLoggedIn) {
+                showAlert('Please log in to create a group');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(newGroup)
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error || 'Failed to create group');
+                }
+
+                showAlert('Group created successfully!');
+                activeModal.value = '';
+                
+                // Reset form
+                newGroup.name = '';
+                newGroup.description = '';
+                newGroup.privacy = 'public';
+
+                // Refresh groups
+                await fetchGroups();
+            } catch (error) {
+                console.error('Error creating group:', error);
+                showAlert(error.message || 'Failed to create group');
+            }
+        };
+
+        // Handle post image upload
+        const handlePostImageUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Validate file size (2MB limit)
+                if (file.size > 2 * 1024 * 1024) {
+                    showAlert('File size must not exceed 2MB');
+                    event.target.value = '';
+                    return;
+                }
+
+                // Validate image dimensions
+                const img = new Image();
+                img.onload = function() {
+                    if (img.width > 2000 || img.height > 2000) {
+                        showAlert('Image dimensions must not exceed 2000x2000 pixels');
+                        event.target.value = '';
+                        return;
+                    }
+                    newPost.image = file;
+                };
+                img.src = URL.createObjectURL(file);
+            }
+        };
 
         // Return reactive state and methods for template use
         return {
@@ -1061,6 +1173,19 @@ const app = createApp({
             
             // UI state
             showSidebar,
+            
+            // Modal state and methods
+            activeModal,
+            openCreatePost,
+            openCreateGroup,
+            closeModal,
+            goToCreatePost,
+            goToCreateGroup,
+            createPost,
+            createGroup,
+            newPost,
+            newGroup,
+            handlePostImageUpload,
             
             // Methods
             fetchPosts,
@@ -1107,10 +1232,6 @@ const app = createApp({
             handleRegister,
             goToLogin,
             goToRegister,
-
-            // Navbar/modal state
-            showCreateGroupModal,
-            goToCreatePost,
             goToProfile,
             handleLogout,
             goToHome,

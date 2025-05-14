@@ -10,6 +10,60 @@
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIyMCIgZmlsbD0iIzdkNmVlNyI+PC9yZWN0PjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0zNi42MyAyMi40Mkw2Ni41MiAyMi40MlE2Ni43OCAyMi44NyA2Ny4wNiAyMy42M1E2Ny4zMiAyNC40MCA2Ny4zMiAyNS4zMEw2Ny4zMiAyNS4zMFE2Ny4zMiAyNi44MyA2Ni42MCAyNy43M1E2NS44OCAyOC42MyA2NC41MyAyOC42M0w2NC41MyAyOC42M0w4MC4wNSAyOC42M0w4MC4wNSA0Ny4zNUw2My4zNiA0Ny4zNVE2My42MyA0Ny44MCA2My45MSA0OC41NlE2NC4xNyA0OS4zMyA2NC4xNyA1MC4yM0w2NC4xNyA1MC4yM1E2NC4xNyA1MS43NiA2My40NSA1Mi42NlE2Mi43MyA1My41NiA2MS4zOCA1My41Nkw2MS4zOCA1My41Nkw0MC4wNSA1My41Nkw0MC4wNSA3Ny4wNVEzOS42MCA3Ny4yMyAzOC42NiA3Ny40MVEzNy43MSA3Ny41OSAzNi43MiA3Ny41OVEzMi42NyA3Ny41OSAzMi42NyA3NC4zNEwzMi42NyA3NC4zNEwzMi42NyAyNi4zOFEzMi42NyAyNC41OCAzMy43NSAyMy41MFEzNC44NCAyMi40MiAzNi42MyAyMi40MkwzNi42MyAyMi40MloiPjwvcGF0aD48L3N2Zz4=" />
 </head>
 <body>
+    <!-- User Search Bar -->
+    <div id="sidebar" v-show="showSidebar">
+        <div id="sidebarContent" v-show="showSidebar">
+            <div id="resultsCounter" style="text-align: center;"></div>
+            <!-- Vue Groups List -->
+            <!-- <div v-if="currentView === 'groups'" class="filter-section">
+                <h3 class="collapsible">List of Groups</h3>
+                <input type="text" placeholder="Search groups..." style="width: 100%; margin-bottom: 10px;" v-model="groupSearchQuery">
+                <div>
+                    <div v-for="group in groups" :key="group.ID"
+                        :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                        @click="selectGroupById(group.ID)"
+                        style="cursor:pointer; margin-bottom: 6px; padding: 8px; border-radius: 6px; border: 1px solid #eee; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.01);">
+                        [[ group.Name ]]
+                    </div>
+                </div>
+            </div> -->
+            <!-- End Vue Groups List -->
+            <div class="filter-section" v-show="showSidebar">
+                <h3 class="collapsible">Categories</h3>
+                <div id="categories-list" class="content"> 
+                    <!-- Vue categories list -->
+                    <div v-if="categories && categories.length">
+                        <div v-for="category in categories" :key="category.ID"> 
+                            <input type="checkbox" :id="'category-'+category.ID" 
+                                  :value="category.ID" v-model="filters.category">
+                            <label :for="'category-'+category.ID">[[category.Name]] ([[category.PostCount]])</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="filterByUser" class="filter-section" v-show="showSidebar">
+                <h3 class="collapsible">User</h3>
+                <div class="content">
+                    <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn"> 
+                    Show only my posts
+                </div>
+            </div>
+            <div class="filter-section" v-show="showSidebar">
+                <h3 class="collapsible">Date Range</h3>
+                <div class="content">
+                    <input type="date" id="fromDate" v-model="filters.dateFrom">
+                    <input type="date" id="toDate" v-model="filters.dateTo">
+                </div>
+            </div>
+            <div class="filter-section liked-section" v-show="showSidebar">
+                <h3 class="collapsible">Liked Posts</h3>
+                <div class="content">
+                    <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div id="app">
         <!-- Navbar (Vue controlled) -->
         <nav class="navbar" style="background: #3f51b5; color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 72px;">
@@ -31,42 +85,6 @@
                 <button class="button" style="background: #fff; color: #3f51b5; border: 1px solid #3f51b5; margin-left: 8px;" @click="handleLogout">Logout</button>
             </div>
         </nav>
-        <!-- Sidebar (Vue controlled) -->
-        <div id="sidebar" v-if="currentView !== 'login' && currentView !== 'register' && showSidebar">
-            <div id="sidebarContent">
-                <div class="filter-section">
-                    <h3 class="collapsible">Categories</h3>
-                    <div id="categories-list" class="content">
-                        <div v-if="categories && categories.length">
-                            <div v-for="category in categories" :key="category.ID">
-                                <input type="checkbox" :id="'category-'+category.ID" :value="category.ID" v-model="filters.category">
-                                <label :for="'category-'+category.ID">[[category.Name]] ([[category.PostCount]])</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="filterByUser" class="filter-section">
-                    <h3 class="collapsible">User</h3>
-                    <div class="content">
-                        <input type="checkbox" id="loggedInUserFilter" v-model="filters.userOnly" :disabled="!currentUser.isLoggedIn">
-                        Show only my posts
-                    </div>
-                </div>
-                <div class="filter-section">
-                    <h3 class="collapsible">Date Range</h3>
-                    <div class="content">
-                        <input type="date" id="fromDate" v-model="filters.dateFrom">
-                        <input type="date" id="toDate" v-model="filters.dateTo">
-                    </div>
-                </div>
-                <div class="filter-section liked-section">
-                    <h3 class="collapsible">Liked Posts</h3>
-                    <div class="content">
-                        <input type="checkbox" id="likedPosts" v-model="filters.likedOnly"> Show only liked posts
-                    </div>
-                </div>
-            </div>
-        </div>
         <!-- Login View -->
         <div v-if="currentView === 'login'" class="container" style="max-width: 400px; margin: 40px auto;">
             <div class="card">
@@ -322,6 +340,85 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modals rendered at root using Teleport -->
+        <teleport to="body">
+            <div v-if="activeModal === 'createPost'" class="modal-overlay" @click="closeModal">
+                <div class="modal-content" @click.stop>
+                    <h2>Create Post</h2>
+                    <form @submit.prevent="createPost">
+                        <div class="form-group">
+                            <label for="post-title">Title:</label>
+                            <input type="text" id="post-title" v-model="newPost.title" required
+                                   minlength="3" maxlength="100"
+                                   title="Title must be between 3 and 100 characters">
+                        </div>
+                        <div class="form-group">
+                            <label for="post-content">Content:</label>
+                            <textarea id="post-content" v-model="newPost.content" required
+                                      minlength="10" maxlength="5000"
+                                      title="Content must be between 10 and 5000 characters"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="post-category">Category:</label>
+                            <select id="post-category" v-model="newPost.category_id" required>
+                                <option value="">Select a category</option>
+                                <option v-for="category in categories" :key="category.ID" :value="category.ID">
+                                    [[category.Name]]
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="post-privacy">Privacy:</label>
+                            <select id="post-privacy" v-model="newPost.privacy" required>
+                                <option value="public">Public</option>
+                                <option value="almost_private">Followers</option>
+                                <option value="private">Chosen followers</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="post-image">Image (optional):</label>
+                            <input type="file" id="post-image" @change="handlePostImageUpload" 
+                                   accept="image/jpeg, image/png, image/gif">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn">Create Post</button>
+                            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div v-if="activeModal === 'createGroup'" class="modal-overlay" @click="closeModal">
+                <div class="modal-content" @click.stop>
+                    <h2>Create Group</h2>
+                    <form @submit.prevent="createGroup">
+                        <div class="form-group">
+                            <label for="group-name">Group Name:</label>
+                            <input type="text" id="group-name" v-model="newGroup.name" required
+                                   minlength="3" maxlength="50"
+                                   title="Name must be between 3 and 50 characters">
+                        </div>
+                        <div class="form-group">
+                            <label for="group-description">Description:</label>
+                            <textarea id="group-description" v-model="newGroup.description" required
+                                      minlength="10" maxlength="500"
+                                      title="Description must be between 10 and 500 characters"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="group-privacy">Privacy:</label>
+                            <select id="group-privacy" v-model="newGroup.privacy" required>
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn">Create Group</button>
+                            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </teleport>
     </div>
 
     <script src="static/js/functions/navFuncs.js"></script>

@@ -1,3 +1,4 @@
+/*
 function createNavbar() {
     const nav = document.createElement('nav'); nav.id = 'navbar';
     document.body.prepend(nav);
@@ -299,3 +300,4 @@ function handleScreenChange(e) {
         sidebarContent.style.display = 'block';
     }
 }
+*/

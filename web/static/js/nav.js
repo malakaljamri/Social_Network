@@ -1,3 +1,4 @@
+/*
 document.addEventListener('DOMContentLoaded', function() {
     const app = createNavbar();
     app.mount('#navbar');
@@ -157,3 +158,4 @@ const originalUpdateUserStatusUI = updateUserStatusUI;
 updateUserStatusUI = function(data) {
     originalUpdateUserStatusUI(data);
 }
+*/
