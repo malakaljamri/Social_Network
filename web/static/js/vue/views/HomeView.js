@@ -1,8 +1,9 @@
 // HomeView Component
 const HomeView = {
     template: `
-        <div class="home-view">
-            <div class="feed-main">
+        <div class="home-view layout-grid">
+            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged"></filters-sidebar>
+            <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
@@ -31,6 +32,7 @@ const HomeView = {
                     <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
                 </div>
             </div>
+            <users-list class="users-list"></users-list>
         </div>
     `,
     data() {

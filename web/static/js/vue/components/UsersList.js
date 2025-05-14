@@ -11,7 +11,7 @@ const UsersList = {
                          class="user-item profile-link"
                          @click="openUserChat(user.id)">
                         <span class="online-indicator" :class="{'is-online': user.online}"></span>
-                        <span class="username">[[user.username]]</span>
+                        <span class="username">{{ user.username }}</span>
                         <span class="view-profile-hint">Chat</span>
                     </div>
                 </div>

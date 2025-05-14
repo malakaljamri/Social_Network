@@ -15,7 +15,7 @@ const NavBar = {
                 <button class="button" @click="showCreatePostModal">✍️ Create Post</button>
                 <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
                 <button class="button" @click="showCreateGroupModal">➕ Create Group</button>
-                <span class="user-greeting">[[currentUser.username]] 👋</span>
+                <span class="user-greeting">{{ currentUser.username }} 👋</span>
                 <button class="button secondary-button" @click="goToProfile">My Profile</button>
                 <button class="button logout-button" @click="handleLogout">Logout</button>
             </div>
