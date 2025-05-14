@@ -161,6 +161,16 @@ const app = Vue.createApp({
                 this.currentView = 'login';
             }
             this.showRegisterModal = false;
+        },
+        async apiFetch(url, options = {}) {
+            // Helper for all API calls to handle session expiration
+            const opts = { ...options, credentials: 'include' };
+            const response = await fetch(url, opts);
+            if (response.status === 401 || response.status === 403) {
+                this.handleLogout();
+                throw new Error('Session expired. Please log in again.');
+            }
+            return response;
         }
     },
     mounted() {
@@ -219,33 +229,19 @@ const app = Vue.createApp({
     },
     template: `
         <div>
-            <nav-bar :state="currentView"
+            <nav-bar :state="currentView" :currentUser="currentUser"
+                @navigate="handleNavigate"
+                @logout="handleLogout"
                 @show-modal="handleShowModal"
-                @show-create-post="showCreatePostModal = true"
-                @show-create-group="showCreateGroupModal = true"
-                :current-user="currentUser"
             ></nav-bar>
-            <create-post-modal v-if="showCreatePostModal" @close="showCreatePostModal = false" @created="onPostCreated"></create-post-modal>
-            <create-group-modal v-if="showCreateGroupModal" @close="showCreateGroupModal = false" @created="onGroupCreated"></create-group-modal>
-            <main v-if="currentView === 'login'" class="page login-page">
-                <login-form @login="onLogin"></login-form>
-                <register-modal v-if="showRegisterModal" @registered="onRegistered"></register-modal>
-            </main>
-            <main v-if="currentView === 'home'" class="page home-page">
-                <feed-main></feed-main>
-            </main>
-            <main v-if="currentView === 'groups'" class="page groups-page">
-                <groups-list></groups-list>
-                <group-main>
-                    <group-posts></group-posts>
-                    <group-events></group-events>
-                    <group-chat></group-chat>
-                </group-main>
-            </main>
-            <main v-if="currentView === 'profile'" class="page profile-page">
-                <filters-sidebar :is-profile="true"></filters-sidebar>
-                <profile-main></profile-main>
-            </main>
+            <component :is="currentView + '-view'"
+                v-if="currentUser.isLoggedIn || currentView === 'login' || currentView === 'register'"
+                :key="currentView"
+                @login="onLogin"
+                @registered="onRegistered"
+                @post-created="onPostCreated"
+                @group-created="onGroupCreated"
+            ></component>
         </div>
     `
 });
@@ -261,10 +257,11 @@ app.component('chat-window', ChatWindow);
 app.component('register-modal', RegisterModal);
 app.component('create-post-modal', CreatePostModal);
 app.component('create-group-modal', CreateGroupModal);
-app.component('login-form', LoginView);
-app.component('feed-main', HomeView);
-app.component('groups-list', GroupsView);
-app.component('profile-main', ProfileView);
+// Register main views with correct names for dynamic :is usage
+app.component('login-view', LoginView);
+app.component('home-view', HomeView);
+app.component('groups-view', GroupsView);
+app.component('profile-view', ProfileView);
 // Stub components for missing group features
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });

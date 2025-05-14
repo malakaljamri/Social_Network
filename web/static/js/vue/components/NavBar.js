@@ -54,7 +54,8 @@ const NavBar = {
         async function handleLogout() {
             try {
                 await fetch('/api/logout', {
-                    method: 'POST'
+                    method: 'POST',
+                    credentials: 'include'
                 });
                 emit('logout');
             } catch (error) {
