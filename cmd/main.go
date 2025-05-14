@@ -61,7 +61,7 @@ func main() {
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 
 	// Other routes (to be implemented)
-	mux.HandleFunc("/categories", handlers.GetCategories)
+	mux.HandleFunc("/api/categories", handlers.GetCategories)
 	mux.HandleFunc("/category/create", handlers.CreateCategory)
 	mux.HandleFunc("/category/delete", handlers.DeleteCategory)
 	mux.HandleFunc("/posts", handlers.GetPosts)

@@ -26,6 +26,7 @@ const UsersList = {
 
         // Computed property for sorted users
         const sortedUsers = Vue.computed(() => {
+            if (!currentUser.isLoggedIn) return [];
             return [...wsState.onlineUsers].sort((a, b) => {
                 // First sort by online status
                 if (a.online !== b.online) {
@@ -58,15 +59,27 @@ const UsersList = {
         }
 
         // Watch for onlineUsers changes to update loading
-        Vue.watch(() => wsState.onlineUsers, () => {
-            loading.value = false;
-        });
+        Vue.watch(
+            () => wsState.onlineUsers.length,
+            (newLen) => {
+                loading.value = false;
+            },
+            { immediate: true }
+        );
+        // Watch for currentUser changes to reset loading
+        Vue.watch(
+            () => currentUser.isLoggedIn,
+            (val) => {
+                loading.value = true;
+            }
+        );
 
         return {
             onlineUsers: wsState.onlineUsers,
             sortedUsers,
             openUserChat,
-            loading
+            loading,
+            currentUser
         };
     }
 };

@@ -12,9 +12,8 @@ const LoginView = {
                 </form>
             </div>
             <div class="card">
-                <p>Don't have an account? <a href="#" @click.prevent="showRegister">Sign Up</a></p>
+                <p>Don't have an account? <a href="#" @click.prevent="$emit('show-register')">Sign Up</a></p>
             </div>
-            <register-modal v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></register-modal>
         </div>
     `,
     data() {
@@ -24,8 +23,7 @@ const LoginView = {
                 password: '',
                 loading: false,
                 error: ''
-            },
-            showRegisterModal: false
+            }
         };
     },
     methods: {
@@ -50,20 +48,12 @@ const LoginView = {
                     return;
                 }
                 this.$emit('login', data);
-            } catch (e) {
-                this.loginForm.error = 'Network error';
+            } catch (error) {
+                this.loginForm.error = error.message || 'Login failed. Please try again.';
                 this.loginForm.password = '';
             } finally {
                 this.loginForm.loading = false;
             }
-        },
-        showRegister() {
-            this.showRegisterModal = true;
-        },
-        onRegistered(user) {
-            this.showRegisterModal = false;
-            // Optionally auto-fill login form
-            this.loginForm.user_identifier = user.username || user.email;
         }
     }
 };

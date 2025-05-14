@@ -234,15 +234,13 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
-
-	err = json.NewEncoder(w).Encode(posts)
-	if err != nil {
-		log.Printf("Error encoding posts to JSON: %v", err)
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Error encoding response")
-		return
-	}
-	log.Println("Response sent successfully")
+	totalPages := (totalCount + limit - 1) / limit
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"posts":      posts,
+		"totalPages": totalPages,
+	})
 }
+
 func GetOldestPostDate(w http.ResponseWriter, r *http.Request) {
 	date, err := database.GetOldestPostDate()
 	if err != nil {

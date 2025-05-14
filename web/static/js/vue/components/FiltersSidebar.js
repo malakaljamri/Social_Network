@@ -5,18 +5,18 @@ const FiltersSidebar = {
             <div class="filter-section">
                 <h3>Categories</h3>
                 <div v-if="loading" class="loading-indicator">Loading categories...</div>
-                <div v-if="error" class="error-message">[[error]]</div>
+                <div v-if="error" class="error">{{ error }}</div>
                 <div v-if="!loading && !error" id="categories-list">
-                    <div v-for="category in categories" :key="category.ID" class="category-item">
+                    <div v-for="category in categories" :key="category.ID || category.id" class="category-item">
                         <input 
                             type="checkbox" 
-                            :id="'category-' + category.ID" 
-                            :value="category.ID"
+                            :id="'cat-' + (category.ID || category.id)" 
+                            :value="category.ID || category.id"
                             v-model="selectedCategories"
                             @change="updateFilters"
                         >
-                        <label :for="'category-' + category.ID">
-                            [[category.Name]] ([[category.PostCount || 0]])
+                        <label :for="'cat-' + (category.ID || category.id)">
+                            {{ category.Name || category.name }}
                         </label>
                     </div>
                 </div>
@@ -98,14 +98,18 @@ const FiltersSidebar = {
     },
     methods: {
         async fetchCategories() {
+            if (!this.currentUser.isLoggedIn) {
+                this.categories = [];
+                this.error = '';
+                return;
+            }
             this.loading = true;
             this.error = '';
             try {
-                const response = await fetch('/api/categories');
+                const response = await fetch('/api/categories', { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch categories');
-                
                 const data = await response.json();
-                this.categories = data;
+                this.categories = Array.isArray(data) ? data : [];
             } catch (error) {
                 this.error = 'Failed to load categories.';
                 this.categories = [];
@@ -125,6 +129,10 @@ const FiltersSidebar = {
         }
     },
     watch: {
+        currentUser: {
+            handler() { this.fetchCategories(); },
+            deep: true
+        },
         selectedCategories: 'updateFilters',
         dateFrom: 'updateFilters',
         dateTo: 'updateFilters',

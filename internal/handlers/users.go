@@ -70,7 +70,6 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	currentUserID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		// http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error: Unauthorized",
@@ -84,8 +83,8 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	})
 	onlineUsers, err := database.GetOnlineUsersDetails(onlineUserIDs, currentUserID)
 	if err != nil {
-		http.Error(w, "Error fetching online users", http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, "Error fetching online users", http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error fetching online users",
 			"error":   err.Error(),
@@ -94,7 +93,9 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(onlineUsers)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"onlineUsers": onlineUsers,
+	})
 }
 
 // New profile-related handlers

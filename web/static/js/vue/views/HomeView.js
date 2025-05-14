@@ -62,27 +62,22 @@ const HomeView = {
     },
     methods: {
         async fetchPosts() {
+            if (!this.currentUser.isLoggedIn) return;
             this.loading = true;
+            let queryParams = new URLSearchParams({
+                page: this.currentPage,
+                limit: this.pageSize,
+                filters: JSON.stringify(this.filters)
+            });
             try {
-                const queryParams = new URLSearchParams({
-                    page: this.currentPage,
-                    limit: this.pageSize,
-                    filters: JSON.stringify(this.filters)
-                });
-
                 const response = await fetch(`/api/posts?${queryParams}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch posts');
-
-                const totalCount = parseInt(response.headers.get('X-Total-Count'), 10);
-                this.totalPages = Math.max(1, Math.ceil(totalCount / this.pageSize));
-                if (document.getElementById('resultsCounter')) {
-                    document.getElementById('resultsCounter').textContent = `Total Results: ${totalCount}`;
-                }
-
                 const data = await response.json();
-                this.posts = data;
-            } catch (error) {
-                console.error('Error fetching posts:', error);
+                this.posts = data.posts || [];
+                this.totalPages = data.totalPages || 1;
+            } catch (e) {
+                this.posts = [];
+                this.totalPages = 1;
             } finally {
                 this.loading = false;
             }
@@ -144,8 +139,15 @@ const HomeView = {
         }
     },
     mounted() {
-        this.fetchPosts();
+        if (this.currentUser.isLoggedIn) {
+            this.fetchPosts();
+        }
         window.addEventListener('post-created', this.fetchPosts);
+    },
+    watch: {
+        'currentUser.isLoggedIn'(val) {
+            if (val) this.fetchPosts();
+        }
     },
     beforeUnmount() {
         window.removeEventListener('post-created', this.fetchPosts);

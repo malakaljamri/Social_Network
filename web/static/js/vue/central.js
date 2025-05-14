@@ -41,45 +41,36 @@ const app = Vue.createApp({
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(credentials),
                     credentials: 'include'
                 });
-
-                if (!response.ok) {
-                    throw new Error('Login failed');
-                }
-
                 const data = await response.json();
-                this.currentUser = {
-                    isLoggedIn: true,
-                    id: data.id,
-                    username: data.username,
-                    email: data.email
-                };
-
+                if (!response.ok || data.message !== 'Logged in successfully') {
+                    throw new Error(data.message || 'Login failed');
+                }
+                this.currentUser.isLoggedIn = true;
+                this.currentUser.id = data.user_id;
+                this.currentUser.username = data.username;
+                this.currentUser.email = data.email || '';
+                // Initialize WebSocket and fetch posts (handled by HomeView)
                 this.goToHome();
             } catch (error) {
-                console.error('Login error:', error);
+                this.currentUser.isLoggedIn = false;
+                this.currentUser.id = null;
+                this.currentUser.username = null;
+                this.currentUser.email = null;
                 throw error;
             }
         },
 
         async handleLogout() {
             try {
-                await fetch('/api/logout', {
-                    method: 'POST'
-                });
-
-                this.currentUser = {
-                    isLoggedIn: false,
-                    id: null,
-                    username: null,
-                    email: null
-                };
-
+                await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+                this.currentUser.isLoggedIn = false;
+                this.currentUser.id = null;
+                this.currentUser.username = null;
+                this.currentUser.email = null;
                 this.goToLogin();
             } catch (error) {
                 console.error('Logout error:', error);
@@ -173,27 +164,39 @@ const app = Vue.createApp({
         }
     },
     mounted() {
-        // Check if user is already logged in
-        fetch('/api/user')
+        // Check if user is already logged in (use /api/user_status for parity)
+        fetch('/api/user_status', { credentials: 'include' })
             .then(async response => {
                 const text = await response.text();
                 try {
                     const data = JSON.parse(text);
-                    if (data.isLoggedIn) {
-                        this.currentUser = {
-                            isLoggedIn: true,
-                            id: data.id,
-                            username: data.username,
-                            email: data.email
-                        };
+                    if (data.loggedIn) {
+                        this.currentUser.isLoggedIn = true;
+                        this.currentUser.id = data.userID;
+                        this.currentUser.username = data.username;
+                        this.currentUser.email = data.email || '';
                         this.goToHome();
+                    } else {
+                        this.currentUser.isLoggedIn = false;
+                        this.currentUser.id = null;
+                        this.currentUser.username = null;
+                        this.currentUser.email = null;
+                        this.goToLogin();
                     }
                 } catch (e) {
-                    console.error('Error parsing /api/user response as JSON:', text);
+                    this.currentUser.isLoggedIn = false;
+                    this.currentUser.id = null;
+                    this.currentUser.username = null;
+                    this.currentUser.email = null;
+                    this.goToLogin();
                 }
             })
             .catch(error => {
-                console.error('Error checking user status:', error);
+                this.currentUser.isLoggedIn = false;
+                this.currentUser.id = null;
+                this.currentUser.username = null;
+                this.currentUser.email = null;
+                this.goToLogin();
             });
 
         // Listen for chat window events
@@ -218,8 +221,9 @@ const app = Vue.createApp({
         <div>
             <nav-bar :state="currentView"
                 @show-modal="handleShowModal"
-                @logout="handleLogout"
-                @navigate="handleNavigate"
+                @show-create-post="showCreatePostModal = true"
+                @show-create-group="showCreateGroupModal = true"
+                :current-user="currentUser"
             ></nav-bar>
             <create-post-modal v-if="showCreatePostModal" @close="showCreatePostModal = false" @created="onPostCreated"></create-post-modal>
             <create-group-modal v-if="showCreateGroupModal" @close="showCreateGroupModal = false" @created="onGroupCreated"></create-group-modal>
@@ -229,7 +233,6 @@ const app = Vue.createApp({
             </main>
             <main v-if="currentView === 'home'" class="page home-page">
                 <feed-main></feed-main>
-                <users-list></users-list>
             </main>
             <main v-if="currentView === 'groups'" class="page groups-page">
                 <groups-list></groups-list>
@@ -238,12 +241,10 @@ const app = Vue.createApp({
                     <group-events></group-events>
                     <group-chat></group-chat>
                 </group-main>
-                <users-list></users-list>
             </main>
             <main v-if="currentView === 'profile'" class="page profile-page">
                 <filters-sidebar :is-profile="true"></filters-sidebar>
                 <profile-main></profile-main>
-                <users-list></users-list>
             </main>
         </div>
     `

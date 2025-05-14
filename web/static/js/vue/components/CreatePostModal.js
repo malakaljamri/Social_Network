@@ -42,8 +42,13 @@ const CreatePostModal = {
     },
     methods: {
         async fetchCategories() {
+            const currentUser = this.$root.currentUser || (this.currentUser && this.currentUser.value);
+            if (!currentUser || !currentUser.isLoggedIn) {
+                this.categories = [];
+                return;
+            }
             try {
-                const response = await fetch('/api/categories');
+                const response = await fetch('/api/categories', { credentials: 'include' });
                 const data = await response.json();
                 this.categories = data;
             } catch (error) {
@@ -92,7 +97,8 @@ const CreatePostModal = {
     },
     mounted() {
         this.fetchCategories();
-    }
+    },
+    emits: ['close', 'created']
 };
 
 // No mount here, will be registered globally. 
