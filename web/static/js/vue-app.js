@@ -1015,7 +1015,12 @@ const app = createApp({
         const goToProfile = () => {
             currentView.value = 'profile';
         };
-        const handleLogout = () => {
+        const handleLogout = async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+            } catch (e) {
+                // Optionally show an error, but still clear state
+            }
             // Clear user state and return to login view
             currentUser.id = null;
             currentUser.username = null;
