@@ -266,7 +266,8 @@ app.component('profile-view', ProfileView);
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });
 app.component('group-chat', { template: '<div>Group Chat (stub)</div>' });
-app.component('group-main', { template: '<div><slot /></div>' });
+app.component('group-list', GroupList);
+app.component('group-main', GroupMain);
 
 // Mount the app
 app.mount('#app'); 
