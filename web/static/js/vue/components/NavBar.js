@@ -25,54 +25,45 @@ const NavBar = {
         state: {
             type: String,
             required: true
+        },
+        currentUser: {
+            type: Object,
+            required: true
         }
     },
-    setup(props, { emit }) {
-        const currentUser = Vue.inject('currentUser');
-
-        // Navigation methods
-        function goToHome() {
-            emit('navigate', 'home');
+    computed: {
+        currentView() {
+            return this.state;
         }
-
-        function goToGroups() {
-            emit('navigate', 'groups');
-        }
-
-        function goToProfile() {
-            emit('navigate', 'profile');
-        }
-
-        function showCreatePostModal() {
-            emit('show-modal', 'createPost');
-        }
-
-        function showCreateGroupModal() {
-            emit('show-modal', 'createGroup');
-        }
-
-        async function handleLogout() {
+    },
+    methods: {
+        goToHome() {
+            this.$emit('navigate', 'home');
+        },
+        goToGroups() {
+            this.$emit('navigate', 'groups');
+        },
+        goToProfile() {
+            this.$emit('navigate', 'profile');
+        },
+        showCreatePostModal() {
+            console.log('NavBar: Emitting show-modal event for createPost');
+            this.$emit('show-modal', 'createPost');
+        },
+        showCreateGroupModal() {
+            this.$emit('show-modal', 'createGroup');
+        },
+        async handleLogout() {
             try {
                 await fetch('/api/logout', {
                     method: 'POST',
                     credentials: 'include'
                 });
-                emit('logout');
+                this.$emit('logout');
             } catch (error) {
                 console.error('Logout error:', error);
             }
         }
-
-        return {
-            currentUser,
-            currentView: Vue.computed(() => props.state),
-            goToHome,
-            goToGroups,
-            goToProfile,
-            showCreatePostModal,
-            showCreateGroupModal,
-            handleLogout
-        };
     }
 };
 // No mount here, will be registered globally. 

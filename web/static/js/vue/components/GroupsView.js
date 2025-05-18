@@ -19,9 +19,6 @@ const GroupsView = {
                     <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                 </template>
                 <template v-else>
-                    <button @click="showCreateGroupPostForm = true" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                        <i class="fas fa-plus-circle"></i> Create Group Post
-                    </button>
                     <button @click="showGroupEventsModal = true" class="group-events-btn" style="margin-bottom: 16px;">
                         <i class="fas fa-calendar-alt"></i> Group Events
                     </button>
@@ -29,36 +26,6 @@ const GroupsView = {
                     <p><strong>created on:</strong> {{ formatDate(selectedGroup.CreatedAt) }}</p>
                     <p>{{ selectedGroup.Description }}</p>
                 </template>
-            </div>
-            <div v-if="showCreateGroupPostForm" class="modal-overlay" @click.self="showCreateGroupPostForm = false">
-                <div class="modal-content">
-                    <h2>Create Group Post</h2>
-                    <form @submit.prevent="createGroupPost">
-                        <div class="form-group">
-                            <label for="post-title">Title</label>
-                            <input type="text" id="post-title" v-model="newGroupPost.title" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-content">Content</label>
-                            <textarea id="post-content" v-model="newGroupPost.content" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="privacy-setting">Privacy</label>
-                            <select id="privacy-setting" v-model="newGroupPost.privacy_setting" required>
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-category">Category</label>
-                            <input type="text" id="post-category" v-model="newGroupPost.category">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="submit-btn">Create</button>
-                            <button type="button" class="cancel-btn" @click="showCreateGroupPostForm = false">Cancel</button>
-                        </div>
-                    </form>
-                </div>
             </div>
             <div v-if="showGroupEventsModal" class="modal-overlay" @click.self="showGroupEventsModal = false">
                 <div class="modal-content">
@@ -107,16 +74,9 @@ const GroupsView = {
             groupSearchQuery: '',
             selectedGroupId: null,
             selectedGroup: null,
-            showCreateGroupPostForm: false,
             showGroupEventsModal: false,
-            newGroupPost: {
-                title: '',
-                content: '',
-                privacy_setting: 'public',
-                category: ''
-            },
             groupEvents: { upcoming: [], past: [] },
-            groupPosts: []
+            groupPosts: [],
         };
     },
     computed: {
@@ -161,25 +121,6 @@ const GroupsView = {
                 };
             } catch (e) {
                 this.groupEvents = { upcoming: [], past: [] };
-            }
-        },
-        async createGroupPost() {
-            try {
-                const payload = {
-                    ...this.newGroupPost,
-                    group_id: this.selectedGroupId
-                };
-                const response = await this.$root.apiFetch('/api/groups/posts/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) throw new Error('Failed to create group post');
-                this.showCreateGroupPostForm = false;
-                this.newGroupPost = { title: '', content: '', privacy_setting: 'public', category: '' };
-                this.fetchGroupPosts(this.selectedGroupId);
-            } catch (e) {
-                alert('Failed to create group post');
             }
         },
         formatDate(dateStr) {

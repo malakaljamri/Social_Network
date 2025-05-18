@@ -39,7 +39,15 @@ func main() {
 	mux.HandleFunc("/api/login", authHandlers.LoginHandler)
 	mux.HandleFunc("/api/user_status", authHandlers.UserStatusHandler)
 	mux.HandleFunc("/api/register", authHandlers.RegisterHandler)
-	mux.HandleFunc("/api/posts", handlers.GetPostsHandler)
+	mux.HandleFunc("/api/posts", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handlers.CreatePost(w, r)
+		} else if r.Method == http.MethodGet {
+			handlers.GetPostsHandler(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	mux.HandleFunc("/api/oldest-post-date", handlers.GetOldestPostDate)
 	mux.HandleFunc("/api/newest-post-date", handlers.GetNewestPostDate)
 

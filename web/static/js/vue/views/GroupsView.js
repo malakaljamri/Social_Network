@@ -72,6 +72,9 @@ const GroupsView = {
             } catch (e) {
                 alert('Failed to create group post');
             }
+        },
+        handleOpenCreateGroupPostModal(groupId) {
+            this.$emit('open-create-group-post-modal', groupId);
         }
     },
     mounted() {
@@ -93,6 +96,7 @@ const GroupsView = {
                     :group-events="groupEvents"
                     :categories="categories"
                     @create-group-post="handleCreateGroupPost"
+                    @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                 ></group-main>
             </div>
             <users-list class="sidebar"></users-list>

@@ -6,6 +6,8 @@ const app = Vue.createApp({
             showRegisterModal: false,
             showCreatePostModal: false,
             showCreateGroupModal: false,
+            showCreateGroupPostModal: false,
+            selectedGroupIdForModal: null,
             currentUser: {
                 isLoggedIn: false,
                 id: null,
@@ -104,19 +106,51 @@ const app = Vue.createApp({
         },
 
         // Modal handlers
-        openCreatePostModal() { this.showCreatePostModal = true; },
-        openCreateGroupModal() { this.showCreateGroupModal = true; },
+        openCreatePostModal() { 
+            console.log('Opening create post modal, current state:', this.showCreatePostModal);
+            this.showCreatePostModal = true; 
+            console.log('New state:', this.showCreatePostModal);
+        },
+        openCreateGroupModal() { 
+            console.log('Opening create group modal, current state:', this.showCreateGroupModal);
+            this.showCreateGroupModal = true; 
+            console.log('New state:', this.showCreateGroupModal);
+        },
+        openCreateGroupPostModal(groupId) {
+            this.selectedGroupIdForModal = groupId;
+            this.showCreateGroupPostModal = true;
+        },
+        closeCreateGroupPostModal() {
+            this.showCreateGroupPostModal = false;
+            this.selectedGroupIdForModal = null;
+        },
         handleShowModal(modalType) {
-            if (modalType === 'createPost') this.openCreatePostModal();
-            if (modalType === 'createGroup') this.openCreateGroupModal();
+            console.log('Handling show modal:', modalType, 'Current user:', this.currentUser);
+            if (modalType === 'createPost') {
+                console.log('About to open create post modal');
+                this.openCreatePostModal();
+            }
+            if (modalType === 'createGroup') {
+                console.log('About to open create group modal');
+                this.openCreateGroupModal();
+            }
         },
         onPostCreated(newPost) {
+            console.log('Post created:', newPost);
             this.showCreatePostModal = false;
-            // Optionally: this.posts.unshift(newPost);
+            // Refresh posts list if we're on the home view
+            if (this.currentView === 'home') {
+                // Dispatch event to refresh posts
+                window.dispatchEvent(new CustomEvent('refresh-posts'));
+            }
         },
         onGroupCreated(newGroup) {
             this.showCreateGroupModal = false;
             // Optionally: this.groups.unshift(newGroup);
+        },
+        onGroupPostCreated() {
+            this.closeCreateGroupPostModal();
+            // Optionally refresh group posts here
         },
         handleNavigate(view) {
             this.currentView = view;
@@ -229,7 +263,9 @@ const app = Vue.createApp({
     },
     template: `
         <div>
-            <nav-bar :state="currentView" :currentUser="currentUser"
+            <nav-bar 
+                :state="currentView" 
+                :currentUser="currentUser"
                 @navigate="handleNavigate"
                 @logout="handleLogout"
                 @show-modal="handleShowModal"
@@ -241,7 +277,24 @@ const app = Vue.createApp({
                 @registered="onRegistered"
                 @post-created="onPostCreated"
                 @group-created="onGroupCreated"
+                @open-create-group-post-modal="openCreateGroupPostModal"
             ></component>
+            <create-post-modal
+                v-if="showCreatePostModal"
+                @close="showCreatePostModal = false"
+                @created="onPostCreated"
+            ></create-post-modal>
+            <create-group-post-modal
+                v-if="showCreateGroupPostModal"
+                :groupId="selectedGroupIdForModal"
+                @close="closeCreateGroupPostModal"
+                @created="onGroupPostCreated"
+            ></create-group-post-modal>
+            <create-group-modal
+                v-if="showCreateGroupModal"
+                @close="showCreateGroupModal = false"
+                @created="onGroupCreated"
+            ></create-group-modal>
         </div>
     `
 });
@@ -257,6 +310,7 @@ app.component('chat-window', ChatWindow);
 app.component('register-modal', RegisterModal);
 app.component('create-post-modal', CreatePostModal);
 app.component('create-group-modal', CreateGroupModal);
+app.component('create-group-post-modal', CreateGroupPostModal);
 // Register main views with correct names for dynamic :is usage
 app.component('login-view', LoginView);
 app.component('home-view', HomeView);

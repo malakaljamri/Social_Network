@@ -4,92 +4,254 @@ const WebSocketPlugin = {
         // Create a reactive state for WebSocket data
         const wsState = Vue.reactive({
             connected: false,
-            onlineUsers: [],
+            onlineUsers: new Map(),
             chatWindows: new Map(),
-            typingUsers: new Set()
+            typingUsers: new Set(),
+            activeNotifications: new Map(),
+            reconnectAttempts: 0,
+            MAX_RECONNECT_ATTEMPTS: 5,
+            RECONNECT_DELAY: 5000
         });
 
-        // Initialize WebSocket connection
+        let socket;
         let lastErrorTime = 0;
+
+        // Initialize WebSocket connection
         function initWebSocket() {
-            const ws = new WebSocket(`ws://${window.location.host}/ws`);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                wsState.connected = true;
-            };
+            if (wsState.reconnectAttempts >= wsState.MAX_RECONNECT_ATTEMPTS) {
+                console.error('Max reconnection attempts reached');
+                return null;
+            }
 
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                wsState.connected = false;
-                // Attempt to reconnect after 5 seconds
-                setTimeout(initWebSocket, 5000);
-            };
-
-            ws.onerror = (e) => {
-                const now = Date.now();
-                if (now - lastErrorTime > 30000) {
-                    console.warn('WebSocket connection failed. Will retry in 5s.');
-                    lastErrorTime = now;
+            try {
+                if (socket?.readyState === WebSocket.OPEN) {
+                    socket.close();
                 }
-            };
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
-            };
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsHost = window.location.host;
+                socket = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
+                
+                socket.onopen = async function() {
+                    console.log('WebSocket connected');
+                    wsState.connected = true;
+                    wsState.reconnectAttempts = 0;
+                    
+                    try {
+                        const currentUser = app.config.globalProperties.$root?.currentUser;
+                        if (currentUser?.isLoggedIn) {
+                            sendUserStatus('online');
+                        }
+                        await fetchOnlineUsers();
+                    } catch (error) {
+                        console.error('Error in WebSocket onopen:', error);
+                    }
+                };
 
-            return ws;
+                socket.onclose = function(event) {
+                    console.log(`Connection closed: ${event.code} ${event.reason}`);
+                    wsState.connected = false;
+                    
+                    const currentUser = app.config.globalProperties.$root?.currentUser;
+                    if (currentUser?.isLoggedIn) {
+                        wsState.reconnectAttempts++;
+                        setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
+                    }
+                };
+
+                socket.onerror = function(error) {
+                    const now = Date.now();
+                    if (now - lastErrorTime > 30000) {
+                        console.warn('WebSocket error:', error);
+                        lastErrorTime = now;
+                    }
+                };
+
+                socket.onmessage = function(event) {
+                    try {
+                        const message = JSON.parse(event.data);
+                        handleWebSocketMessage(message);
+                    } catch (error) {
+                        console.error('Error handling WebSocket message:', error);
+                    }
+                };
+
+                return socket;
+            } catch (error) {
+                console.error('Error initializing WebSocket:', error);
+                return null;
+            }
         }
 
         // Handle incoming WebSocket messages
-        function handleWebSocketMessage(data) {
-            switch (data.type) {
-                case 'online_users':
-                    wsState.onlineUsers = data.users;
-                    break;
-                case 'chat_message':
-                    handleChatMessage(data);
-                    break;
-                case 'typing':
-                    handleTypingIndicator(data);
-                    break;
+        function handleWebSocketMessage(message) {
+            console.log("Handling message:", message);
+            switch(message.type) {
                 case 'user_status':
-                    handleUserStatus(data);
+                    handleUserStatus(message.content);
                     break;
-            }
-        }
-
-        // Handle chat messages
-        function handleChatMessage(data) {
-            const { from, message, timestamp } = data;
-            if (!wsState.chatWindows.has(from)) {
-                wsState.chatWindows.set(from, []);
-            }
-            wsState.chatWindows.get(from).push({
-                from,
-                message,
-                timestamp,
-                isRead: false
-            });
-        }
-
-        // Handle typing indicators
-        function handleTypingIndicator(data) {
-            const { user, isTyping } = data;
-            if (isTyping) {
-                wsState.typingUsers.add(user);
-            } else {
-                wsState.typingUsers.delete(user);
+                case 'chat':
+                    handleChatMessage(message.content);
+                    break;
+                case 'typing_status':
+                    handleTypingIndicator(message.content);
+                    break;
+                case 'new_group':
+                    handleNewGroup(message.content);
+                    break;
+                case 'error':
+                    console.error("Server error:", message.content);
+                    break;
+                default:
+                    console.warn('Unknown message type:', message);
             }
         }
 
         // Handle user status changes
         function handleUserStatus(data) {
-            const { user, status } = data;
-            const userIndex = wsState.onlineUsers.findIndex(u => u.id === user);
-            if (userIndex !== -1) {
-                wsState.onlineUsers[userIndex].online = status === 'online';
+            if (!data.user_id) return;
+            
+            if (data.status === 'offline') {
+                wsState.onlineUsers.delete(data.user_id);
+            } else {
+                wsState.onlineUsers.set(data.user_id, {
+                    online: true,
+                    username: data.username || `User ${data.user_id}`,
+                    LastMessageTime: Date.now()
+                });
+            }
+            
+            // Force a refresh of online users from server
+            fetchOnlineUsers();
+        }
+
+        // Handle chat messages
+        function handleChatMessage(data) {
+            if (data.Receiver_id === 0) { // Public chat message
+                window.dispatchEvent(new CustomEvent('public-chat-message', { 
+                    detail: {
+                        sender: data.sender_username || `User ${data.sender_id}`,
+                        content: data.content,
+                        timestamp: data.timestamp
+                    }
+                }));
+            } else { // Private chat message
+                if (!wsState.chatWindows.has(data.sender_id)) {
+                    wsState.chatWindows.set(data.sender_id, []);
+                }
+                wsState.chatWindows.get(data.sender_id).push({
+                    from: data.sender_id,
+                    message: data.content,
+                    timestamp: data.timestamp,
+                    isRead: false
+                });
+                
+                // Notify about new message
+                notifyNewMessage(data);
+                
+                // Dispatch event for Vue components
+                window.dispatchEvent(new CustomEvent('chat-message', { 
+                    detail: data 
+                }));
+            }
+        }
+
+        // Handle typing indicators
+        function handleTypingIndicator(data) {
+            if (data.isTyping) {
+                wsState.typingUsers.add(data.user_id);
+            } else {
+                wsState.typingUsers.delete(data.user_id);
+            }
+            
+            window.dispatchEvent(new CustomEvent('chat-typing', { 
+                detail: data 
+            }));
+        }
+
+        // Handle new group notifications
+        function handleNewGroup(data) {
+            const vueApp = app.config.globalProperties.$root;
+            if (vueApp && vueApp.groups) {
+                const groupObj = {
+                    ID: data.id,
+                    Name: data.name,
+                    Description: data.description,
+                    CreatedAt: data.created_at,
+                    Creator: { Username: data.creator.username }
+                };
+                if (!vueApp.groups.some(g => g.ID === groupObj.ID)) {
+                    vueApp.groups.push(groupObj);
+                }
+            }
+        }
+
+        // Notification system
+        function notifyNewMessage(message) {
+            if (message.Receiver_id === app.config.globalProperties.$root?.currentUser?.id && message.username) {
+                if (wsState.activeNotifications.has(message.username)) {
+                    return;
+                }
+
+                const notification = document.createElement('div');
+                notification.className = 'floating-notification';
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <div class="notification-title">${message.username}</div>
+                        <div class="notification-body">
+                            ${message.content}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                wsState.activeNotifications.set(message.username, notification);
+                
+                setTimeout(() => notification.classList.add('show'), 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                        wsState.activeNotifications.delete(message.username);
+                    }, 300);
+                }, 3000);
+            }
+        }
+
+        // Fetch online users
+        async function fetchOnlineUsers() {
+            try {
+                const response = await fetch('/api/online_users', { credentials: 'include' });
+                const users = await response.json();
+                wsState.onlineUsers.clear();
+                users.forEach(user => {
+                    wsState.onlineUsers.set(user.id, {
+                        online: true,
+                        username: user.username,
+                        LastMessageTime: Date.now()
+                    });
+                });
+            } catch (error) {
+                console.error('Error fetching online users:', error);
+            }
+        }
+
+        // Send user status
+        function sendUserStatus(status) {
+            if (socket?.readyState === WebSocket.OPEN) {
+                const currentUser = app.config.globalProperties.$root?.currentUser;
+                if (currentUser?.isLoggedIn) {
+                    const message = {
+                        type: 'user_status',
+                        content: {
+                            user_id: currentUser.id,
+                            status: status,
+                            username: currentUser.username
+                        }
+                    };
+                    socket.send(JSON.stringify(message));
+                }
             }
         }
 
@@ -97,22 +259,24 @@ const WebSocketPlugin = {
         function sendChatMessage(to, message) {
             if (!wsState.connected) return;
             const data = {
-                type: 'chat_message',
-                to,
-                message
+                type: 'chat',
+                content: message,
+                Receiver_id: to
             };
-            ws.send(JSON.stringify(data));
+            socket.send(JSON.stringify(data));
         }
 
         // Send typing indicator
         function sendTypingIndicator(to, isTyping) {
             if (!wsState.connected) return;
             const data = {
-                type: 'typing',
-                to,
-                isTyping
+                type: 'typing_status',
+                content: {
+                    Receiver_id: to,
+                    isTyping: isTyping
+                }
             };
-            ws.send(JSON.stringify(data));
+            socket.send(JSON.stringify(data));
         }
 
         // Initialize WebSocket connection
@@ -122,7 +286,8 @@ const WebSocketPlugin = {
         app.provide('websocket', {
             state: wsState,
             sendMessage: sendChatMessage,
-            sendTyping: sendTypingIndicator
+            sendTyping: sendTypingIndicator,
+            sendUserStatus: sendUserStatus
         });
     }
 };

@@ -44,7 +44,7 @@ const GroupMain = {
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                     </template>
                     <template v-else>
-                        <button @click="openCreateGroupPostModal" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                        <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-plus-circle"></i> Create Group Post
                         </button>
                         <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px;">
