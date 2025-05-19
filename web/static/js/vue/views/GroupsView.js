@@ -24,7 +24,14 @@ const GroupsView = {
             try {
                 const response = await this.$root.apiFetch(`/api/groups/posts?group_id=${groupId}`);
                 const data = await response.json();
-                this.groupPosts = Array.isArray(data) ? data : [];
+                this.groupPosts = (Array.isArray(data) ? data : []).map(post => ({
+                    ID: post.id,
+                    Title: post.title,
+                    Content: post.content,
+                    Author: post.username,
+                    CreatedAt: post.created_at,
+                    // add other fields as needed
+                }));
             } catch (e) {
                 this.groupPosts = [];
             }

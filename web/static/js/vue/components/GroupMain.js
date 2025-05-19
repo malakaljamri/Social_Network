@@ -32,7 +32,11 @@ const GroupMain = {
             this.closeCreateGroupPostModal();
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleString();
+            if (!dateStr) return '';
+            // SQLite returns "YYYY-MM-DD HH:MM:SS", replace space with T for JS Date
+            const iso = dateStr.replace(' ', 'T');
+            const d = new Date(iso);
+            return isNaN(d) ? dateStr : d.toLocaleString();
         }
     },
     template: `
