@@ -222,8 +222,10 @@ const WebSocketPlugin = {
         // Fetch online users
         async function fetchOnlineUsers() {
             try {
-                const response = await fetch('/api/online_users', { credentials: 'include' });
-                const users = await response.json();
+                const response = await fetch('/api/online-users', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch online users');
+                const data = await response.json();
+                const users = data.onlineUsers || [];
                 wsState.onlineUsers.clear();
                 users.forEach(user => {
                     wsState.onlineUsers.set(user.id, {

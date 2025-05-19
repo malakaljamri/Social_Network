@@ -1,6 +1,7 @@
 // ChatWindow Component
 const ChatWindow = {
     props: ['user', 'currentUser', 'onClose'],
+    inject: ['websocket'],
     template: `
         <div class="chat-window card">
             <div class="chat-header">
@@ -29,7 +30,6 @@ const ChatWindow = {
             input: '',
             loading: true,
             typing: false,
-            ws: null,
             typingTimeout: null,
         };
     },
@@ -48,36 +48,17 @@ const ChatWindow = {
         },
         sendMessage() {
             if (!this.input.trim()) return;
-            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                window.socket.send(JSON.stringify({
-                    type: 'chat',
-                    Receiver_id: this.user.ID,
-                    content: this.input,
-                    sender_username: this.currentUser.username
-                }));
+            if (this.websocket && this.websocket.state.connected) {
+                this.websocket.sendMessage(this.user.ID, this.input);
                 this.input = '';
             }
         },
         handleTyping() {
-            if (window.socket && window.socket.readyState === WebSocket.OPEN) {
-                window.socket.send(JSON.stringify({
-                    type: 'typing_status',
-                    content: {
-                        Receiver_id: this.user.ID,
-                        is_typing: true,
-                        username: this.currentUser.username
-                    }
-                }));
+            if (this.websocket && this.websocket.state.connected) {
+                this.websocket.sendTypingStatus(this.user.ID, true);
                 clearTimeout(this.typingTimeout);
                 this.typingTimeout = setTimeout(() => {
-                    window.socket.send(JSON.stringify({
-                        type: 'typing_status',
-                        content: {
-                            Receiver_id: this.user.ID,
-                            is_typing: false,
-                            username: this.currentUser.username
-                        }
-                    }));
+                    this.websocket.sendTypingStatus(this.user.ID, false);
                 }, 1000);
             }
         },
