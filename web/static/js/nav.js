@@ -182,7 +182,14 @@ document.addEventListener('click', function(e) {
                     if (response.ok) {
                         overlay.remove();
                         window.scrollTo(0, 0);
-                        document.querySelector("#categories-list input").dispatchEvent(new Event('change'));
+                        // Check if we're using Vue app or vanilla JS
+                        if (window.__VUE_APP__) {
+                            // If using Vue app, call its fetchPosts method
+                            window.__VUE_APP__.fetchPosts(1);
+                        } else {
+                            // If using vanilla JS, call the global fetchPosts function
+                            fetchPosts(1);
+                        }
                     } else {
                         throw new Error(data.error || 'Failed to create post');
                     }
