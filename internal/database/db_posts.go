@@ -25,6 +25,13 @@ func CreatePost(post *models.Post) error {
 	return nil
 }
 
+// AddPostViewer adds a viewer to a private post
+func AddPostViewer(postID, viewerID int) error {
+	query := `INSERT OR IGNORE INTO post_viewers (post_id, viewer_id) VALUES (?, ?)`
+	_, err := ExecuteQuery(query, postID, viewerID)
+	return err
+}
+
 /*func GetPosts(page, limit int) ([]models.Post, int, error) {
 	offset := (page - 1) * limit
 
@@ -37,7 +44,7 @@ func CreatePost(post *models.Post) error {
 
 	// Then, fetch the posts for the current page
 	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author, privacy
-		  
+
           FROM posts ORDER BY id DESC LIMIT ? OFFSET ?`
 	rows, err := FetchData(query, limit, offset)
 	if err != nil {

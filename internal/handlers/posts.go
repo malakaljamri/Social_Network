@@ -44,7 +44,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
 
 	// Construct the path to "web/uploads" relative to the root directory
-	uploadDir := filepath.Join(rootDir, "..", "web", "uploads", fmt.Sprintf("userID%d", userID))// Go up one level, then to "web/uploads"
+	uploadDir := filepath.Join(rootDir, "..", "web", "uploads", fmt.Sprintf("userID%d", userID)) // Go up one level, then to "web/uploads"
 
 	// Ensure the uploads directory exists
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
@@ -115,6 +115,45 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Database error: %v", err)
 		http.Error(w, "Error creating post", http.StatusInternalServerError)
 		return
+	}
+
+	// If post is private, add chosen followers to post_viewers table
+	if privacy == "private" {
+		chosenFollowersJSON := r.FormValue("ChosenFollowers")
+		if chosenFollowersJSON != "" {
+			var chosenFollowers []interface{}
+			if err := json.Unmarshal([]byte(chosenFollowersJSON), &chosenFollowers); err != nil {
+				log.Printf("Error parsing chosen followers: %v", err)
+				http.Error(w, "Error processing chosen followers", http.StatusInternalServerError)
+				return
+			}
+
+			// Add each chosen follower to post_viewers
+			for _, follower := range chosenFollowers {
+				var followerID int
+				switch v := follower.(type) {
+				case float64:
+					followerID = int(v)
+				case string:
+					var err error
+					followerID, err = strconv.Atoi(v)
+					if err != nil {
+						log.Printf("Error converting follower ID to integer: %v", err)
+						continue
+					}
+				default:
+					log.Printf("Unexpected type for follower ID: %T", follower)
+					continue
+				}
+
+				err := database.AddPostViewer(post.ID, followerID)
+				if err != nil {
+					log.Printf("Error adding post viewer: %v", err)
+					http.Error(w, "Error setting up post viewers", http.StatusInternalServerError)
+					return
+				}
+			}
+		}
 	}
 
 	// Return success response

@@ -54,6 +54,14 @@ document.addEventListener('click', function(e) {
                         <option value="almost_private">Followers</option>
                         <option value="private">Chosen followers</option>
                     </select>
+                    <div id="chosen-followers-container" style="display: none; margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" id="follower-search" placeholder="Search followers..." style="width: 100%; padding: 8px;">
+                        </div>
+                        <div id="followers-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                            <!-- Followers will be populated here -->
+                        </div>
+                    </div>
                     <input type="file" id="post-image" accept="image/jpeg, image/png, image/gif" />
                     <button type="submit" id="submit-post-btn">Create Post</button>
                 </form>
@@ -98,6 +106,44 @@ document.addEventListener('click', function(e) {
                 });
             });
     
+        // Add event listener for privacy select
+        document.getElementById('post-privacy').addEventListener('change', function() {
+            const chosenFollowersContainer = document.getElementById('chosen-followers-container');
+            if (this.value === 'private') {
+                chosenFollowersContainer.style.display = 'block';
+                // Fetch followers when container is shown
+                fetch('/api/user/followers?id=' + currentUserID)
+                    .then(response => response.json())
+                    .then(followers => {
+                        const followersList = document.getElementById('followers-list');
+                        followersList.innerHTML = '';
+                        followers.forEach(follower => {
+                            const followerDiv = document.createElement('div');
+                            followerDiv.className = 'follower-item';
+                            followerDiv.style.cssText = 'display: flex; align-items: center; padding: 5px; cursor: pointer;';
+                            followerDiv.innerHTML = `
+                                <input type="checkbox" id="follower-${follower.ID}" value="${follower.ID}" style="margin-right: 10px;">
+                                <label for="follower-${follower.ID}">${follower.Username}</label>
+                            `;
+                            followersList.appendChild(followerDiv);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching followers:', error));
+            } else {
+                chosenFollowersContainer.style.display = 'none';
+            }
+        });
+
+        // Add search functionality for followers
+        document.getElementById('follower-search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const followerItems = document.querySelectorAll('.follower-item');
+            followerItems.forEach(item => {
+                const username = item.querySelector('label').textContent.toLowerCase();
+                item.style.display = username.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+
         document.getElementById('create-post-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const responseElement = document.getElementById('create-post-response');
@@ -108,13 +154,21 @@ document.addEventListener('click', function(e) {
             const category = document.getElementById('post-category').value;
             const privacy = document.getElementById('post-privacy').value;
             const formData = new FormData();
-                formData.append('Title', title);
-                formData.append('Text', content);
-                formData.append('CategoryID', parseInt(category));
-                formData.append('UserID', parseInt(currentUserID));
-                formData.append('Privacy', privacy);
-                const imageFile = document.getElementById('post-image').files[0];
-                    if (imageFile)  formData.append('Image', imageFile);
+            formData.append('Title', title);
+            formData.append('Text', content);
+            formData.append('CategoryID', parseInt(category));
+            formData.append('UserID', parseInt(currentUserID));
+            formData.append('Privacy', privacy);
+
+            // Add chosen followers if privacy is private
+            if (privacy === 'private') {
+                const chosenFollowers = Array.from(document.querySelectorAll('#followers-list input[type="checkbox"]:checked'))
+                    .map(checkbox => parseInt(checkbox.value));
+                formData.append('ChosenFollowers', JSON.stringify(chosenFollowers));
+            }
+
+            const imageFile = document.getElementById('post-image').files[0];
+            if (imageFile) formData.append('Image', imageFile);
     
             try {
                 const response = await fetch('/post/create', {
