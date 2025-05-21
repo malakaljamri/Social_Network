@@ -117,6 +117,24 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle multiple categories (CategoryIDs)
+	categoryIDsJSON := r.FormValue("CategoryIDs")
+	if categoryIDsJSON != "" {
+		var categoryIDs []int
+		err := json.Unmarshal([]byte(categoryIDsJSON), &categoryIDs)
+		if err != nil {
+			log.Printf("Error parsing CategoryIDs: %v", err)
+			http.Error(w, "Error processing categories", http.StatusBadRequest)
+			return
+		}
+		for _, catID := range categoryIDs {
+			err := database.AddPostCategory(post.ID, catID)
+			if err != nil {
+				log.Printf("Error adding post category: %v", err)
+			}
+		}
+	}
+
 	// If post is private, add chosen followers to post_viewers table
 	if privacy == "private" {
 		chosenFollowersJSON := r.FormValue("ChosenFollowers")

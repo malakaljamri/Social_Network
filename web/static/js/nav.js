@@ -46,9 +46,12 @@ document.addEventListener('click', function(e) {
                         oninvalid="this.setCustomValidity('Please enter valid content.')"
                         oninput="this.setCustomValidity('')"
                     ></textarea>
-                    <select id="post-category" required>
-                        <option value="6" selected>Other categories</option>
-                    </select>
+                    <div class="category-select-container" style="margin-bottom: 15px;">
+                        <input type="text" id="category-search" placeholder="Search categories..." style="width: 100%; padding: 8px; margin-bottom: 8px;">
+                        <div id="categories-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                            <!-- Categories will be populated here -->
+                        </div>
+                    </div>
                     <select id="post-privacy" required>
                         <option value="public" selected>Public</option>
                         <option value="almost_private">Followers</option>
@@ -97,12 +100,26 @@ document.addEventListener('click', function(e) {
         fetch('/categories')
             .then(response => response.json())
             .then(categories => {
-                const categorySelect = document.getElementById('post-category');
+                const categoriesContainer = document.getElementById('categories-container');
                 categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.ID;
-                    option.textContent = category.Name;
-                    categorySelect.appendChild(option);
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category-item';
+                    categoryDiv.style.cssText = 'display: flex; align-items: center; padding: 5px; cursor: pointer;';
+                    categoryDiv.innerHTML = `
+                        <input type="checkbox" id="category-${category.ID}" value="${category.ID}" style="margin-right: 10px;">
+                        <label for="category-${category.ID}">${category.Name}</label>
+                    `;
+                    categoriesContainer.appendChild(categoryDiv);
+                });
+
+                // Add search functionality for categories
+                document.getElementById('category-search').addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const categoryItems = document.querySelectorAll('.category-item');
+                    categoryItems.forEach(item => {
+                        const categoryName = item.querySelector('label').textContent.toLowerCase();
+                        item.style.display = categoryName.includes(searchTerm) ? 'flex' : 'none';
+                    });
                 });
             });
     
@@ -151,12 +168,14 @@ document.addEventListener('click', function(e) {
             
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
-            const category = document.getElementById('post-category').value;
             const privacy = document.getElementById('post-privacy').value;
             const formData = new FormData();
             formData.append('Title', title);
             formData.append('Text', content);
-            formData.append('CategoryID', parseInt(category));
+            // Get all selected categories
+            const selectedCategories = Array.from(document.querySelectorAll('#categories-container input[type="checkbox"]:checked'))
+                .map(checkbox => parseInt(checkbox.value));
+            formData.append('CategoryIDs', JSON.stringify(selectedCategories));
             formData.append('UserID', parseInt(currentUserID));
             formData.append('Privacy', privacy);
 

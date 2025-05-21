@@ -265,3 +265,10 @@ func GetNewestPostDate() (string, error) {
 	}
 	return date, nil
 }
+
+// AddPostCategory adds a category to a post in post_categories table
+func AddPostCategory(postID int, categoryID int) error {
+	query := `INSERT OR IGNORE INTO post_categories (post_id, category_id) VALUES (?, ?)`
+	_, err := ExecuteQuery(query, postID, categoryID)
+	return err
+}
