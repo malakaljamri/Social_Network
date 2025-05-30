@@ -49,16 +49,16 @@ const ChatWindow = {
         sendMessage() {
             if (!this.input.trim()) return;
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendMessage(this.user.ID, this.input);
+                this.websocket.sendMessage(this.user.ID, this.input, 'chat');
                 this.input = '';
             }
         },
         handleTyping() {
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendTypingStatus(this.user.ID, true);
+                this.websocket.sendTyping(this.user.ID, true);
                 clearTimeout(this.typingTimeout);
                 this.typingTimeout = setTimeout(() => {
-                    this.websocket.sendTypingStatus(this.user.ID, false);
+                    this.websocket.sendTyping(this.user.ID, false);
                 }, 1000);
             }
         },

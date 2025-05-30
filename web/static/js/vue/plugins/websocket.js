@@ -97,7 +97,7 @@ const WebSocketPlugin = {
                     handleUserStatus(message.content);
                     break;
                 case 'chat':
-                    handleChatMessage(message.content);
+                    handleChatMessage(message.content, message);
                     break;
                 case 'group_chat':
                     handleGroupChatMessage(message.content);
@@ -135,7 +135,8 @@ const WebSocketPlugin = {
         }
 
         // Handle chat messages
-        function handleChatMessage(data) {
+        function handleChatMessage(data, message=null) {
+            console.log("Handling chat message:", message);
             if (data.Receiver_id === 0) { // Public chat message
                 window.dispatchEvent(new CustomEvent('public-chat-message', { 
                     detail: {
@@ -272,14 +273,17 @@ const WebSocketPlugin = {
         }
 
         // Send chat message
-        function sendChatMessage(to, message) {
+        function sendChatMessage(to, message, caller) {
+            console.log("Sending chat message:", to, message, caller);
             if (!wsState.connected) return;
             const data = {
                 type: 'chat',
                 content: message,
-                Receiver_id: to
+                Receiver_id: to,
+                caller: caller
             };
             socket.send(JSON.stringify(data));
+            console.log("sent chat message:", to, message, caller);
         }
 
         // Send typing indicator
