@@ -18,9 +18,16 @@ const WebSocketPlugin = {
 
         // Initialize WebSocket connection
         function initWebSocket() {
+            const root = app._instance?.proxy;
+            if (!root || !root.currentUser?.isLoggedIn) {
+                console.log('WebSocket not initialized: user not logged in or not loaded');
+                return;
+            }
+
+            const currentUser = root.currentUser;
             if (wsState.reconnectAttempts >= wsState.MAX_RECONNECT_ATTEMPTS) {
                 console.error('Max reconnection attempts reached');
-                return null;
+                return;
             }
 
             try {
@@ -38,7 +45,6 @@ const WebSocketPlugin = {
                     wsState.reconnectAttempts = 0;
                     
                     try {
-                        const currentUser = app.config.globalProperties.$root?.currentUser;
                         if (currentUser?.isLoggedIn) {
                             sendUserStatus('online');
                         }
@@ -52,8 +58,8 @@ const WebSocketPlugin = {
                     console.log(`Connection closed: ${event.code} ${event.reason}`);
                     wsState.connected = false;
                     
-                    const currentUser = app.config.globalProperties.$root?.currentUser;
-                    if (currentUser?.isLoggedIn) {
+                    // Only attempt reconnection if user is still logged in and it's not a normal closure
+                    if (currentUser?.isLoggedIn && event.code !== 1000) {
                         wsState.reconnectAttempts++;
                         setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
                     }
