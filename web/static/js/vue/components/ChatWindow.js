@@ -74,7 +74,7 @@ const ChatWindow = {
             const lastMsg = this.messages[this.messages.length - 1];
             // const now = Date.now();
             // if (!lastMsg || (now - new Date(lastMsg.timestamp).getTime() > 1000)) {
-            if (lastMsg.timestamp != msg.timestamp) {
+            if (!lastMsg || lastMsg.timestamp != msg.timestamp) {
                 this.messages.push(msg);
                 this.$nextTick(this.scrollToBottom);
             }

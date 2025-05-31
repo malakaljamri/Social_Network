@@ -139,6 +139,7 @@ func GetOnlineUsersDetails(userIDs []int, userID int) ([]models.User, error) {
 }
 
 func GetAllUsers(currentUserID int) ([]models.User, error) {
+	//TODO: sometime user with no chat appears on top
 	query := `
 		SELECT 
 			u.id, 
