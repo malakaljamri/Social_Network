@@ -97,7 +97,7 @@ const WebSocketPlugin = {
                     handleUserStatus(message.content);
                     break;
                 case 'chat':
-                    handleChatMessage(message.content, message);
+                    handleChatMessage(message.content);
                     break;
                 case 'group_chat':
                     handleGroupChatMessage(message.content);
@@ -135,7 +135,7 @@ const WebSocketPlugin = {
         }
 
         // Handle chat messages
-        function handleChatMessage(data, message=null) {
+        function handleChatMessage(data, message) {
             console.log("Handling chat message:", message);
             if (data.Receiver_id === 0) { // Public chat message
                 window.dispatchEvent(new CustomEvent('public-chat-message', { 

@@ -71,8 +71,13 @@ const ChatWindow = {
             if (c) c.scrollTop = c.scrollHeight;
         },
         receiveMessage(msg) {
-            this.messages.push(msg);
-            this.$nextTick(this.scrollToBottom);
+            const lastMsg = this.messages[this.messages.length - 1];
+            // const now = Date.now();
+            // if (!lastMsg || (now - new Date(lastMsg.timestamp).getTime() > 1000)) {
+            if (lastMsg.timestamp != msg.timestamp) {
+                this.messages.push(msg);
+                this.$nextTick(this.scrollToBottom);
+            }
         },
         receiveTyping(isTyping) {
             this.typing = isTyping;
