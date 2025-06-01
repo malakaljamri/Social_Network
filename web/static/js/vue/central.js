@@ -171,21 +171,24 @@ const app = Vue.createApp({
             // Called when register-modal emits 'registered' with user data
             // Try to fetch user status and update state
             try {
-                const response = await fetch('/api/user_status');
+                const response = await fetch('/api/user', { credentials: 'include' });
                 const text = await response.text();
                 let userData = {};
                 try {
                     userData = JSON.parse(text);
                 } catch (e) {
-                    console.error('Error parsing /api/user_status response as JSON:', text);
+                    console.error('Error parsing user response as JSON:', text);
                     this.currentView = 'login';
                     this.showRegisterModal = false;
                     return;
                 }
-                if (userData.loggedIn) {
+                // Handle both response formats
+                const isLoggedIn = userData.isLoggedIn || userData.loggedIn;
+                const userId = userData.id || userData.userID;
+                if (isLoggedIn) {
                     this.currentUser = {
                         isLoggedIn: true,
-                        id: userData.userID,
+                        id: userId,
                         username: userData.username,
                         email: userData.email || ''
                     };
@@ -194,6 +197,7 @@ const app = Vue.createApp({
                     this.currentView = 'login';
                 }
             } catch (e) {
+                console.error('Error fetching user status:', e);
                 this.currentView = 'login';
             }
             this.showRegisterModal = false;
@@ -215,15 +219,18 @@ const app = Vue.createApp({
         }
     },
     mounted() {
-        // Check if user is already logged in (use /api/user_status for parity)
-        fetch('/api/user_status', { credentials: 'include' })
+        // Check if user is already logged in
+        fetch('/api/user', { credentials: 'include' })
             .then(async response => {
                 const text = await response.text();
                 try {
                     const data = JSON.parse(text);
-                    if (data.loggedIn) {
+                    // Handle both response formats
+                    const isLoggedIn = data.isLoggedIn || data.loggedIn;
+                    const userId = data.id || data.userID;
+                    if (isLoggedIn) {
                         this.currentUser.isLoggedIn = true;
-                        this.currentUser.id = data.userID;
+                        this.currentUser.id = userId;
                         this.currentUser.username = data.username;
                         this.currentUser.email = data.email || '';
                         this.goToHome();
@@ -235,6 +242,7 @@ const app = Vue.createApp({
                         this.goToLogin();
                     }
                 } catch (e) {
+                    console.error('Error parsing user response:', e);
                     this.currentUser.isLoggedIn = false;
                     this.currentUser.id = null;
                     this.currentUser.username = null;
@@ -243,6 +251,7 @@ const app = Vue.createApp({
                 }
             })
             .catch(error => {
+                console.error('Error fetching user status:', error);
                 this.currentUser.isLoggedIn = false;
                 this.currentUser.id = null;
                 this.currentUser.username = null;
