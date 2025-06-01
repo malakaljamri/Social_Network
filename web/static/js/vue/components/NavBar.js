@@ -73,6 +73,9 @@ const NavBar = {
         goToProfile() {
             this.$emit('navigate', 'profile');
         },
+        showCreateGroupModal() {
+            this.$emit('show-modal', 'createGroup');
+        },
         async handleLogout() {
             try {
                 await fetch('/api/logout', {

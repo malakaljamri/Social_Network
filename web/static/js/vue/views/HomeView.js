@@ -5,13 +5,10 @@ const HomeView = {
             <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
-                <div class="pagination-controls">
-                    <button @click="prevPage" :disabled="currentPage <= 1">Previous</button>
-                    <span>Page {{ currentPage }} of {{ totalPages }}</span>
-                    <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
-                </div>
+                <button class="button" @click="showCreatePostModal">✍️ Create Post</button>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
+                
                 <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
                     <div class="post-header">
                         <h2>{{ post.Title }}</h2>
@@ -66,6 +63,10 @@ const HomeView = {
         }
     },
     methods: {
+        showCreatePostModal() {
+            console.log('HomeView: Emitting show-modal event for createPost');
+            this.$root.handleShowModal('createPost');
+        },
         async fetchPosts() {
             if (!this.currentUser.isLoggedIn) return;
             this.loading = true;
