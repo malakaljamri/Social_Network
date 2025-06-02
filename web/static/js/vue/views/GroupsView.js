@@ -93,22 +93,22 @@ const GroupsView = {
     },
     template: `
         <div class="layout-grid groups-layout">
-            <group-list
+            <g-group-list
                 :groups="groups"
                 :selected-group-id="selectedGroupId"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
                 class="sidebar"
-            ></group-list>
+            ></g-group-list>
             <div class="main-content">
-                <group-main
+                <g-group-main
                     :selected-group="selectedGroup"
                     :group-posts="groupPosts"
                     :group-events="groupEvents"
                     :categories="categories"
                     @create-group-post="handleCreateGroupPost"
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
-                ></group-main>
+                ></g-group-main>
             </div>
             <users-list class="sidebar"></users-list>
         </div>

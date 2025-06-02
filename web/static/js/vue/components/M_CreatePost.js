@@ -139,4 +139,5 @@ const CreatePostModal = {
     emits: ['close', 'created']
 };
 
-// No mount here, will be registered globally. 
+// No mount here, will be registered globally.
+window.M_CreatePost = CreatePostModal; 

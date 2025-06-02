@@ -293,22 +293,22 @@ const app = Vue.createApp({
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
             ></component>
-            <create-post-modal
+            <m-create-post
                 v-if="showCreatePostModal"
                 @close="showCreatePostModal = false"
                 @created="onPostCreated"
-            ></create-post-modal>
-            <create-group-post-modal
+            ></m-create-post>
+            <m-group-create-post
                 v-if="showCreateGroupPostModal"
                 :groupId="selectedGroupIdForModal"
                 @close="closeCreateGroupPostModal"
                 @created="onGroupPostCreated"
-            ></create-group-post-modal>
-            <create-group-modal
+            ></m-group-create-post>
+            <m-group-create
                 v-if="showCreateGroupModal"
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
-            ></create-group-modal>
+            ></m-group-create>
             <div id="chat-section">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
@@ -324,10 +324,10 @@ app.component('nav-bar', NavBar);
 app.component('users-list', UsersList);
 app.component('filters-sidebar', FiltersSidebar);
 app.component('chat-window', ChatWindow);
-app.component('register-modal', RegisterModal);
-app.component('create-post-modal', CreatePostModal);
-app.component('create-group-modal', CreateGroupModal);
-app.component('create-group-post-modal', CreateGroupPostModal);
+app.component('m-register', M_Register);
+app.component('m-create-post', M_CreatePost);
+app.component('m-group-create', M_GroupCreate);
+app.component('m-group-create-post', M_GroupCreatePost);
 // Register main views with correct names for dynamic :is usage
 app.component('login-view', LoginView);
 app.component('home-view', HomeView);
@@ -337,8 +337,9 @@ app.component('profile-view', ProfileView);
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });
 app.component('group-chat', GroupChat);
-app.component('group-list', GroupList);
-app.component('group-main', GroupMain);
+app.component('g-group-list', G_GroupList);
+app.component('g-group-main', G_GroupMain);
+app.component('g-group-chat', G_GroupChat);
 
 // Mount the app
 app.mount('#app'); 

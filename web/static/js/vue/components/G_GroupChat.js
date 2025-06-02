@@ -82,4 +82,4 @@ const GroupChat = {
         window.removeEventListener('group-chat-message', this._onGroupChatMessage);
     }
 };
-window.GroupChat = GroupChat; 
+window.G_GroupChat = GroupChat; 

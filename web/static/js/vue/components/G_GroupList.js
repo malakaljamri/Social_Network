@@ -36,4 +36,4 @@ const GroupList = {
         </div>
     `
 };
-window.GroupList = GroupList; 
+window.G_GroupList = GroupList; 

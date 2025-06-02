@@ -113,4 +113,5 @@ const RegisterModal = {
     }
 };
 
-// No mount here, will be registered globally. 
+// No mount here, will be registered globally.
+window.M_Register = RegisterModal; 

@@ -99,4 +99,5 @@ const CreateGroupPostModal = {
     },
     emits: ['close', 'created']
 };
+window.M_GroupCreatePost = CreateGroupPostModal;
 // No mount here, will be registered globally. 
