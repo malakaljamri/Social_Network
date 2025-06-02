@@ -1,26 +1,14 @@
 // NavBar Component
 const NavBar = {
     template: `
-        <nav class="navbar">
-            <div class="nav-left">
-                <a href="#" class="logo">
-                    <div class="logo-icon">F</div>
-                </a>
-            </div>
-            <div v-if="currentView === 'login' || currentView === 'register'" class="nav-center">
-                Please login to continue <span title="key">🔑</span>
-            </div>
-            <div v-else class="nav-right">
-                <button class="button secondary-button" @click="goToHome">🏠 Home</button>
-                <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
-                <span class="user-greeting">{{ currentUser.username }} 👋</span>
-                <button class="button secondary-button" @click="goToProfile">My Profile</button>
-                <button class="button logout-button" @click="handleLogout">Logout</button>
+        <nav class="navbar" style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="nav-left" style="display: flex; align-items: center; gap: 24px; flex: 1;">
+                <span class="navbar-title" style="font-size: 1.3rem; font-weight: bold; color: #fff;">Social Network</span>
                 <div class="notifications-wrapper" style="display: inline-block; position: relative;">
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications
                     </button>
-                    <div v-if="showDropdown" class="notifications-dropdown" @click.stop style="position: absolute; right: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;">
+                    <div v-if="showDropdown" class="notifications-dropdown" @click.stop style="position: absolute; left: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;">
                         <div class="dropdown-header" style="position: sticky; top: 0; background: #fff; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
                             <a href="#" @click.prevent="openModal" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
                         </div>
@@ -42,6 +30,15 @@ const NavBar = {
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="nav-center" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center;">
+                <button class="button secondary-button" @click="goToHome">🏠 Home</button>
+                <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
+            </div>
+            <div class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
+                <span class="user-greeting">{{ currentUser.username }} 👋</span>
+                <button class="button secondary-button" @click="goToProfile">My Profile</button>
+                <button class="button logout-button" @click="handleLogout">Logout</button>
             </div>
         </nav>
     `,
