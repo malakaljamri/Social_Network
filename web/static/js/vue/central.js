@@ -319,7 +319,7 @@ app.component('profile-view', ProfileView);
 // Stub components for missing group features
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });
-app.component('group-chat', { template: '<div>Group Chat (stub)</div>' });
+app.component('group-chat', GroupChat);
 app.component('group-list', GroupList);
 app.component('group-main', GroupMain);
 

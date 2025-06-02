@@ -5,6 +5,7 @@ const GroupMain = {
         return {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
+            showGroupChatWindow: false,
             newGroupPost: {
                 title: '',
                 content: '',
@@ -20,11 +21,17 @@ const GroupMain = {
         openGroupEventsModal() {
             this.showGroupEventsModal = true;
         },
+        openGroupChatWindow() {
+            this.showGroupChatWindow = true;
+        },
         closeCreateGroupPostModal() {
             this.showCreateGroupPostForm = false;
         },
         closeGroupEventsModal() {
             this.showGroupEventsModal = false;
+        },
+        closeGroupChatWindow() {
+            this.showGroupChatWindow = false;
         },
         submitGroupPost() {
             this.$emit('create-group-post', { ...this.newGroupPost });
@@ -51,8 +58,11 @@ const GroupMain = {
                         <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-plus-circle"></i> Create Group Post
                         </button>
-                        <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px;">
+                        <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-calendar-alt"></i> Group Events
+                        </button>
+                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-comments"></i> Group Chat
                         </button>
                         <p><strong>created by:</strong> {{ selectedGroup.Creator?.Username || 'unknown' }}</p>
                         <p><strong>created on:</strong> {{ formatDate(selectedGroup.CreatedAt) }}</p>
@@ -111,6 +121,10 @@ const GroupMain = {
                     </div>
                     <button type="button" class="cancel-btn" @click="closeGroupEventsModal">Close</button>
                 </div>
+            </div>
+            <!-- Group Chat Modal -->
+            <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
+                <group-chat :group-name="selectedGroup?.Name" @close="closeGroupChatWindow" />
             </div>
             <!-- Group Posts Section -->
             <div class="group-posts">
