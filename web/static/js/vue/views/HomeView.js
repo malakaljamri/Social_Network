@@ -2,7 +2,7 @@
 const HomeView = {
     template: `
         <div class="home-view layout-grid">
-            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged"></filters-sidebar>
+            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>

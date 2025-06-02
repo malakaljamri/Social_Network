@@ -290,6 +290,8 @@ const app = Vue.createApp({
                 @post-created="onPostCreated"
                 @group-created="onGroupCreated"
                 @open-create-group-post-modal="openCreateGroupPostModal"
+                @open-create-group-modal="openCreateGroupModal"
+                @show-create-post-modal="openCreatePostModal"
             ></component>
             <create-post-modal
                 v-if="showCreatePostModal"

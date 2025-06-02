@@ -82,6 +82,9 @@ const GroupsView = {
         },
         handleOpenCreateGroupPostModal(groupId) {
             this.$emit('open-create-group-post-modal', groupId);
+        },
+        handleOpenCreateGroupModal() {
+            this.$emit('open-create-group-modal');
         }
     },
     mounted() {
@@ -94,6 +97,7 @@ const GroupsView = {
                 :groups="groups"
                 :selected-group-id="selectedGroupId"
                 @group-selected="handleGroupSelected"
+                @show-create-group-modal="handleOpenCreateGroupModal"
                 class="sidebar"
             ></group-list>
             <div class="main-content">

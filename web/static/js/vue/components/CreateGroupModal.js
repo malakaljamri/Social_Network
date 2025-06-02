@@ -36,7 +36,7 @@ const CreateGroupModal = {
             this.form.loading = true;
             this.form.error = '';
             try {
-                const response = await fetch('/api/groups', {
+                const response = await fetch('/api/groups/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -64,7 +64,8 @@ const CreateGroupModal = {
         close() {
             this.$emit('close');
         }
-    }
+    },
+    emits: ['close', 'created']
 };
 
 // No mount here, will be registered globally. 

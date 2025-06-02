@@ -2,6 +2,7 @@
 const FiltersSidebar = {
     template: `
         <div class="filters-sidebar">
+            <button class="button" style="margin-bottom: 12px; width: 100%;" @click="$emit('show-create-post-modal')">✍️ Create Post</button>
             <div class="filter-section">
                 <h3>Categories</h3>
                 <div v-if="loading" class="loading-indicator">Loading categories...</div>

@@ -12,12 +12,36 @@ const NavBar = {
             </div>
             <div v-else class="nav-right">
                 <button class="button secondary-button" @click="goToHome">🏠 Home</button>
-                <button class="button" @click="showCreatePostModal">✍️ Create Post</button>
                 <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
-                <button class="button" @click="showCreateGroupModal">➕ Create Group</button>
                 <span class="user-greeting">{{ currentUser.username }} 👋</span>
                 <button class="button secondary-button" @click="goToProfile">My Profile</button>
                 <button class="button logout-button" @click="handleLogout">Logout</button>
+                <div class="notifications-wrapper" style="display: inline-block; position: relative;">
+                    <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
+                        Notifications
+                    </button>
+                    <div v-if="showDropdown" class="notifications-dropdown" @click.stop style="position: absolute; right: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;">
+                        <div class="dropdown-header" style="position: sticky; top: 0; background: #fff; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
+                            <a href="#" @click.prevent="openModal" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
+                        </div>
+                        <div class="dropdown-list" style="max-height: 220px; overflow-y: auto;">
+                            <div v-for="n in 5" :key="n" class="dropdown-item" style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
+                                <span style="font-weight: 500;">Notification {{ n }}</span><br>
+                                <span style="font-size: 12px; color: #888;">This is a placeholder notification.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="showModal" class="modal-overlay" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.2); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+                        <div class="modal-content" @click.stop style="background: #fff; border-radius: 10px; padding: 32px; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+                            <h2>All Notifications</h2>
+                            <div v-for="n in 10" :key="n" style="padding: 12px 0; border-bottom: 1px solid #eee;">
+                                <span style="font-weight: 500;">Notification {{ n }}</span><br>
+                                <span style="font-size: 12px; color: #888;">This is a placeholder notification in the modal.</span>
+                            </div>
+                            <button class="button" @click="closeModal" style="margin-top: 20px;">Close</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </nav>
     `,
@@ -36,6 +60,12 @@ const NavBar = {
             return this.state;
         }
     },
+    data() {
+        return {
+            showDropdown: false,
+            showModal: false
+        };
+    },
     methods: {
         goToHome() {
             this.$emit('navigate', 'home');
@@ -45,13 +75,6 @@ const NavBar = {
         },
         goToProfile() {
             this.$emit('navigate', 'profile');
-        },
-        showCreatePostModal() {
-            console.log('NavBar: Emitting show-modal event for createPost');
-            this.$emit('show-modal', 'createPost');
-        },
-        showCreateGroupModal() {
-            this.$emit('show-modal', 'createGroup');
         },
         async handleLogout() {
             try {
@@ -63,7 +86,31 @@ const NavBar = {
             } catch (error) {
                 console.error('Logout error:', error);
             }
+        },
+        toggleDropdown() {
+            this.showDropdown = !this.showDropdown;
+            if (this.showDropdown) {
+                document.addEventListener('click', this.handleOutsideClick);
+            } else {
+                document.removeEventListener('click', this.handleOutsideClick);
+            }
+        },
+        handleOutsideClick(e) {
+            if (!this.$el.contains(e.target)) {
+                this.showDropdown = false;
+                document.removeEventListener('click', this.handleOutsideClick);
+            }
+        },
+        openModal() {
+            this.showModal = true;
+            this.showDropdown = false;
+        },
+        closeModal() {
+            this.showModal = false;
         }
+    },
+    beforeUnmount() {
+        document.removeEventListener('click', this.handleOutsideClick);
     }
 };
 // No mount here, will be registered globally. 

@@ -16,11 +16,15 @@ const GroupList = {
     methods: {
         selectGroup(groupId) {
             this.$emit('group-selected', groupId);
+        },
+        showCreateGroupModal() {
+            this.$emit('show-create-group-modal');
         }
     },
     template: `
         <div class="group-list-container">
             <h3 class="group-list-header">List of Groups</h3>
+            <button class="button" style="margin-bottom: 10px; width: 100%;" @click="showCreateGroupModal">➕ Create Group</button>
             <input type="text" placeholder="Search groups..." class="group-search" v-model="searchQuery">
             <div class="group-list">
                 <div v-for="group in filteredGroups" :key="group.ID"
