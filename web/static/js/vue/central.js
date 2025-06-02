@@ -17,7 +17,8 @@ const app = Vue.createApp({
             chatWindows: new Map(),
             minimizedChats: new Set(),
             posts: [], // for updating after post creation
-            groups: [] // for updating after group creation
+            groups: [], // for updating after group creation
+            openChats: [] // <-- moved from HomeView
         };
     },
     methods: {
@@ -95,6 +96,7 @@ const app = Vue.createApp({
         closeChat(userId) {
             this.chatWindows.delete(userId);
             this.minimizedChats.delete(userId);
+            this.openChats = this.openChats.filter(u => u.ID !== userId);
         },
 
         getNextChatPosition() {
@@ -205,6 +207,11 @@ const app = Vue.createApp({
                 throw new Error('Session expired. Please log in again.');
             }
             return response;
+        },
+        openChat(user) {
+            if (!this.openChats.some(u => u.ID === user.ID)) {
+                this.openChats.push(user);
+            }
         }
     },
     mounted() {
@@ -255,6 +262,11 @@ const app = Vue.createApp({
         window.addEventListener('close-chat', (event) => {
             this.closeChat(event.detail.userId);
         });
+
+        // Listen for open-chat events from any users-list
+        window.addEventListener('open-chat', (e) => {
+            this.openChat(e.detail);
+        });
     },
     provide() {
         return {
@@ -295,6 +307,9 @@ const app = Vue.createApp({
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
             ></create-group-modal>
+            <div id="chat-section">
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
+            </div>
         </div>
     `
 });

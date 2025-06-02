@@ -53,6 +53,7 @@ const UsersList = {
             const user = this.users.find(u => u.ID === userId);
             if (user) {
                 this.$emit('open-chat', user);
+                window.dispatchEvent(new CustomEvent('open-chat', { detail: user }));
             }
         }
     },
