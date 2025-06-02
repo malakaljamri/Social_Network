@@ -93,6 +93,9 @@ const WebSocketPlugin = {
                 case 'chat':
                     handleChatMessage(message.content);
                     break;
+                case 'group_chat':
+                    handleGroupChatMessage(message.content);
+                    break;
                 case 'typing_status':
                     handleTypingIndicator(message.content);
                     break;
@@ -154,6 +157,11 @@ const WebSocketPlugin = {
                     detail: data 
                 }));
             }
+        }
+
+        // Handle group chat messages
+        function handleGroupChatMessage(data) {
+            window.dispatchEvent(new CustomEvent('group-chat-message', { detail: data }));
         }
 
         // Handle typing indicators
@@ -281,6 +289,16 @@ const WebSocketPlugin = {
             socket.send(JSON.stringify(data));
         }
 
+        // Send group chat message
+        function sendGroupChatMessage(groupId, message) {
+            if (!wsState.connected) return;
+            const data = {
+                type: 'group_chat',
+                content: JSON.stringify({ group_id: groupId, content: message })
+            };
+            socket.send(JSON.stringify(data));
+        }
+
         // Initialize WebSocket connection
         const ws = initWebSocket();
 
@@ -289,7 +307,8 @@ const WebSocketPlugin = {
             state: wsState,
             sendMessage: sendChatMessage,
             sendTyping: sendTypingIndicator,
-            sendUserStatus: sendUserStatus
+            sendUserStatus: sendUserStatus,
+            sendGroupChatMessage: sendGroupChatMessage
         });
     }
 };

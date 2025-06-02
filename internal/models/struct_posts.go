@@ -9,22 +9,22 @@ type Post struct {
 	Text       string
 	CategoryID int
 	CreatedAt  time.Time
-	Author	   string
+	Author     string
 	Categories []int
 	Likes      int
 	Dislikes   int
-	Privacy	   string
-	Image	   string
+	Privacy    string
+	Image      string
 }
 
 type Comment struct {
-	ID     int
-	PostID int
-	UserID int
-	Text   string
+	ID        int
+	PostID    int
+	UserID    int
+	Text      string
 	CreatedAt time.Time
-	Author string
-	Image string
+	Author    string
+	Image     string
 }
 
 type ChatMessage struct {
@@ -46,4 +46,11 @@ type LikeDislike struct {
 	PostID    int  `json:"PostID"`
 	CommentID int  `json:"CommentID"`
 	IsLike    bool `json:"IsLike"`
+}
+
+type GroupChatMessage struct {
+	GroupID   int       `json:"group_id"`
+	SenderID  int       `json:"sender_id"`
+	Content   string    `json:"content"`
+	Timestamp time.Time `json:"timestamp"`
 }

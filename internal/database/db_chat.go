@@ -36,3 +36,31 @@ func GetChatHistory(userID1, userID2 int, limit int, offset int) ([]*models.Chat
 
 	return messages, nil
 }
+
+// Save a group chat message to the group_messages table
+func SaveGroupChatMessage(message *models.GroupChatMessage) error {
+	query := `INSERT INTO group_messages (group_id, sender_id, content, timestamp) VALUES (?, ?, ?, ?)`
+	_, err := db.Exec(query, message.GroupID, message.SenderID, message.Content, message.Timestamp)
+	return err
+}
+
+// Fetch all messages for a given group_id
+func GetGroupChatHistory(groupID int, limit int, offset int) ([]*models.GroupChatMessage, error) {
+	query := `SELECT group_id, sender_id, content, timestamp FROM group_messages WHERE group_id = ? ORDER BY timestamp ASC LIMIT ? OFFSET ?`
+	rows, err := db.Query(query, groupID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	messages := make([]*models.GroupChatMessage, 0, limit)
+	for rows.Next() {
+		msg := &models.GroupChatMessage{}
+		err := rows.Scan(&msg.GroupID, &msg.SenderID, &msg.Content, &msg.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}

@@ -124,7 +124,7 @@ const GroupMain = {
             </div>
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
-                <group-chat :group-name="selectedGroup?.Name" @close="closeGroupChatWindow" />
+                <group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
             </div>
             <!-- Group Posts Section -->
             <div class="group-posts">

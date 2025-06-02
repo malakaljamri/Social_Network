@@ -145,6 +145,44 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		}
 		jsonMessage, _ := json.Marshal(msg)
 		h.hub.Broadcast <- jsonMessage
+	case "group_chat":
+		var groupChatContent struct {
+			GroupID int    `json:"group_id"`
+			Content string `json:"content"`
+		}
+		if err := json.Unmarshal(baseMessage.Content, &groupChatContent); err != nil {
+			log.Printf("Error parsing group chat content: %v", err)
+			errorMsg := websocket.Message{
+				Type:    "error",
+				Content: "Failed to parse group chat content",
+				UserID:  client.UserID,
+			}
+			client.Send <- messageToJSON(errorMsg)
+			return
+		}
+		groupChatMessage := models.GroupChatMessage{
+			GroupID:   groupChatContent.GroupID,
+			SenderID:  client.UserID,
+			Content:   groupChatContent.Content,
+			Timestamp: time.Now(),
+		}
+		if err := database.SaveGroupChatMessage(&groupChatMessage); err != nil {
+			log.Printf("Error saving group chat message: %v", err)
+			errorMsg := websocket.Message{
+				Type:    "error",
+				Content: "Failed to save group chat message",
+				UserID:  client.UserID,
+			}
+			client.Send <- messageToJSON(errorMsg)
+			return
+		}
+		msg := websocket.Message{
+			Type:    "group_chat",
+			Content: groupChatMessage,
+			UserID:  groupChatMessage.SenderID,
+		}
+		jsonMessage, _ := json.Marshal(msg)
+		h.hub.Broadcast <- jsonMessage
 	default:
 		log.Printf("Unknown message type (handleChatMessage): %s", baseMessage.Type)
 	}
@@ -186,6 +224,36 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(messages)
+}
+
+func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
+	// userID, err := database.GetUserIDFromSession(r)
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	return
+	// }
+	groupIDStr := r.URL.Query().Get("group_id")
+	if groupIDStr == "" {
+		http.Error(w, "Group ID is required", http.StatusBadRequest)
+		return
+	}
+	groupID, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+	limit := 50
+	offset := 0
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		offset, _ = strconv.Atoi(offsetStr)
+	}
+	messages, err := database.GetGroupChatHistory(groupID, limit, offset)
+	if err != nil {
+		http.Error(w, "Error fetching group chat history", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
