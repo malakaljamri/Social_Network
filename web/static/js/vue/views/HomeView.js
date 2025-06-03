@@ -5,7 +5,6 @@ const HomeView = {
             <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
-                <button class="button" @click="showCreatePostModal">✍️ Create Post</button>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
                 
