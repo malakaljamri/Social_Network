@@ -6,12 +6,20 @@ const GroupMain = {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
+            showCreateEventModal: false,
             newGroupPost: {
                 title: '',
                 content: '',
                 privacy_setting: 'public',
                 category_id: ''
-            }
+            },
+            newEvent: {
+                title: '',
+                description: '',
+                date: ''
+            },
+            today: new Date().toISOString().split('T')[0],
+            eventError: ''
         };
     },
     methods: {
@@ -44,6 +52,10 @@ const GroupMain = {
             const iso = dateStr.replace(' ', 'T');
             const d = new Date(iso);
             return isNaN(d) ? dateStr : d.toLocaleString();
+        },
+        submitCreateEvent() {
+            // Implement event submission logic here
+            this.showCreateEventModal = false;
         }
     },
     template: `
@@ -105,6 +117,7 @@ const GroupMain = {
             <div v-if="showGroupEventsModal" class="modal-overlay" @click.self="closeGroupEventsModal">
                 <div class="modal-content" @click.stop style="max-width: 400px;">
                     <h2>Group Events</h2>
+                    <button class="create-event-btn" @click="showCreateEventModal = true" style="margin-bottom: 12px;">Create Event</button>
                     <div class="form-group">
                         <h3>Upcoming Events</h3>
                         <div v-if="groupEvents.upcoming.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
@@ -122,6 +135,13 @@ const GroupMain = {
                     <button type="button" class="cancel-btn" @click="closeGroupEventsModal">Close</button>
                 </div>
             </div>
+            <!-- Create Event Modal -->
+            <m-group-create-event
+                v-if="showCreateEventModal && selectedGroup"
+                :group-id="selectedGroup.ID"
+                @close="showCreateEventModal = false"
+                @created="showCreateEventModal = false; $emit('refresh-group-events')"
+            />
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />

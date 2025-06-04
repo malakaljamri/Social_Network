@@ -183,3 +183,12 @@ func GetGroupEvents(db *sql.DB, groupID int) ([]GroupEvent, error) {
 	}
 	return events, nil
 }
+
+func CreateGroupEvent(db *sql.DB, groupID int, title, description, eventDate string, createdBy int) error {
+	if groupID <= 0 || title == "" || description == "" || eventDate == "" {
+		return errors.New("missing required fields")
+	}
+	_, err := db.Exec(`INSERT INTO events (group_id, title, description, event_date, created_by) VALUES (?, ?, ?, ?, ?)`,
+		groupID, title, description, eventDate+" 00:00:00", createdBy)
+	return err
+}

@@ -108,6 +108,7 @@ const GroupsView = {
                     :categories="categories"
                     @create-group-post="handleCreateGroupPost"
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
+                    @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                 ></g-group-main>
             </div>
             <users-list class="sidebar"></users-list>

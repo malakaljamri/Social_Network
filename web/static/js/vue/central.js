@@ -328,6 +328,7 @@ app.component('m-register', M_Register);
 app.component('m-create-post', M_CreatePost);
 app.component('m-group-create', M_GroupCreate);
 app.component('m-group-create-post', M_GroupCreatePost);
+app.component('m-group-create-event', window.M_GroupCreateEvent);
 // Register main views with correct names for dynamic :is usage
 app.component('login-view', LoginView);
 app.component('home-view', HomeView);
