@@ -136,7 +136,9 @@ func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				if err.Error() != "websocket: close 1005 (no status)" {
+					log.Printf("error: %v", err)
+				}
 			}
 			break
 		}

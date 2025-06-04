@@ -39,36 +39,11 @@ const app = Vue.createApp({
             this.showRegisterModal = true;
         },
 
-        // User authentication methods
-        async handleLogin(credentials) {
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(credentials),
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (!response.ok || data.message !== 'Logged in successfully') {
-                    throw new Error(data.message || 'Login failed');
-                }
-                this.currentUser.isLoggedIn = true;
-                this.currentUser.id = data.user_id;
-                this.currentUser.username = data.username;
-                this.currentUser.email = data.email || '';
-                // Initialize WebSocket and fetch posts (handled by HomeView)
-                this.goToHome();
-            } catch (error) {
-                this.currentUser.isLoggedIn = false;
-                this.currentUser.id = null;
-                this.currentUser.username = null;
-                this.currentUser.email = null;
-                throw error;
-            }
-        },
-
         async handleLogout() {
             try {
+                // Close websocket before logging out
+                this.websocket.close();
+
                 await fetch('/api/logout', { method: 'POST', credentials: 'include' });
                 this.currentUser.isLoggedIn = false;
                 this.currentUser.id = null;
@@ -165,27 +140,33 @@ const app = Vue.createApp({
                 username: data.username,
                 email: data.email || ''
             };
+            // Initialize WebSocket after successful login
+            this.websocket.init();
+
             this.currentView = 'home';
         },
         async onRegistered(data) {
             // Called when register-modal emits 'registered' with user data
             // Try to fetch user status and update state
             try {
-                const response = await fetch('/api/user_status');
+                const response = await fetch('/api/user', { credentials: 'include' });
                 const text = await response.text();
                 let userData = {};
                 try {
                     userData = JSON.parse(text);
                 } catch (e) {
-                    console.error('Error parsing /api/user_status response as JSON:', text);
+                    console.error('Error parsing user response as JSON:', text);
                     this.currentView = 'login';
                     this.showRegisterModal = false;
                     return;
                 }
-                if (userData.loggedIn) {
+                // Handle both response formats
+                const isLoggedIn = userData.isLoggedIn || userData.loggedIn;
+                const userId = userData.id || userData.userID;
+                if (isLoggedIn) {
                     this.currentUser = {
                         isLoggedIn: true,
-                        id: userData.userID,
+                        id: userId,
                         username: userData.username,
                         email: userData.email || ''
                     };
@@ -194,6 +175,7 @@ const app = Vue.createApp({
                     this.currentView = 'login';
                 }
             } catch (e) {
+                console.error('Error fetching user status:', e);
                 this.currentView = 'login';
             }
             this.showRegisterModal = false;
@@ -215,17 +197,22 @@ const app = Vue.createApp({
         }
     },
     mounted() {
-        // Check if user is already logged in (use /api/user_status for parity)
-        fetch('/api/user_status', { credentials: 'include' })
+        // Check if user is already logged in
+        fetch('/api/user', { credentials: 'include' })
             .then(async response => {
                 const text = await response.text();
                 try {
                     const data = JSON.parse(text);
-                    if (data.loggedIn) {
+                    // Handle both response formats
+                    const isLoggedIn = data.isLoggedIn || data.loggedIn;
+                    const userId = data.id || data.userID;
+                    if (isLoggedIn) {
                         this.currentUser.isLoggedIn = true;
-                        this.currentUser.id = data.userID;
+                        this.currentUser.id = userId;
                         this.currentUser.username = data.username;
                         this.currentUser.email = data.email || '';
+                        // Initialize WebSocket if user is already logged in on refresh
+                        this.websocket.init();
                         this.goToHome();
                     } else {
                         this.currentUser.isLoggedIn = false;
@@ -235,6 +222,7 @@ const app = Vue.createApp({
                         this.goToLogin();
                     }
                 } catch (e) {
+                    console.error('Error parsing user response:', e);
                     this.currentUser.isLoggedIn = false;
                     this.currentUser.id = null;
                     this.currentUser.username = null;
@@ -243,6 +231,7 @@ const app = Vue.createApp({
                 }
             })
             .catch(error => {
+                console.error('Error fetching user status:', error);
                 this.currentUser.isLoggedIn = false;
                 this.currentUser.id = null;
                 this.currentUser.username = null;
@@ -313,7 +302,15 @@ const app = Vue.createApp({
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
         </div>
-    `
+    `,
+    setup() {
+        // Inject the websocket service
+        const websocket = Vue.inject('websocket');
+
+        return {
+            websocket,
+        };
+    },
 });
 
 // Use WebSocket plugin

@@ -49,16 +49,16 @@ const ChatWindow = {
         sendMessage() {
             if (!this.input.trim()) return;
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendMessage(this.user.ID, this.input);
+                this.websocket.sendMessage(this.user.ID, this.input, 'chat');
                 this.input = '';
             }
         },
         handleTyping() {
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendTypingStatus(this.user.ID, true);
+                this.websocket.sendTyping(this.user.ID, true);
                 clearTimeout(this.typingTimeout);
                 this.typingTimeout = setTimeout(() => {
-                    this.websocket.sendTypingStatus(this.user.ID, false);
+                    this.websocket.sendTyping(this.user.ID, false);
                 }, 1000);
             }
         },
@@ -71,8 +71,13 @@ const ChatWindow = {
             if (c) c.scrollTop = c.scrollHeight;
         },
         receiveMessage(msg) {
-            this.messages.push(msg);
-            this.$nextTick(this.scrollToBottom);
+            const lastMsg = this.messages[this.messages.length - 1];
+            // const now = Date.now();
+            // if (!lastMsg || (now - new Date(lastMsg.timestamp).getTime() > 1000)) {
+            if (!lastMsg || lastMsg.timestamp != msg.timestamp) {
+                this.messages.push(msg);
+                this.$nextTick(this.scrollToBottom);
+            }
         },
         receiveTyping(isTyping) {
             this.typing = isTyping;

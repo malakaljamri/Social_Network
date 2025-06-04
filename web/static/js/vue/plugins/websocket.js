@@ -18,9 +18,16 @@ const WebSocketPlugin = {
 
         // Initialize WebSocket connection
         function initWebSocket() {
+            const root = app._instance?.proxy;
+            if (!root || !root.currentUser?.isLoggedIn) {
+                console.log('WebSocket not initialized: user not logged in or not loaded');
+                return;
+            }
+
+            const currentUser = root.currentUser;
             if (wsState.reconnectAttempts >= wsState.MAX_RECONNECT_ATTEMPTS) {
                 console.error('Max reconnection attempts reached');
-                return null;
+                return;
             }
 
             try {
@@ -38,7 +45,6 @@ const WebSocketPlugin = {
                     wsState.reconnectAttempts = 0;
                     
                     try {
-                        const currentUser = app.config.globalProperties.$root?.currentUser;
                         if (currentUser?.isLoggedIn) {
                             sendUserStatus('online');
                         }
@@ -52,8 +58,8 @@ const WebSocketPlugin = {
                     console.log(`Connection closed: ${event.code} ${event.reason}`);
                     wsState.connected = false;
                     
-                    const currentUser = app.config.globalProperties.$root?.currentUser;
-                    if (currentUser?.isLoggedIn) {
+                    // Only attempt reconnection if user is still logged in and it's not a normal closure
+                    if (currentUser?.isLoggedIn && event.code !== 1000) {
                         wsState.reconnectAttempts++;
                         setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
                     }
@@ -129,7 +135,8 @@ const WebSocketPlugin = {
         }
 
         // Handle chat messages
-        function handleChatMessage(data) {
+        function handleChatMessage(data, message) {
+            console.log("Handling chat message:", message);
             if (data.Receiver_id === 0) { // Public chat message
                 window.dispatchEvent(new CustomEvent('public-chat-message', { 
                     detail: {
@@ -266,14 +273,17 @@ const WebSocketPlugin = {
         }
 
         // Send chat message
-        function sendChatMessage(to, message) {
+        function sendChatMessage(to, message, caller) {
+            console.log("Sending chat message:", to, message, caller);
             if (!wsState.connected) return;
             const data = {
                 type: 'chat',
                 content: message,
-                Receiver_id: to
+                Receiver_id: to,
+                caller: caller
             };
             socket.send(JSON.stringify(data));
+            console.log("sent chat message:", to, message, caller);
         }
 
         // Send typing indicator
@@ -300,7 +310,20 @@ const WebSocketPlugin = {
         }
 
         // Initialize WebSocket connection
-        const ws = initWebSocket();
+        // const ws = initWebSocket(); // Remove this initial call
+
+        // Watch for changes in currentUser.isLoggedIn and initialize websocket
+        /*
+        app.config.globalProperties.$root.$watch('currentUser.isLoggedIn', (isLoggedIn) => {
+            console.log('User login state changed:', isLoggedIn);
+            if (isLoggedIn) {
+                initWebSocket();
+            } else if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) {
+                 // Close socket if user logs out
+                 socket.close();
+            }
+        });
+        */ // Remove the watcher
 
         // Add WebSocket functionality to the app
         app.provide('websocket', {
@@ -308,7 +331,9 @@ const WebSocketPlugin = {
             sendMessage: sendChatMessage,
             sendTyping: sendTypingIndicator,
             sendUserStatus: sendUserStatus,
-            sendGroupChatMessage: sendGroupChatMessage
+            sendGroupChatMessage: sendGroupChatMessage,
+            init: initWebSocket, // Expose initWebSocket
+            close: () => socket?.close(), // Expose a close function
         });
     }
 };

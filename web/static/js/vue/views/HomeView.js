@@ -5,11 +5,6 @@ const HomeView = {
             <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
-                <div class="pagination-controls">
-                    <button @click="prevPage" :disabled="currentPage <= 1">Previous</button>
-                    <span>Page {{ currentPage }} of {{ totalPages }}</span>
-                    <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
-                </div>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
                 <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
@@ -34,7 +29,7 @@ const HomeView = {
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>
     `,
@@ -52,7 +47,8 @@ const HomeView = {
             currentPage: 1,
             pageSize: 10,
             totalPages: 1,
-            openChats: []
+            openChats: [],
+            chatTimestamps: {} // Store timestamps for each chat window
         };
     },
     computed: {
@@ -65,6 +61,10 @@ const HomeView = {
         }
     },
     methods: {
+        showCreatePostModal() {
+            console.log('HomeView: Emitting show-modal event for createPost');
+            this.$root.handleShowModal('createPost');
+        },
         async fetchPosts() {
             if (!this.currentUser.isLoggedIn) return;
             this.loading = true;
@@ -145,9 +145,17 @@ const HomeView = {
             if (!this.openChats.some(u => u.ID === user.ID)) {
                 this.openChats.push(user);
             }
+            // Update timestamp for this chat window
+            this.chatTimestamps[user.ID] = Date.now();
+        },
+        getChatZIndex(userId) {
+            const timestamp = this.chatTimestamps[userId];
+            if (!timestamp) return 1;
+            return parseInt(timestamp.toString().slice(-6)); // Get last 6 digits of timestamp
         },
         closeChat(userId) {
             this.openChats = this.openChats.filter(u => u.ID !== userId);
+            delete this.chatTimestamps[userId];
         }
     },
     mounted() {
