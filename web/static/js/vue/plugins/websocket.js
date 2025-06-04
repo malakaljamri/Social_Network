@@ -310,7 +310,20 @@ const WebSocketPlugin = {
         }
 
         // Initialize WebSocket connection
-        const ws = initWebSocket();
+        // const ws = initWebSocket(); // Remove this initial call
+
+        // Watch for changes in currentUser.isLoggedIn and initialize websocket
+        /*
+        app.config.globalProperties.$root.$watch('currentUser.isLoggedIn', (isLoggedIn) => {
+            console.log('User login state changed:', isLoggedIn);
+            if (isLoggedIn) {
+                initWebSocket();
+            } else if (socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING) {
+                 // Close socket if user logs out
+                 socket.close();
+            }
+        });
+        */ // Remove the watcher
 
         // Add WebSocket functionality to the app
         app.provide('websocket', {
@@ -318,7 +331,9 @@ const WebSocketPlugin = {
             sendMessage: sendChatMessage,
             sendTyping: sendTypingIndicator,
             sendUserStatus: sendUserStatus,
-            sendGroupChatMessage: sendGroupChatMessage
+            sendGroupChatMessage: sendGroupChatMessage,
+            init: initWebSocket, // Expose initWebSocket
+            close: () => socket?.close(), // Expose a close function
         });
     }
 };

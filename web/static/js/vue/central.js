@@ -39,36 +39,11 @@ const app = Vue.createApp({
             this.showRegisterModal = true;
         },
 
-        // User authentication methods
-        async handleLogin(credentials) {
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(credentials),
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                if (!response.ok || data.message !== 'Logged in successfully') {
-                    throw new Error(data.message || 'Login failed');
-                }
-                this.currentUser.isLoggedIn = true;
-                this.currentUser.id = data.user_id;
-                this.currentUser.username = data.username;
-                this.currentUser.email = data.email || '';
-                // Initialize WebSocket and fetch posts (handled by HomeView)
-                this.goToHome();
-            } catch (error) {
-                this.currentUser.isLoggedIn = false;
-                this.currentUser.id = null;
-                this.currentUser.username = null;
-                this.currentUser.email = null;
-                throw error;
-            }
-        },
-
         async handleLogout() {
             try {
+                // Close websocket before logging out
+                this.websocket.close();
+
                 await fetch('/api/logout', { method: 'POST', credentials: 'include' });
                 this.currentUser.isLoggedIn = false;
                 this.currentUser.id = null;
@@ -165,6 +140,9 @@ const app = Vue.createApp({
                 username: data.username,
                 email: data.email || ''
             };
+            // Initialize WebSocket after successful login
+            this.websocket.init();
+
             this.currentView = 'home';
         },
         async onRegistered(data) {
@@ -233,6 +211,8 @@ const app = Vue.createApp({
                         this.currentUser.id = userId;
                         this.currentUser.username = data.username;
                         this.currentUser.email = data.email || '';
+                        // Initialize WebSocket if user is already logged in on refresh
+                        this.websocket.init();
                         this.goToHome();
                     } else {
                         this.currentUser.isLoggedIn = false;
@@ -322,7 +302,15 @@ const app = Vue.createApp({
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
         </div>
-    `
+    `,
+    setup() {
+        // Inject the websocket service
+        const websocket = Vue.inject('websocket');
+
+        return {
+            websocket,
+        };
+    },
 });
 
 // Use WebSocket plugin

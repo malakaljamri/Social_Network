@@ -38,7 +38,7 @@ const NavBar = {
             <div class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
                 <span class="user-greeting">{{ currentUser.username }} 👋</span>
                 <button class="button secondary-button" @click="goToProfile">My Profile</button>
-                <button class="button logout-button" @click="handleLogout">Logout</button>
+                <button class="button logout-button" @click="$emit('logout')">Logout</button>
             </div>
         </nav>
     `,
@@ -75,17 +75,6 @@ const NavBar = {
         },
         showCreateGroupModal() {
             this.$emit('show-modal', 'createGroup');
-        },
-        async handleLogout() {
-            try {
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                this.$emit('logout');
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
         },
         toggleDropdown() {
             this.showDropdown = !this.showDropdown;
