@@ -19,12 +19,12 @@ const WebSocketPlugin = {
         // Initialize WebSocket connection
         function initWebSocket() {
             const root = app._instance?.proxy;
-            if (!root || !root.currentUser?.isLoggedIn) {
+            if (!root || !root.currentUser?.value?.isLoggedIn) {
                 console.log('WebSocket not initialized: user not logged in or not loaded');
                 return;
             }
 
-            const currentUser = root.currentUser;
+            const currentUser = root.currentUser.value;
             if (wsState.reconnectAttempts >= wsState.MAX_RECONNECT_ATTEMPTS) {
                 console.error('Max reconnection attempts reached');
                 return;
@@ -203,7 +203,7 @@ const WebSocketPlugin = {
 
         // Notification system
         function notifyNewMessage(message) {
-            if (message.Receiver_id === app.config.globalProperties.$root?.currentUser?.id && message.username) {
+            if (message.Receiver_id === app.config.globalProperties.$root?.currentUser?.value?.id && message.username) {
                 if (wsState.activeNotifications.has(message.username)) {
                     return;
                 }
@@ -257,7 +257,7 @@ const WebSocketPlugin = {
         // Send user status
         function sendUserStatus(status) {
             if (socket?.readyState === WebSocket.OPEN) {
-                const currentUser = app.config.globalProperties.$root?.currentUser;
+                const currentUser = app.config.globalProperties.$root?.currentUser?.value;
                 if (currentUser?.isLoggedIn) {
                     const message = {
                         type: 'user_status',

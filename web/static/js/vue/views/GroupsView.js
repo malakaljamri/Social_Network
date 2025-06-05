@@ -41,8 +41,14 @@ const GroupsView = {
                 const response = await this.$root.apiFetch(`/api/groups/events?group_id=${groupId}`);
                 const data = await response.json();
                 this.groupEvents = {
-                    upcoming: data.upcoming || [],
-                    past: data.past || []
+                    upcoming: (data.upcoming || []).map(ev => ({
+                        ...ev,
+                        date: ev.event_date
+                    })),
+                    past: (data.past || []).map(ev => ({
+                        ...ev,
+                        date: ev.event_date
+                    }))
                 };
             } catch (e) {
                 this.groupEvents = { upcoming: [], past: [] };

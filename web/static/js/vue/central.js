@@ -21,6 +21,13 @@ const app = Vue.createApp({
             openChats: [] // <-- moved from HomeView
         };
     },
+    watch: {
+        'currentUser.value.isLoggedIn'(val) {
+            if (val) {
+                this.websocket.init();
+            }
+        }
+    },
     methods: {
         // Navigation methods
         goToHome() {
