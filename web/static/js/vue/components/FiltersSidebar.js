@@ -65,7 +65,7 @@ const FiltersSidebar = {
                             type="checkbox" 
                             id="loggedInUserFilter" 
                             v-model="loggedInUserFilter"
-                            :disabled="!currentUser.isLoggedIn"
+                            :disabled="!currentUserValue && !currentUserValue.isLoggedIn"
                             @change="updateFilters"
                         >
                         <label for="loggedInUserFilter">Show only my posts</label>
@@ -93,13 +93,13 @@ const FiltersSidebar = {
         };
     },
     computed: {
-        currentUser() {
-            return this.$root.currentUser;
+        currentUserValue() {
+            return this.$root.currentUser.value;
         }
     },
     methods: {
         async fetchCategories() {
-            if (!this.currentUser.isLoggedIn) {
+            if (!this.currentUserValue || !this.currentUserValue.isLoggedIn) {
                 this.categories = [];
                 this.error = '';
                 return;
@@ -130,7 +130,7 @@ const FiltersSidebar = {
         }
     },
     watch: {
-        currentUser: {
+        currentUserValue: {
             handler() { this.fetchCategories(); },
             deep: true
         },

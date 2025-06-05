@@ -8,12 +8,12 @@ const app = Vue.createApp({
             showCreateGroupModal: false,
             showCreateGroupPostModal: false,
             selectedGroupIdForModal: null,
-            currentUser: {
+            currentUser: Vue.ref({
                 isLoggedIn: false,
                 id: null,
                 username: null,
                 email: null
-            },
+            }),
             chatWindows: new Map(),
             minimizedChats: new Set(),
             posts: [], // for updating after post creation
@@ -45,10 +45,12 @@ const app = Vue.createApp({
                 this.websocket.close();
 
                 await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-                this.currentUser.isLoggedIn = false;
-                this.currentUser.id = null;
-                this.currentUser.username = null;
-                this.currentUser.email = null;
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
                 this.goToLogin();
             } catch (error) {
                 console.error('Logout error:', error);
@@ -134,7 +136,7 @@ const app = Vue.createApp({
         },
         async onLogin(data) {
             // Called when login-form emits 'login' with user data
-            this.currentUser = {
+            this.currentUser.value = {
                 isLoggedIn: true,
                 id: data.user_id || data.id,
                 username: data.username,
@@ -164,7 +166,7 @@ const app = Vue.createApp({
                 const isLoggedIn = userData.isLoggedIn || userData.loggedIn;
                 const userId = userData.id || userData.userID;
                 if (isLoggedIn) {
-                    this.currentUser = {
+                    this.currentUser.value = {
                         isLoggedIn: true,
                         id: userId,
                         username: userData.username,
@@ -172,10 +174,22 @@ const app = Vue.createApp({
                     };
                     this.currentView = 'home';
                 } else {
+                    this.currentUser.value = {
+                        isLoggedIn: false,
+                        id: null,
+                        username: null,
+                        email: null
+                    };
                     this.currentView = 'login';
                 }
             } catch (e) {
                 console.error('Error fetching user status:', e);
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
                 this.currentView = 'login';
             }
             this.showRegisterModal = false;
@@ -207,35 +221,43 @@ const app = Vue.createApp({
                     const isLoggedIn = data.isLoggedIn || data.loggedIn;
                     const userId = data.id || data.userID;
                     if (isLoggedIn) {
-                        this.currentUser.isLoggedIn = true;
-                        this.currentUser.id = userId;
-                        this.currentUser.username = data.username;
-                        this.currentUser.email = data.email || '';
+                        this.currentUser.value = {
+                            isLoggedIn: true,
+                            id: userId,
+                            username: data.username,
+                            email: data.email || ''
+                        };
                         // Initialize WebSocket if user is already logged in on refresh
                         this.websocket.init();
                         this.goToHome();
                     } else {
-                        this.currentUser.isLoggedIn = false;
-                        this.currentUser.id = null;
-                        this.currentUser.username = null;
-                        this.currentUser.email = null;
+                        this.currentUser.value = {
+                            isLoggedIn: false,
+                            id: null,
+                            username: null,
+                            email: null
+                        };
                         this.goToLogin();
                     }
                 } catch (e) {
                     console.error('Error parsing user response:', e);
-                    this.currentUser.isLoggedIn = false;
-                    this.currentUser.id = null;
-                    this.currentUser.username = null;
-                    this.currentUser.email = null;
+                    this.currentUser.value = {
+                        isLoggedIn: false,
+                        id: null,
+                        username: null,
+                        email: null
+                    };
                     this.goToLogin();
                 }
             })
             .catch(error => {
                 console.error('Error fetching user status:', error);
-                this.currentUser.isLoggedIn = false;
-                this.currentUser.id = null;
-                this.currentUser.username = null;
-                this.currentUser.email = null;
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
                 this.goToLogin();
             });
 
@@ -266,13 +288,13 @@ const app = Vue.createApp({
         <div>
             <nav-bar 
                 :state="currentView" 
-                :currentUser="currentUser"
+                :currentUser="currentUser.value"
                 @navigate="handleNavigate"
                 @logout="handleLogout"
                 @show-modal="handleShowModal"
             ></nav-bar>
             <component :is="currentView + '-view'"
-                v-if="currentUser.isLoggedIn || currentView === 'login' || currentView === 'register'"
+                v-if="(currentUser.value && currentUser.value.isLoggedIn) || currentView === 'login' || currentView === 'register'"
                 :key="currentView"
                 @login="onLogin"
                 @registered="onRegistered"

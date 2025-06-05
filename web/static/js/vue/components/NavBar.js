@@ -4,7 +4,7 @@ const NavBar = {
         <nav class="navbar" style="display: flex; align-items: center; justify-content: space-between;">
             <div class="nav-left" style="display: flex; align-items: center; gap: 24px; flex: 1;">
                 <span class="navbar-title" style="font-size: 1.3rem; font-weight: bold; color: #fff;">Social Network</span>
-                <div v-if="currentUser.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
+                <div v-if="currentUserValue.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications
                     </button>
@@ -31,12 +31,12 @@ const NavBar = {
                     </div>
                 </div>
             </div>
-            <div v-if="currentUser.isLoggedIn" class="nav-center" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center;">
+            <div v-if="currentUserValue.isLoggedIn" class="nav-center" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center;">
                 <button class="button secondary-button" @click="goToHome">🏠 Home</button>
                 <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
             </div>
-            <div v-if="currentUser.isLoggedIn" class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
-                <span class="user-greeting">{{ currentUser.username }} 👋</span>
+            <div v-if="currentUserValue.isLoggedIn" class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
+                <span class="user-greeting">{{ currentUserValue.username }} 👋</span>
                 <button class="button secondary-button" @click="goToProfile">My Profile</button>
                 <button class="button logout-button" @click="$emit('logout')">Logout</button>
             </div>
@@ -55,6 +55,9 @@ const NavBar = {
     computed: {
         currentView() {
             return this.state;
+        },
+        currentUserValue() {
+            return this.currentUser || { isLoggedIn: false, username: '' };
         }
     },
     data() {

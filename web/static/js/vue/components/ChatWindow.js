@@ -13,8 +13,8 @@ const ChatWindow = {
                 <div v-else-if="messages.length === 0" class="no-messages">Start Chatting!</div>
                 <div v-for="msg in messages" :key="msg.id || msg.timestamp + msg.content" class="chat-message">
                     <span>[{{ formatTimestamp(msg.timestamp) }}]</span><br>
-                    <span :class="{'self-message': msg.sender_id === currentUser.id}">
-                        {{ msg.sender_id === currentUser.id ? currentUser.username : user.Username }}:
+                    <span :class="{'self-message': msg.sender_id === currentUserValue.id}">
+                        {{ msg.sender_id === currentUserValue.id ? currentUserValue.username : user.Username }}:
                     </span>
                     {{ msg.content }}
                 </div>
@@ -32,6 +32,11 @@ const ChatWindow = {
             typing: false,
             typingTimeout: null,
         };
+    },
+    computed: {
+        currentUserValue() {
+            return this.currentUser;
+        }
     },
     methods: {
         async fetchHistory() {
@@ -88,14 +93,14 @@ const ChatWindow = {
         // Listen for incoming messages and typing events
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
             const msg = e.detail;
-            if ((msg.sender_id === this.user.ID && msg.Receiver_id === this.currentUser.id) ||
-                (msg.sender_id === this.currentUser.id && msg.Receiver_id === this.user.ID)) {
+            if ((msg.sender_id === this.user.ID && msg.Receiver_id === this.currentUserValue.id) ||
+                (msg.sender_id === this.currentUserValue.id && msg.Receiver_id === this.user.ID)) {
                 this.receiveMessage(msg);
             }
         });
         window.addEventListener('chat-typing', this._onChatTyping = (e) => {
             const { sender_id, Receiver_id, is_typing } = e.detail;
-            if (sender_id === this.user.ID && Receiver_id === this.currentUser.id) {
+            if (sender_id === this.user.ID && Receiver_id === this.currentUserValue.id) {
                 this.receiveTyping(is_typing);
             }
         });

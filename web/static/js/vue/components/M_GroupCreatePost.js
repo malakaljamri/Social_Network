@@ -44,8 +44,18 @@ const CreateGroupPostModal = {
         };
     },
     inject: ['currentUser'],
+    computed: {
+        currentUserValue() {
+            return this.currentUser.value;
+        }
+    },
     methods: {
         async fetchCategories() {
+            if (!this.currentUserValue?.isLoggedIn) {
+                this.categories = [];
+                this.form.error = 'You must be logged in to create a group post';
+                return;
+            }
             try {
                 const response = await fetch('/api/categories', { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch categories');
@@ -57,7 +67,7 @@ const CreateGroupPostModal = {
             }
         },
         async submitGroupPost() {
-            if (!this.currentUser?.isLoggedIn) {
+            if (!this.currentUserValue?.isLoggedIn) {
                 this.form.error = 'You must be logged in to create a group post';
                 return;
             }
