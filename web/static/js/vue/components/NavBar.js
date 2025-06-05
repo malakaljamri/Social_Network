@@ -3,7 +3,7 @@ const NavBar = {
     template: `
         <nav class="navbar" style="display: flex; align-items: center; justify-content: space-between;">
             <div class="nav-left" style="display: flex; align-items: center; gap: 24px; flex: 1;">
-                <span class="navbar-title" style="font-size: 1.3rem; font-weight: bold; color: #fff;">Social Network</span>
+                <a href="http://localhost:8080"><span class="navbar-title" style="font-size: 1.3rem; font-weight: bold; color: #fff;">Social Network</span></a>
                 <div v-if="currentUser.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications

@@ -48,7 +48,9 @@ const WebSocketPlugin = {
                         if (currentUser?.isLoggedIn) {
                             sendUserStatus('online');
                         }
+                        // console.time("fetchOnlineUsers");
                         await fetchOnlineUsers();
+                        // console.timeEnd("fetchOnlineUsers");
                     } catch (error) {
                         console.error('Error in WebSocket onopen:', error);
                     }
@@ -129,9 +131,10 @@ const WebSocketPlugin = {
                     LastMessageTime: Date.now()
                 });
             }
-            
             // Force a refresh of online users from server
-            fetchOnlineUsers();
+            // console.time("fetchOnlineUsers");
+            // fetchOnlineUsers();
+            // console.timeEnd("fetchOnlineUsers");
         }
 
         // Handle chat messages
