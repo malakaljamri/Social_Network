@@ -276,12 +276,14 @@ const app = Vue.createApp({
                 :key="currentView"
                 @login="onLogin"
                 @registered="onRegistered"
+                @show-register="goToRegister"
                 @post-created="onPostCreated"
                 @group-created="onGroupCreated"
                 @open-create-group-post-modal="openCreateGroupPostModal"
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
             ></component>
+            <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>
             <m-create-post
                 v-if="showCreatePostModal"
                 @close="showCreatePostModal = false"

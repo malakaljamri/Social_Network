@@ -58,4 +58,5 @@ const LoginView = {
     }
 };
 
-// No mount here, will be registered globally. 
+// No mount here, will be registered globally.
+window.LoginView = LoginView; 
