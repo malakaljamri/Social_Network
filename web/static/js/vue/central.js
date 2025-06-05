@@ -149,8 +149,6 @@ const app = Vue.createApp({
                 username: data.username,
                 email: data.email || ''
             };
-            // Initialize WebSocket after successful login
-            this.websocket.init();
 
             this.currentView = 'home';
         },
@@ -234,8 +232,6 @@ const app = Vue.createApp({
                             username: data.username,
                             email: data.email || ''
                         };
-                        // Initialize WebSocket if user is already logged in on refresh
-                        this.websocket.init();
                         this.goToHome();
                     } else {
                         this.currentUser.value = {
@@ -295,7 +291,7 @@ const app = Vue.createApp({
         <div>
             <nav-bar 
                 :state="currentView" 
-                :currentUser="currentUser.value"
+                :currentUser="currentUser.value || { isLoggedIn: false, username: '' }"
                 @navigate="handleNavigate"
                 @logout="handleLogout"
                 @show-modal="handleShowModal"
@@ -369,6 +365,7 @@ app.component('group-chat', GroupChat);
 app.component('g-group-list', G_GroupList);
 app.component('g-group-main', G_GroupMain);
 app.component('g-group-chat', G_GroupChat);
+app.component('g-group-events-modal', window.G_GroupEventsModal);
 
 // Mount the app
 app.mount('#app'); 

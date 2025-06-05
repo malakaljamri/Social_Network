@@ -6,17 +6,11 @@ const GroupMain = {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
-            showCreateEventModal: false,
             newGroupPost: {
                 title: '',
                 content: '',
                 privacy_setting: 'public',
                 category_id: ''
-            },
-            newEvent: {
-                title: '',
-                description: '',
-                date: ''
             },
             today: new Date().toISOString().split('T')[0],
             eventError: ''
@@ -52,10 +46,6 @@ const GroupMain = {
             const iso = dateStr.replace(' ', 'T');
             const d = new Date(iso);
             return isNaN(d) ? dateStr : d.toLocaleString();
-        },
-        submitCreateEvent() {
-            // Implement event submission logic here
-            this.showCreateEventModal = false;
         }
     },
     template: `
@@ -114,33 +104,12 @@ const GroupMain = {
                 </div>
             </div>
             <!-- Group Events Modal -->
-            <div v-if="showGroupEventsModal" class="modal-overlay" @click.self="closeGroupEventsModal">
-                <div class="modal-content" @click.stop style="max-width: 400px;">
-                    <h2>Group Events</h2>
-                    <button class="create-event-btn" @click="showCreateEventModal = true" style="margin-bottom: 12px;">Create Event</button>
-                    <div class="form-group">
-                        <h3>Upcoming Events</h3>
-                        <div v-if="groupEvents.upcoming.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
-                        <div v-for="event in groupEvents.upcoming" :key="event.id" class="event-item">
-                            <strong>{{ event.title }}</strong> - {{ formatDate(event.date) }}
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <h3>Past Events</h3>
-                        <div v-if="groupEvents.past.length === 0" style="color: #888; padding: 8px;">No past events</div>
-                        <div v-for="event in groupEvents.past" :key="event.id" class="event-item">
-                            <strong>{{ event.title }}</strong> - {{ formatDate(event.date) }}
-                        </div>
-                    </div>
-                    <button type="button" class="cancel-btn" @click="closeGroupEventsModal">Close</button>
-                </div>
-            </div>
-            <!-- Create Event Modal -->
-            <m-group-create-event
-                v-if="showCreateEventModal && selectedGroup"
+            <g-group-events-modal
+                v-if="showGroupEventsModal && selectedGroup"
+                :events="groupEvents"
                 :group-id="selectedGroup.ID"
-                @close="showCreateEventModal = false"
-                @created="showCreateEventModal = false; $emit('refresh-group-events')"
+                @close="closeGroupEventsModal"
+                @refresh-events="$emit('refresh-group-events')"
             />
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
@@ -167,6 +136,9 @@ const GroupMain = {
                 </div>
             </div>
         </div>
-    `
+    `,
+    components: {
+        'g-group-events-modal': window.G_GroupEventsModal
+    }
 };
 window.G_GroupMain = GroupMain; 
