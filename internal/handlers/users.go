@@ -202,9 +202,8 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 
 // GetUserFollowers returns users following the specified user
 func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
-	// Get target user ID from URL query
-	userIDStr := r.URL.Query().Get("id")
-	userID, err := strconv.Atoi(userIDStr)
+	// Get current logged-in user ID from session
+	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
