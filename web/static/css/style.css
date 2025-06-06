@@ -1660,3 +1660,122 @@ button.pagination-button.active {
     font-weight: 500;
 }
 
+/* Category Selection Styles */
+.category-select-container {
+    margin-bottom: 15px;
+}
+
+.category-search {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.categories-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    background: #fff;
+}
+
+.categories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.category-item:hover {
+    background-color: #f5f5f5;
+}
+
+.category-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.category-item label {
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Private Viewers Styles */
+.private-viewers-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.follower-search {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.followers-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    background: #fff;
+}
+
+.followers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.follower-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.follower-item:hover {
+    background-color: #f5f5f5;
+}
+
+.follower-item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.follower-item label {
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Loading and Error States */
+.loading {
+    text-align: center;
+    padding: 10px;
+    color: #666;
+}
+
+.error {
+    color: #dc3545;
+    padding: 10px;
+    text-align: center;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+

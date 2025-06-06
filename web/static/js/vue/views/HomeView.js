@@ -17,10 +17,10 @@ const HomeView = {
                     </div>
                     <div class="post-content">{{ post.Text }}</div>
                     <div class="post-footer">
-                        <div class="post-interactions">
+                        <!-- <div class="post-interactions">
                             <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Likes || 0 }}</button>
                             <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Dislikes || 0 }}</button>
-                        </div>
+                        </div> -->
                         <div class="post-category" v-if="post.Categories && post.Categories.length">
                             <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
                         </div>
