@@ -36,9 +36,14 @@ const CreateGroupEventModal = {
         };
     },
     inject: ['currentUser'],
+    computed: {
+        currentUserValue() {
+            return this.currentUser.value;
+        }
+    },
     methods: {
         async submitGroupEvent() {
-            if (!this.currentUser?.isLoggedIn) {
+            if (!this.currentUserValue?.isLoggedIn) {
                 this.form.error = 'You must be logged in to create a group event';
                 return;
             }

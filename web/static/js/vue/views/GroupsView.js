@@ -6,7 +6,7 @@ const GroupsView = {
             selectedGroupId: null,
             selectedGroup: null,
             groupPosts: [],
-            groupEvents: { upcoming: [], past: [] },
+            groupEvents: [],
             categories: []
         };
     },
@@ -40,12 +40,9 @@ const GroupsView = {
             try {
                 const response = await this.$root.apiFetch(`/api/groups/events?group_id=${groupId}`);
                 const data = await response.json();
-                this.groupEvents = {
-                    upcoming: data.upcoming || [],
-                    past: data.past || []
-                };
+                this.groupEvents = Array.isArray(data.events) ? data.events : [];
             } catch (e) {
-                this.groupEvents = { upcoming: [], past: [] };
+                this.groupEvents = [];
             }
         },
         async fetchCategories() {

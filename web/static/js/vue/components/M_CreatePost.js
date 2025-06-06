@@ -41,10 +41,15 @@ const CreatePostModal = {
         };
     },
     inject: ['currentUser'],
+    computed: {
+        currentUserValue() {
+            return this.currentUser.value;
+        }
+    },
     methods: {
         async fetchCategories() {
-            console.log('Fetching categories, currentUser:', this.currentUser);
-            if (!this.currentUser?.isLoggedIn) {
+            console.log('Fetching categories, currentUser:', this.currentUserValue);
+            if (!this.currentUserValue?.isLoggedIn) {
                 console.warn('User not logged in, cannot fetch categories');
                 this.categories = [];
                 return;
@@ -67,7 +72,7 @@ const CreatePostModal = {
             this.form.file = event.target.files[0];
         },
         async submitPost() {
-            if (!this.currentUser?.isLoggedIn) {
+            if (!this.currentUserValue?.isLoggedIn) {
                 this.form.error = 'You must be logged in to create a post';
                 return;
             }

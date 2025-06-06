@@ -32,22 +32,8 @@ func GetGroupEventsHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch group events")
 			return
 		}
-		now := time.Now()
-		var upcoming, past []database.GroupEvent
-		for _, event := range events {
-			eventTime, err := time.Parse("2006-01-02 15:04:05", event.EventDate)
-			if err != nil {
-				continue
-			}
-			if eventTime.After(now) || eventTime.Format("2006-01-02") == now.Format("2006-01-02") {
-				upcoming = append(upcoming, event)
-			} else {
-				past = append(past, event)
-			}
-		}
-		resp := GroupEventsResponse{
-			Upcoming: upcoming,
-			Past:     past,
+		resp := map[string]interface{}{
+			"events": events,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)

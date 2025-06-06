@@ -18,8 +18,8 @@ const HomeView = {
                     <div class="post-content">{{ post.Text }}</div>
                     <div class="post-footer">
                         <div class="post-interactions">
-                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUser.isLoggedIn">{{ post.Likes || 0 }}</button>
-                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUser.isLoggedIn">{{ post.Dislikes || 0 }}</button>
+                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Likes || 0 }}</button>
+                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Dislikes || 0 }}</button>
                         </div>
                         <div class="post-category" v-if="post.Categories && post.Categories.length">
                             <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
@@ -29,7 +29,7 @@ const HomeView = {
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>
     `,
@@ -52,8 +52,8 @@ const HomeView = {
         };
     },
     computed: {
-        currentUser() {
-            return this.$root.currentUser;
+        currentUserValue() {
+            return this.$root.currentUser.value;
         },
         filteredPosts() {
             // Server-side filtering, so just return posts
@@ -66,7 +66,7 @@ const HomeView = {
             this.$root.handleShowModal('createPost');
         },
         async fetchPosts() {
-            if (!this.currentUser.isLoggedIn) return;
+            if (!this.currentUserValue && this.currentUserValue.isLoggedIn) return;
             this.loading = true;
             let queryParams = new URLSearchParams({
                 page: this.currentPage,
@@ -87,7 +87,7 @@ const HomeView = {
             }
         },
         async likePost(postId) {
-            if (!this.currentUser.isLoggedIn) return;
+            if (!this.currentUserValue && this.currentUserValue.isLoggedIn) return;
             try {
                 const response = await fetch(`/api/posts/${postId}/like`, {
                     method: 'POST',
@@ -100,7 +100,7 @@ const HomeView = {
             }
         },
         async dislikePost(postId) {
-            if (!this.currentUser.isLoggedIn) return;
+            if (!this.currentUserValue && this.currentUserValue.isLoggedIn) return;
             try {
                 const response = await fetch(`/api/posts/${postId}/dislike`, {
                     method: 'POST',
@@ -159,13 +159,13 @@ const HomeView = {
         }
     },
     mounted() {
-        if (this.currentUser.isLoggedIn) {
+        if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
             this.fetchPosts();
         }
         window.addEventListener('post-created', this.fetchPosts);
     },
     watch: {
-        'currentUser.isLoggedIn'(val) {
+        'currentUserValue.isLoggedIn'(val) {
             if (val) this.fetchPosts();
         }
     },
