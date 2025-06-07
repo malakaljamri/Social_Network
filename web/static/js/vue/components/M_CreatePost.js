@@ -73,7 +73,35 @@ const CreatePostModal = {
                             </div>
                         </div>
 
-                        <input type="file" @change="handleFileUpload" accept="image/jpeg, image/png, image/gif">
+                        <!-- Image Upload Section -->
+                        <div class="image-upload-section">
+                            <div class="image-upload-container" 
+                                 @click="triggerFileInput" 
+                                 @dragover.prevent 
+                                 @drop.prevent="handleFileDrop"
+                                 :class="{ 'has-image': imagePreview }">
+                                <input 
+                                    type="file" 
+                                    ref="fileInput"
+                                    @change="handleFileUpload" 
+                                    accept="image/jpeg, image/png, image/gif"
+                                    class="hidden"
+                                >
+                                <div v-if="!imagePreview" class="upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Click or drag image here</p>
+                                    <p class="upload-hint">Max size: 2MB, Max dimensions: 2000x2000px</p>
+                                </div>
+                                <div v-else class="image-preview">
+                                    <img :src="imagePreview" alt="Preview">
+                                    <button type="button" class="remove-image" @click.stop="removeImage">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="form.imageError" class="error">{{ form.imageError }}</div>
+                        </div>
+
                         <button type="submit" class="button" :disabled="form.loading">Create Post</button>
                         <div v-if="form.error" class="error">{{ form.error }}</div>
                     </form>
@@ -92,7 +120,8 @@ const CreatePostModal = {
                 chosen_followers: [],
                 file: null,
                 loading: false,
-                error: ''
+                error: '',
+                imageError: ''
             },
             categories: [],
             followers: [],
@@ -101,7 +130,10 @@ const CreatePostModal = {
             loading: false,
             loadingFollowers: false,
             error: '',
-            followersError: ''
+            followersError: '',
+            imagePreview: null,
+            maxFileSize: 2 * 1024 * 1024, // 2MB
+            maxDimensions: 2000
         };
     },
     inject: ['currentUser'],
@@ -125,6 +157,72 @@ const CreatePostModal = {
         }
     },
     methods: {
+        triggerFileInput() {
+            this.$refs.fileInput.click();
+        },
+        handleFileDrop(event) {
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                this.validateAndSetImage(file);
+            }
+        },
+        async handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                await this.validateAndSetImage(file);
+            }
+        },
+        async validateAndSetImage(file) {
+            this.form.imageError = '';
+            
+            // Check file type
+            if (!file.type.match(/^image\/(jpeg|png|gif)$/)) {
+                this.form.imageError = 'Please upload a valid image file (JPEG, PNG, or GIF)';
+                return;
+            }
+
+            // Check file size
+            if (file.size > this.maxFileSize) {
+                this.form.imageError = 'Image size must not exceed 2MB';
+                return;
+            }
+
+            // Check image dimensions
+            try {
+                const dimensions = await this.getImageDimensions(file);
+                if (dimensions.width > this.maxDimensions || dimensions.height > this.maxDimensions) {
+                    this.form.imageError = `Image dimensions must not exceed ${this.maxDimensions}x${this.maxDimensions}px`;
+                    return;
+                }
+            } catch (error) {
+                this.form.imageError = 'Failed to validate image dimensions';
+                return;
+            }
+
+            // If all validations pass, set the file and preview
+            this.form.file = file;
+            this.imagePreview = URL.createObjectURL(file);
+        },
+        getImageDimensions(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve({
+                        width: img.width,
+                        height: img.height
+                    });
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        },
+        removeImage() {
+            this.form.file = null;
+            if (this.imagePreview) {
+                URL.revokeObjectURL(this.imagePreview);
+                this.imagePreview = null;
+            }
+        },
         async fetchCategories() {
             this.loading = true;
             this.error = '';
@@ -165,9 +263,6 @@ const CreatePostModal = {
             } finally {
                 this.loadingFollowers = false;
             }
-        },
-        handleFileUpload(event) {
-            this.form.file = event.target.files[0];
         },
         async submitPost() {
             if (!this.currentUserValue?.isLoggedIn) {
@@ -222,7 +317,8 @@ const CreatePostModal = {
                     chosen_followers: [],
                     file: null,
                     loading: false,
-                    error: ''
+                    error: '',
+                    imageError: ''
                 };
                 this.categorySearch = '';
                 this.followerSearch = '';

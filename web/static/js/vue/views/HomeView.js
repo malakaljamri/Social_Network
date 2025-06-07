@@ -15,12 +15,22 @@ const HomeView = {
                             <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
                         </div>
                     </div>
-                    <div class="post-content">{{ post.Text }}</div>
+                    <div class="post-content">
+                        <div v-if="post.Image" class="post-image">
+                            <img 
+                                :src="getImageUrl(post.Image)" 
+                                :alt="post.Title"
+                                @error="handleImageError"
+                                loading="lazy"
+                            >
+                        </div>
+                        <div class="post-text">{{ post.Text }}</div>
+                    </div>
                     <div class="post-footer">
-                        <!-- <div class="post-interactions">
-                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Likes || 0 }}</button>
-                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUserValue && currentUserValue.isLoggedIn">{{ post.Dislikes || 0 }}</button>
-                        </div> -->
+                        <!--<div class="post-interactions">
+                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUserValue || !currentUserValue.isLoggedIn">{{ post.Likes || 0 }}</button>
+                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUserValue || !currentUserValue.isLoggedIn">{{ post.Dislikes || 0 }}</button>
+                        </div>-->
                         <div class="post-category" v-if="post.Categories && post.Categories.length">
                             <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
                         </div>
@@ -48,7 +58,8 @@ const HomeView = {
             pageSize: 10,
             totalPages: 1,
             openChats: [],
-            chatTimestamps: {} // Store timestamps for each chat window
+            chatTimestamps: {}, // Store timestamps for each chat window
+            imageErrors: new Set() // Track failed image loads
         };
     },
     computed: {
@@ -61,6 +72,17 @@ const HomeView = {
         }
     },
     methods: {
+        getImageUrl(imagePath) {
+            if (!imagePath) return '';
+            if (imagePath.startsWith('http')) return imagePath;
+            return `${window.location.origin}/web${imagePath.startsWith('/') ? '' : '/'}${imagePath.replace(/\\/g, '/')}`;
+        },
+        handleImageError(event) {
+            const img = event.target;
+            const postId = img.closest('.post-card').dataset.postId;
+            this.imageErrors.add(postId);
+            img.style.display = 'none';
+        },
         showCreatePostModal() {
             console.log('HomeView: Emitting show-modal event for createPost');
             this.$root.handleShowModal('createPost');
