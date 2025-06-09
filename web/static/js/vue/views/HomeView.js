@@ -2,16 +2,18 @@
 const HomeView = {
     template: `
         <div class="home-view layout-grid">
-            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')"></filters-sidebar>
+            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')" :categories="categories"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
-                <div v-for="post in filteredPosts" :key="post.ID" class="post-card">
+                <div v-for="post in filteredPosts" :key="post.ID" class="post-card" :data-post-id="post.ID">
                     <div class="post-header">
                         <h2>{{ post.Title }}</h2>
                         <div class="post-meta">
-                            <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">{{ post.Author }}</span></span>
+                            <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">{{ post.Author }}</span>
+                                <span class="post-id">  Post ID: {{ post.ID }}</span>
+                            </span>                            
                             <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
                         </div>
                     </div>
@@ -35,6 +37,7 @@ const HomeView = {
                             <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
                         </div>
                     </div>
+                    <comment-section :post-id="post.ID" :current-user="currentUserValue"></comment-section>
                 </div>
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
@@ -53,6 +56,7 @@ const HomeView = {
                 likedOnly: false,
                 loggedInUserFilter: false
             },
+            categories: [],
             loading: false,
             currentPage: 1,
             pageSize: 10,
@@ -108,6 +112,19 @@ const HomeView = {
                 this.loading = false;
             }
         },
+        async fetchCategories() {
+            try {
+                const response = await fetch('/api/categories', { credentials: 'include' });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch categories');
+                }
+                const data = await response.json();
+                this.categories = Array.isArray(data) ? data : [];
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                this.categories = [];
+            }
+        },
         async likePost(postId) {
             if (!this.currentUserValue && this.currentUserValue.isLoggedIn) return;
             try {
@@ -156,9 +173,8 @@ const HomeView = {
             this.$root.viewUserProfile(userId);
         },
         getCategoryName(catId) {
-            // This now expects categories to be provided by the sidebar or a global store
-            // For now, just return the ID as a fallback
-            return catId;
+            const category = this.categories.find(cat => cat.ID === catId || cat.id === catId);
+            return category ? category.Name || category.name : catId; // Fallback to ID if name not found
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleString();
@@ -183,12 +199,16 @@ const HomeView = {
     mounted() {
         if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
             this.fetchPosts();
+            this.fetchCategories();
         }
         window.addEventListener('post-created', this.fetchPosts);
     },
     watch: {
         'currentUserValue.isLoggedIn'(val) {
-            if (val) this.fetchPosts();
+            if (val) {
+                this.fetchPosts();
+                this.fetchCategories();
+            }
         }
     },
     beforeUnmount() {

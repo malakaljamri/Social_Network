@@ -56,7 +56,7 @@ func InitializeDB() (*sql.DB, error) {
 	}
 	// absPath, _ := filepath.Abs("forum.db")
 	// log.Println("📂 Using DB file:", absPath)
-	
+
 	return db, nil
 }
 
@@ -86,15 +86,14 @@ func createTables() error {
 		return fmt.Errorf("failed to read schema file: %v", err)
 	}
 
-// 	log.Println("✅ Running schema queries...")
+	// 	log.Println("✅ Running schema queries...")
 
-// _, err = db.Exec("SELECT 1 FROM groups LIMIT 1")
-// if err != nil {
-//     log.Println("⚠️ groups table still missing after migration")
-// } else {
-//     log.Println("✅ groups table exists")
-// }
-
+	// _, err = db.Exec("SELECT 1 FROM groups LIMIT 1")
+	// if err != nil {
+	//     log.Println("⚠️ groups table still missing after migration")
+	// } else {
+	//     log.Println("✅ groups table exists")
+	// }
 
 	queries := strings.Split(string(sqlFile), ";")
 	for _, query := range queries {
@@ -111,11 +110,10 @@ func createTables() error {
 	return nil
 }
 
-
 // ExecuteQuery prepares and executes a SQL query with the given arguments
 func ExecuteQuery(query string, args ...interface{}) (sql.Result, error) {
 	stmt, err := db.Prepare(query)
-	if (err != nil) {
+	if err != nil {
 		return nil, fmt.Errorf("failed to prepare query: %v", err)
 	}
 	defer stmt.Close()
@@ -246,5 +244,5 @@ func GenerateFakeData() {
 		CreateLikeDislike(&likesDislikes[i])
 	}
 
-	fmt.Println("Realistic fake data generation complete")
+	// fmt.Println("Realistic fake data generation complete")
 }

@@ -1,5 +1,6 @@
 // FiltersSidebar Component
 const FiltersSidebar = {
+    props: ['currentUser', 'categories'],
     template: `
         <div class="filters-sidebar">
             <button class="button" style="margin-bottom: 12px; width: 100%;" @click="$emit('show-create-post-modal')">✍️ Create Post</button>
@@ -80,7 +81,6 @@ const FiltersSidebar = {
     `,
     data() {
         return {
-            categories: [],
             selectedCategories: [],
             dateFrom: '',
             dateTo: '',
@@ -98,26 +98,6 @@ const FiltersSidebar = {
         }
     },
     methods: {
-        async fetchCategories() {
-            if (!this.currentUserValue || !this.currentUserValue.isLoggedIn) {
-                this.categories = [];
-                this.error = '';
-                return;
-            }
-            this.loading = true;
-            this.error = '';
-            try {
-                const response = await fetch('/api/categories', { credentials: 'include' });
-                if (!response.ok) throw new Error('Failed to fetch categories');
-                const data = await response.json();
-                this.categories = Array.isArray(data) ? data : [];
-            } catch (error) {
-                this.error = 'Failed to load categories.';
-                this.categories = [];
-            } finally {
-                this.loading = false;
-            }
-        },
         updateFilters() {
             const filters = {
                 categories: this.selectedCategories,
@@ -126,14 +106,10 @@ const FiltersSidebar = {
                 likedOnly: this.likedOnly,
                 loggedInUserFilter: this.loggedInUserFilter
             };
-            this.$emit('filters-changed', filters);
+            this.$emit('filters-changed', filters, this.categories);
         }
     },
     watch: {
-        currentUserValue: {
-            handler() { this.fetchCategories(); },
-            deep: true
-        },
         selectedCategories: 'updateFilters',
         dateFrom: 'updateFilters',
         dateTo: 'updateFilters',
@@ -141,7 +117,6 @@ const FiltersSidebar = {
         loggedInUserFilter: 'updateFilters'
     },
     mounted() {
-        this.fetchCategories();
     }
 };
 

@@ -366,6 +366,8 @@ app.component('g-group-list', G_GroupList);
 app.component('g-group-main', G_GroupMain);
 app.component('g-group-chat', G_GroupChat);
 app.component('g-group-events-modal', window.G_GroupEventsModal);
+app.component('create-post-modal', CreatePostModal);
+app.component('comment-section', CommentSection);
 
 // Mount the app
 app.mount('#app'); 

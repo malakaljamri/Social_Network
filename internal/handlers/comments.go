@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,6 +27,7 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching comments")
 		return
 	}
+	log.Println(postID,"📝📝📝 comments", comments)
 	json.NewEncoder(w).Encode(comments)
 }
 
