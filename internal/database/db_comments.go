@@ -1,10 +1,20 @@
 package database
 
-import "social_network/internal/models"
+import (
+	"social_network/internal/models"
+)
 
 func CreateComment(comment *models.Comment) error {
 	query := `INSERT INTO comments (post_id, user_id, content, image) VALUES (?, ?, ?, ?)`
-	result, err := ExecuteQuery(query, comment.PostID, comment.UserID, comment.Text, comment.Image)
+
+	var image interface{}
+	if comment.Image.Valid {
+		image = comment.Image.String
+	} else {
+		image = nil
+	}
+
+	result, err := ExecuteQuery(query, comment.PostID, comment.UserID, comment.Text, image)
 	if err != nil {
 		return err
 	}

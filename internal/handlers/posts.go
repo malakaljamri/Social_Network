@@ -236,8 +236,9 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
 	totalPages := (totalCount + limit - 1) / limit
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"posts":      posts,
-		"totalPages": totalPages,
+		"posts":        posts,
+		"totalPages":   totalPages,
+		"totalResults": totalCount,
 	})
 }
 

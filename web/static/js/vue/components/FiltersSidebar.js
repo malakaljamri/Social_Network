@@ -1,6 +1,13 @@
 // FiltersSidebar Component
 const FiltersSidebar = {
-    props: ['currentUser', 'categories'],
+    props: {
+        currentUser: Object,
+        categories: Array,
+        totalResults: {
+            type: Number,
+            default: 0
+        }
+    },
     template: `
         <div class="filters-sidebar">
             <button class="button" style="margin-bottom: 12px; width: 100%;" @click="$emit('show-create-post-modal')">✍️ Create Post</button>
@@ -51,7 +58,7 @@ const FiltersSidebar = {
             <div class="filter-section">
                 <h3>Other Filters</h3>
                 <div class="checkbox-filters">
-                    <div class="filter-item">
+                    <!--<div class="filter-item">
                         <input 
                             type="checkbox" 
                             id="likedPosts" 
@@ -59,7 +66,7 @@ const FiltersSidebar = {
                             @change="updateFilters"
                         >
                         <label for="likedPosts">Show only liked posts</label>
-                    </div>
+                    </div>-->
                     
                     <div class="filter-item">
                         <input 
@@ -75,7 +82,7 @@ const FiltersSidebar = {
             </div>
 
             <div class="results-counter">
-                <span id="resultsCounter">Total Results: 0</span>
+                <span id="resultsCounter">Total Results: {{ totalResults }}</span>
             </div>
         </div>
     `,

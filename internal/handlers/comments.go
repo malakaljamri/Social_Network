@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,10 +24,10 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 
 	comments, err := database.GetCommentsByPostID(postID)
 	if err != nil {
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching comments")
+		utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Error fetching comments: %v", err))
 		return
 	}
-	log.Println(postID,"📝📝📝 comments", comments)
+	// log.Println(postID, "📝📝📝 comments", comments)
 	json.NewEncoder(w).Encode(comments)
 }
 
@@ -101,8 +101,13 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	comment := models.Comment{
 		Text:   r.FormValue("Text"),
 		PostID: postID,
-		Image:  imagePath,
 		UserID: userID,
+	}
+
+	if imagePath != "" {
+		comment.Image = sql.NullString{String: imagePath, Valid: true}
+	} else {
+		comment.Image = sql.NullString{Valid: false}
 	}
 
 	err = database.CreateComment(&comment)

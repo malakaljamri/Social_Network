@@ -2,7 +2,7 @@
 const HomeView = {
     template: `
         <div class="home-view layout-grid">
-            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')" :categories="categories"></filters-sidebar>
+            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')" :categories="categories" :total-results="totalResults"></filters-sidebar>
             <div class="feed-main main-content">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
@@ -39,6 +39,24 @@ const HomeView = {
                     </div>
                     <comment-section :post-id="post.ID" :current-user="currentUserValue"></comment-section>
                 </div>
+                <!-- Add pagination controls -->
+                <div class="pagination-controls" v-if="totalPages > 1">
+                    <button 
+                        @click="prevPage" 
+                        :disabled="currentPage === 1"
+                        class="pagination-btn"
+                    >
+                        Previous
+                    </button>
+                    <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+                    <button 
+                        @click="nextPage" 
+                        :disabled="currentPage === totalPages"
+                        class="pagination-btn"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section">
@@ -61,6 +79,7 @@ const HomeView = {
             currentPage: 1,
             pageSize: 10,
             totalPages: 1,
+            totalResults: 0,
             openChats: [],
             chatTimestamps: {}, // Store timestamps for each chat window
             imageErrors: new Set() // Track failed image loads
@@ -105,9 +124,11 @@ const HomeView = {
                 const data = await response.json();
                 this.posts = data.posts || [];
                 this.totalPages = data.totalPages || 1;
+                this.totalResults = data.totalResults || 0;
             } catch (e) {
                 this.posts = [];
                 this.totalPages = 1;
+                this.totalResults = 0;
             } finally {
                 this.loading = false;
             }

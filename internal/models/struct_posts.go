@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type Post struct {
 	ID         int
@@ -24,7 +27,7 @@ type Comment struct {
 	Text      string
 	CreatedAt time.Time
 	Author    string
-	Image     string
+	Image     sql.NullString
 }
 
 type ChatMessage struct {

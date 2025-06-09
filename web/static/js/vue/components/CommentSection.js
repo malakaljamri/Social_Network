@@ -140,9 +140,16 @@ const CommentSection = {
             return new Date(dateStr).toLocaleString();
         },
         getImageUrl(imagePath) {
-            if (!imagePath) return '';
-            if (imagePath.startsWith('http')) return imagePath;
-            return `${window.location.origin}/web${imagePath.startsWith('/') ? '' : '/'}${imagePath.replace(/\\/g, '/')}`;
+            if (imagePath && imagePath.String) {
+                // If imagePath is a sql.NullString and is valid, use its String value
+                if (imagePath.Valid) {
+                    const url = imagePath.String;
+                    if (url.startsWith('http')) return url;
+                    return `${window.location.origin}/web${url.startsWith('/') ? '' : '/'}${url.replace(/\\/g, '/')}`;
+                }
+            }
+            // If imagePath is null, undefined, or an invalid sql.NullString, return empty string
+            return '';
         },
         handleImageError(event) {
             const img = event.target;
