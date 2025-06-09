@@ -3,72 +3,75 @@ const CommentSection = {
     props: ['postId', 'currentUser'],
     template: `
         <div class="comments-section">
-            <h3>Comments</h3>
-            <div v-if="comments.length === 0" class="no-comments">No comments yet.</div>
-            <div v-else class="comments-list">
-                <div v-for="comment in comments" :key="comment.ID" class="comment-card">
-                    <div class="comment-header">
-                        <span class="comment-author">{{ comment.Author }}</span>
-                        <span class="comment-timestamp">{{ formatDate(comment.CreatedAt) }}</span>
+            <button @click="showComments = !showComments" class="comment-toggle-btn">{{ commentButtonText }}</button>
+            <div v-if="showComments">
+                <h3 class="comments-title">Comments</h3>
+                <div v-if="comments.length === 0" class="no-comments">No comments yet.</div>
+                <div v-else class="comments-list">
+                    <div v-for="comment in comments" :key="comment.ID" class="comment-card">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ comment.Author }}</span>
+                            <span class="comment-timestamp">{{ formatDate(comment.CreatedAt) }}</span>
+                        </div>
+                        <div class="comment-content">
+                            <p class="comment-text">{{ comment.Text }}</p>
+                            <div v-if="comment.Image" class="comment-image">
+                                <img 
+                                    :src="getImageUrl(comment.Image)" 
+                                    :alt="'Comment by ' + comment.Author"
+                                    @error="handleImageError"
+                                    loading="lazy"
+                                >
+                            </div>
+                        </div>
                     </div>
-                    <div class="comment-content">
-                        <p class="comment-text">{{ comment.Text }}</p>
-                        <div v-if="comment.Image" class="comment-image">
-                            <img 
-                                :src="getImageUrl(comment.Image)" 
-                                :alt="'Comment by ' + comment.Author"
-                                @error="handleImageError"
-                                loading="lazy"
+                </div>
+                <div v-if="currentUser && currentUser.isLoggedIn" class="comment-form">
+                    <h4>Add a Comment</h4>
+                    <textarea v-model="newComment.text" placeholder="Write a comment..." rows="3"></textarea>
+                    
+                    <!-- Image Upload for Comments -->
+                    <div class="image-upload-section">
+                        <div class="image-upload-container" 
+                             @click="triggerFileInput" 
+                             @dragover.prevent 
+                             @drop.prevent="handleFileDrop"
+                             :class="{ 'has-image': imagePreview }">
+                            <input 
+                                type="file" 
+                                ref="commentFileInput"
+                                @change="handleFileUpload" 
+                                accept="image/jpeg, image/png, image/gif"
+                                class="hidden"
                             >
+                            <div v-if="!imagePreview" class="upload-placeholder">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Click or drag image here</p>
+                                <p class="upload-hint">Max size: 2MB, Max dimensions: 2000x2000px</p>
+                            </div>
+                            <div v-else class="image-preview">
+                                <img :src="imagePreview" alt="Preview">
+                                <button type="button" class="remove-image" @click.stop="removeImage">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
+                        <div v-if="imageError" class="error">{{ imageError }}</div>
                     </div>
-                </div>
-            </div>
 
-            <div class="comment-form" v-if="currentUser && currentUser.isLoggedIn">
-                <h4>Add a Comment</h4>
-                <textarea v-model="newComment.text" placeholder="Write a comment..." rows="3"></textarea>
-                
-                <!-- Image Upload for Comments -->
-                <div class="image-upload-section">
-                    <div class="image-upload-container" 
-                         @click="triggerFileInput" 
-                         @dragover.prevent 
-                         @drop.prevent="handleFileDrop"
-                         :class="{ 'has-image': imagePreview }">
-                        <input 
-                            type="file" 
-                            ref="commentFileInput"
-                            @change="handleFileUpload" 
-                            accept="image/jpeg, image/png, image/gif"
-                            class="hidden"
-                        >
-                        <div v-if="!imagePreview" class="upload-placeholder">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Click or drag image here</p>
-                            <p class="upload-hint">Max size: 2MB, Max dimensions: 2000x2000px</p>
-                        </div>
-                        <div v-else class="image-preview">
-                            <img :src="imagePreview" alt="Preview">
-                            <button type="button" class="remove-image" @click.stop="removeImage">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div v-if="imageError" class="error">{{ imageError }}</div>
+                    <button @click="submitComment" :disabled="!newComment.text.trim() && !newComment.file">Post Comment</button>
+                    <div v-if="submitError" class="error">{{ submitError }}</div>
                 </div>
-
-                <button @click="submitComment" :disabled="!newComment.text.trim() && !newComment.file">Post Comment</button>
-                <div v-if="submitError" class="error">{{ submitError }}</div>
-            </div>
-            <div v-else class="login-to-comment">
-                <p>Please log in to add a comment.</p>
+                <div v-else class="login-to-comment">
+                    <p>Please log in to add a comment.</p>
+                </div>
             </div>
         </div>
     `,
     data() {
         return {
             comments: [],
+            showComments: false,
             newComment: {
                 text: '',
                 file: null
@@ -127,6 +130,7 @@ const CommentSection = {
                 this.newComment.file = null;
                 this.removeImage(); // Clear image preview
                 this.fetchComments();
+                this.showComments = true; // Keep comments visible after posting
             } catch (error) {
                 console.error('Error submitting comment:', error);
                 this.submitError = error.message;
@@ -213,6 +217,11 @@ const CommentSection = {
     },
     mounted() {
         this.fetchComments();
+    },
+    computed: {
+        commentButtonText() {
+            return this.showComments ? 'Hide Comments' : `View Comments (${this.comments.length})`;
+        }
     },
     watch: {
         postId: function(newVal, oldVal) {
