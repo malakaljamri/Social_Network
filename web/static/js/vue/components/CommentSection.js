@@ -114,7 +114,7 @@ const CommentSection = {
             }
 
             try {
-                const response = await fetch('/api/comments/create', {
+                const response = await fetch('/api/comment/create', {
                     method: 'POST',
                     body: formData,
                     credentials: 'include'
