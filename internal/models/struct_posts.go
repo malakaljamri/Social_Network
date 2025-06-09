@@ -10,7 +10,6 @@ type Post struct {
 	UserID     int
 	Title      string
 	Text       string
-	CategoryID int
 	CreatedAt  time.Time
 	Author     string
 	Categories []int

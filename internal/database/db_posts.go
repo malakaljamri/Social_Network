@@ -11,7 +11,7 @@ import (
 )
 
 func CreatePost(post *models.Post) error {
-	query := `INSERT INTO posts (user_id, title, content, privacy, image, created_at) VALUES (?, ?, ?, ?, ?, datetime('now'))`
+	query := `INSERT INTO posts (user_id, title, content, privacy, image) VALUES (?, ?, ?, ?, ?)`
 	result, err := ExecuteQuery(query, post.UserID, post.Title, post.Text, post.Privacy, post.Image)
 	if err != nil {
 		return err
@@ -21,6 +21,15 @@ func CreatePost(post *models.Post) error {
 		return err
 	}
 	post.ID = int(id)
+
+	post_categories := `INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)`
+	for _, categoryID := range post.Categories {
+		_, err := ExecuteQuery(post_categories, post.ID, categoryID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

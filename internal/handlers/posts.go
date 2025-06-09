@@ -78,7 +78,15 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Extract form fields
 	title := strings.TrimSpace(r.FormValue("Title"))
 	text := strings.TrimSpace(r.FormValue("Text"))
-	categoryID, _ := strconv.Atoi(r.FormValue("CategoryID"))
+	var categoryIDs []int
+	categoryIDsStr := r.FormValue("CategoryIDs")
+	if categoryIDsStr != "" {
+		err = json.Unmarshal([]byte(categoryIDsStr), &categoryIDs)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid CategoryIDs format")
+			return
+		}
+	}
 	privacy := r.FormValue("Privacy")
 
 	// Validate the fields
@@ -95,7 +103,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	post := models.Post{
 		Title:      html.EscapeString(title),
 		Text:       html.EscapeString(text),
-		CategoryID: categoryID,
+		Categories: categoryIDs,
 		UserID:     userID,
 		Privacy:    privacy,
 		Image:      imagePath,
