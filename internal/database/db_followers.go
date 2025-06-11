@@ -22,14 +22,14 @@ func UnfollowUser(followerID, followedID int) error {
 func IsFollowing(followerID, followedID int) (bool, error) {
 	query := `SELECT COUNT(*) FROM followers WHERE follower_id = ? AND followed_id = ?`
 	rows, err := FetchData(query, followerID, followedID)
-	if err != nil { 
+	if err != nil {
 		return false, err
 	}
 	defer rows.Close()
 
 	var count int
 	if rows.Next() {
-		if err := rows.Scan(&count); err != nil { 
+		if err := rows.Scan(&count); err != nil {
 			return false, err
 		}
 	}
@@ -129,8 +129,8 @@ func GetUserWithFollowCounts(userID int) (models.UserProfile, error) {
 		return models.UserProfile{}, err
 	}
 
-	// Get user's posts count
-	postsQuery := `SELECT COUNT(*) FROM posts WHERE user_id = ?`
+	// Get user's posts count (excluding group posts)
+	postsQuery := `SELECT COUNT(*) FROM posts WHERE user_id = ? AND group_id IS NULL`
 	postsRows, err := FetchData(postsQuery, userID)
 	if err != nil {
 		return models.UserProfile{}, err
@@ -145,9 +145,9 @@ func GetUserWithFollowCounts(userID int) (models.UserProfile, error) {
 	}
 
 	return models.UserProfile{
-		User:          user,
+		User:           user,
 		FollowersCount: followers,
 		FollowingCount: following,
-		PostsCount:    postsCount,
+		PostsCount:     postsCount,
 	}, nil
 }

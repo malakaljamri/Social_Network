@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	db "social_network/internal/database"
+	"social_network/internal/utils"
 )
 
 // SearchUsers handles /api/search/users?q= query for user search autocomplete
@@ -17,7 +18,7 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	users, err := db.SearchUsersByUsername(q)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Database error")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

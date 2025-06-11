@@ -14,6 +14,12 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
+func WriteJSONError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
 func GenerateSessionToken() string {
 	timePrefix := time.Now().Format("15-04-05-000")
 	b := make([]byte, 32-len(timePrefix)-1)

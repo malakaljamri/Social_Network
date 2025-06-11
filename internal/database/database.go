@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	//"runtime"
+	"runtime"
 	"strings"
 	"time"
 
@@ -54,6 +54,8 @@ func InitializeDB() (*sql.DB, error) {
 	if isEmpty {
 		GenerateFakeData()
 	}
+	// absPath, _ := filepath.Abs("forum.db")
+	// log.Println("📂 Using DB file:", absPath)
 
 	return db, nil
 }
@@ -71,32 +73,29 @@ func isDatabaseEmpty() (bool, error) {
 
 // createTables reads the schema_output.sql file and executes the queries to create tables
 func createTables() error {
-	/* UNTIL the final DB tables are ready, we will use migrations to create the tables
-	// Check if tables exist
-	var tableCount int
-	err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'").Scan(&tableCount)
-	if err != nil {
-		return err
-	}
-
-	// If tables already exist, return without creating them
-	if tableCount > 0 {
-		return nil
-	}
 	// Get the directory of the current file
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)
 
-	// Read the schema_output.sql file containing table creation queries
-	sqlFile, err := os.ReadFile(filepath.Join(dir, "schema_output.sql"))
+	// Path to your schema file
+	schemaPath := filepath.Join(dir, "migrations", "DB_Schemas.sql")
+	// log.Printf("Reading schema from: %s", schemaPath)
+
+	sqlFile, err := os.ReadFile(schemaPath)
 	if err != nil {
-		return fmt.Errorf("failed to read schema_output.sql file: %v", err)
+		return fmt.Errorf("failed to read schema file: %v", err)
 	}
 
-	// Split the SQL file content into individual queries
-	queries := strings.Split(string(sqlFile), ";")
+	// 	log.Println("✅ Running schema queries...")
 
-	// Execute each query
+	// _, err = db.Exec("SELECT 1 FROM groups LIMIT 1")
+	// if err != nil {
+	//     log.Println("⚠️ groups table still missing after migration")
+	// } else {
+	//     log.Println("✅ groups table exists")
+	// }
+
+	queries := strings.Split(string(sqlFile), ";")
 	for _, query := range queries {
 		query = strings.TrimSpace(query)
 		if query == "" {
@@ -107,14 +106,14 @@ func createTables() error {
 			return fmt.Errorf("failed to execute query: %v\nQuery: %s", err, query)
 		}
 	}
-*/
+
 	return nil
 }
 
 // ExecuteQuery prepares and executes a SQL query with the given arguments
 func ExecuteQuery(query string, args ...interface{}) (sql.Result, error) {
 	stmt, err := db.Prepare(query)
-	if (err != nil) {
+	if err != nil {
 		return nil, fmt.Errorf("failed to prepare query: %v", err)
 	}
 	defer stmt.Close()
@@ -245,5 +244,5 @@ func GenerateFakeData() {
 		CreateLikeDislike(&likesDislikes[i])
 	}
 
-	fmt.Println("Realistic fake data generation complete")
+	// fmt.Println("Realistic fake data generation complete")
 }

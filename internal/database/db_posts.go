@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"social_network/internal/models"
@@ -12,8 +11,8 @@ import (
 )
 
 func CreatePost(post *models.Post) error {
-	query := `INSERT INTO posts (user_id, title, content, privacy, created_at) VALUES (?, ?, ?, ?, datetime('now'))`
-	result, err := ExecuteQuery(query, post.UserID, post.Title, post.Text, post.Privacy)
+	query := `INSERT INTO posts (user_id, title, content, privacy, image) VALUES (?, ?, ?, ?, ?)`
+	result, err := ExecuteQuery(query, post.UserID, post.Title, post.Text, post.Privacy, post.Image)
 	if err != nil {
 		return err
 	}
@@ -22,6 +21,15 @@ func CreatePost(post *models.Post) error {
 		return err
 	}
 	post.ID = int(id)
+
+	post_categories := `INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)`
+	for _, categoryID := range post.Categories {
+		_, err := ExecuteQuery(post_categories, post.ID, categoryID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -37,7 +45,7 @@ func CreatePost(post *models.Post) error {
 
 	// Then, fetch the posts for the current page
 	query := `SELECT id, user_id, title, content, created_at, (SELECT username FROM users WHERE id = user_id) AS author, privacy
-		  
+
           FROM posts ORDER BY id DESC LIMIT ? OFFSET ?`
 	rows, err := FetchData(query, limit, offset)
 	if err != nil {
@@ -122,7 +130,7 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		   COALESCE(SUM(CASE WHEN ld.is_like = 1 THEN 1 ELSE 0 END), 0) as likes,
 		   COALESCE(SUM(CASE WHEN ld.is_like = 0 THEN 1 ELSE 0 END), 0) as dislikes,
 		   GROUP_CONCAT(DISTINCT pc.category_id) as category_ids
-		   , (SELECT u.username FROM users u WHERE u.id = p.user_id) AS author, p.privacy
+		   , (SELECT u.username FROM users u WHERE u.id = p.user_id) AS author, p.privacy, p.image
 	FROM posts p
 	LEFT JOIN likes_dislikes ld ON p.id = ld.post_id
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
@@ -133,15 +141,15 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 				p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?) and
 				p.id in      (select post_id    from post_viewers where viewer_id = ?)
 			)
-	)`
+	)
+	AND p.group_id IS NULL`
 
 	var args []interface{}
 	userID, erruserID := GetUserIDFromSession(r)
 	if erruserID != nil {
-		log.Printf("Error getting user ID from session (GetFilteredPosts): %v", erruserID)
 		return nil, 0, erruserID
 	}
-	for i := 0; i < 4; i++ { args = append(args, userID) }
+	args = append(args, userID, userID, userID, userID)
 
 	if categories, ok := filters["categories"].([]interface{}); ok && len(categories) > 0 {
 		placeholders := make([]string, len(categories))
@@ -181,13 +189,6 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	query += " GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?"
 	args = append(args, limit, (page-1)*limit)
 
-	finalQuery := query
-	for _, arg := range args {
-		finalQuery = strings.Replace(finalQuery, "?", fmt.Sprintf("%v", arg), 1)
-	}
-	log.Println("🎬🎬🎬🎬Final query:", finalQuery)
-
-	log.Printf("Executing query with args: %v", args)
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Printf("Error executing query: %v", err)
@@ -199,12 +200,11 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	for rows.Next() {
 		var post models.Post
 		var categoryIDsStr sql.NullString
-		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr, &post.Author, &post.Privacy)
+		err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Text, &post.CreatedAt, &post.Likes, &post.Dislikes, &categoryIDsStr, &post.Author, &post.Privacy, &post.Image)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
 			return nil, 0, err
 		}
-		log.Printf("Scanned post: %+v", post)
 		if categoryIDsStr.Valid {
 			categoryIDs := strings.Split(categoryIDsStr.String, ",")
 			post.Categories = make([]int, len(categoryIDs))
@@ -216,22 +216,13 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		posts = append(posts, post)
 	}
 
-	log.Printf("Total posts retrieved: %d", len(posts))
-
 	var totalCount int
 	countQuery := "SELECT COUNT(DISTINCT p.id) " + query[strings.Index(query, "FROM posts p"):]
 	countQuery = strings.Replace(countQuery, "GROUP BY p.id ORDER BY p.id DESC LIMIT ? OFFSET ?", "", 1)
-	finalQuery2 := countQuery
-	for _, arg := range args {
-		finalQuery2 = strings.Replace(finalQuery2, "?", fmt.Sprintf("%v", arg), 1)
-	}
-	log.Println("🎬🎬🎬🎬Final countQuery:", finalQuery2)
 	err = db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	log.Printf("Total count from database: %d", totalCount)
 
 	return posts, totalCount, nil
 }

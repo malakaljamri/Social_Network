@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	// "log"
 	"net/http"
 	"slices"
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
 )
@@ -15,7 +16,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
@@ -52,7 +53,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
@@ -69,7 +70,6 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	currentUserID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		// http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error: Unauthorized",
@@ -83,8 +83,8 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	})
 	onlineUsers, err := database.GetOnlineUsersDetails(onlineUserIDs, currentUserID)
 	if err != nil {
-		http.Error(w, "Error fetching online users", http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, "Error fetching online users", http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error fetching online users",
 			"error":   err.Error(),
@@ -93,7 +93,9 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(onlineUsers)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"onlineUsers": onlineUsers,
+	})
 }
 
 // New profile-related handlers
@@ -183,7 +185,7 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 	// Fetch posts by the user
 	posts, err := database.GetPostsByUser(userID, page, limit)
 	if err != nil {
-		log.Printf("Error fetching posts for user %d: %v", userID, err)
+		// log.Printf("Error fetching posts for user %d: %v", userID, err)
 		http.Error(w, "Error fetching user posts", http.StatusInternalServerError)
 		return
 	}
@@ -193,16 +195,15 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 		posts = []models.Post{}
 	}
 
-	log.Printf("Returning %d posts for user %d", len(posts), userID)
+	// log.Printf("Returning %d posts for user %d", len(posts), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
 }
 
 // GetUserFollowers returns users following the specified user
 func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
-	// Get target user ID from URL query
-	userIDStr := r.URL.Query().Get("id")
-	userID, err := strconv.Atoi(userIDStr)
+	// Get current logged-in user ID from session
+	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -211,7 +212,7 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 	// Fetch followers
 	followers, err := database.GetFollowers(userID)
 	if err != nil {
-		log.Printf("Error fetching followers for user %d: %v", userID, err)
+		// log.Printf("Error fetching followers for user %d: %v", userID, err)
 		http.Error(w, "Error fetching followers", http.StatusInternalServerError)
 		return
 	}
@@ -221,7 +222,7 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 		followers = []models.User{}
 	}
 
-	log.Printf("Returning %d followers for user %d", len(followers), userID)
+	// log.Printf("Returning %d followers for user %d", len(followers), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(followers)
 }
@@ -239,7 +240,7 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 	// Fetch following
 	following, err := database.GetFollowing(userID)
 	if err != nil {
-		log.Printf("Error fetching following for user %d: %v", userID, err)
+		// log.Printf("Error fetching following for user %d: %v", userID, err)
 		http.Error(w, "Error fetching following", http.StatusInternalServerError)
 		return
 	}
@@ -249,7 +250,7 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 		following = []models.User{}
 	}
 
-	log.Printf("Returning %d following for user %d", len(following), userID)
+	// log.Printf("Returning %d following for user %d", len(following), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(following)
 }
@@ -368,4 +369,47 @@ func getPaginationParams(r *http.Request) (page, limit int) {
 	}
 
 	return page, limit
+}
+
+// GetCurrentUser returns the currently logged-in user or {isLoggedIn: false}
+func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"isLoggedIn": false,
+		})
+		return
+	}
+	user, err := database.GetUserByID(userID)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"isLoggedIn": false,
+		})
+		return
+	}
+	user.Password = ""
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"isLoggedIn": true,
+		"id":         user.ID,
+		"username":   user.Username,
+		"email":      user.Email,
+	})
+}
+
+func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Error: Unauthorized")
+		return
+	}
+
+	users, err := database.GetAllUsers(currentUserID)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching users")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 }

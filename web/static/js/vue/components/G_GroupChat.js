@@ -1,0 +1,85 @@
+// GroupChat Component
+const GroupChat = {
+    props: ['groupName', 'groupId'],
+    inject: ['websocket'],
+    template: `
+        <div class="modal-content" @click.stop style="max-width: 400px;">
+            <h2>{{ groupName }} Chat Room</h2>
+            <div class="chat-messages" ref="messagesContainer" style="height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 12px; border-radius: 8px; padding: 8px;">
+                <div v-if="loading" class="loading-indicator">Loading...</div>
+                <div v-else-if="messages.length === 0" class="no-messages">No messages yet. Start chatting!</div>
+                <div v-for="msg in messages" :key="msg.timestamp + msg.content" class="chat-message">
+                    <span>[{{ formatTimestamp(msg.timestamp) }}]</span><br>
+                    <span :class="{'self-message': msg.sender_id === currentUserId}">
+                        {{ msg.sender_id === currentUserId ? 'You' : msg.sender_username || 'User ' + msg.sender_id }}:
+                    </span>
+                    {{ msg.content }}
+                </div>
+            </div>
+            <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox" style="width: 80%; margin-right: 8px;">
+            <button @click="sendMessage">Send</button>
+            <button type="button" class="cancel-btn" @click="$emit('close')" style="float: right;">Close</button>
+        </div>
+    `,
+    data() {
+        return {
+            messages: [],
+            input: '',
+            loading: true,
+            currentUserId: null
+        };
+    },
+    methods: {
+        async fetchHistory() {
+            this.loading = true;
+            try {
+                const res = await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
+                const data = await res.json();
+                this.messages = Array.isArray(data) ? data : [];
+            } catch (e) {
+                this.messages = [];
+            }
+            this.loading = false;
+            this.$nextTick(this.scrollToBottom);
+        },
+        sendMessage() {
+            if (!this.input.trim()) return;
+            if (this.websocket && this.websocket.state.connected) {
+                this.websocket.sendGroupChatMessage(this.groupId, this.input);
+                this.input = '';
+            }
+        },
+        formatTimestamp(ts) {
+            if (!ts) return '';
+            return new Date(ts).toLocaleString();
+        },
+        scrollToBottom() {
+            const c = this.$refs.messagesContainer;
+            if (c) c.scrollTop = c.scrollHeight;
+        },
+        receiveMessage(msg) {
+            if (msg.group_id === this.groupId) {
+                this.messages.push(msg);
+                this.$nextTick(this.scrollToBottom);
+            }
+        }
+    },
+    mounted() {
+        // Get current user ID from root
+        this.currentUserId = this.$root.currentUser?.id;
+        this.fetchHistory();
+        window.addEventListener('group-chat-message', this._onGroupChatMessage = (e) => {
+            const msg = e.detail;
+            if (msg.group_id === this.groupId) {
+                this.receiveMessage(msg);
+            }
+        });
+        this.$nextTick(() => {
+            if (this.$refs.inputBox) this.$refs.inputBox.focus();
+        });
+    },
+    beforeUnmount() {
+        window.removeEventListener('group-chat-message', this._onGroupChatMessage);
+    }
+};
+window.G_GroupChat = GroupChat; 

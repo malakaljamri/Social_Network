@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
-	"regexp"
+	"os"
+	"path/filepath"
 	"social_network/internal/database"
 	"social_network/internal/models"
+	"social_network/internal/utils"
+
 	// "social_network/internal/websocket"
 	"strconv"
 	"strings"
@@ -18,33 +22,103 @@ import (
 func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-
-	var post models.Post
-	err := json.NewDecoder(r.Body).Decode(&post)
+	userID, errUserID := database.GetUserIDFromSession(r)
+	if errUserID != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get user ID from session")
+		return
+	}
+	// Parse the multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Failed to parse form data")
 		return
 	}
 
-	// Trim whitespace from title and content
-	post.Title = strings.TrimSpace(post.Title)
-	post.Text = strings.TrimSpace(post.Text)
+	// Determine the root directory of the project
+	executablePath, err := os.Executable() // Get the path of the running executable
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to determine executable path")
+		return
+	}
+	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
 
-	// Enhanced validation
-	if err := PostValidation(&post); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	// Construct the path to "web/uploads" relative to the root directory
+	uploadDir := filepath.Join(rootDir, "..", "web", "uploads", fmt.Sprintf("userID%d", userID)) // Go up one level, then to "web/uploads"
+
+	// Ensure the uploads directory exists
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		err := os.MkdirAll(uploadDir, os.ModePerm)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create uploads directory")
+			return
+		}
+	}
+
+	// Handle the uploaded image file
+	var imagePath string
+	file, handler, err := r.FormFile("Image")
+	if err == nil { // If an image is provided
+		defer file.Close()
+		// Save the file to the uploads folder
+		uploadPath := filepath.Join(uploadDir, handler.Filename)
+		out, err := os.Create(uploadPath)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
+			return
+		}
+		defer out.Close()
+		_, err = io.Copy(out, file)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
+			return
+		}
+		imagePath = fmt.Sprintf("/uploads/userID%d/%s", userID, handler.Filename) // Relative path for serving
+	}
+
+	// Extract form fields
+	title := strings.TrimSpace(r.FormValue("Title"))
+	text := strings.TrimSpace(r.FormValue("Text"))
+	var categoryIDs []int
+	categoryIDsStr := r.FormValue("CategoryIDs")
+	if categoryIDsStr != "" {
+		err = json.Unmarshal([]byte(categoryIDsStr), &categoryIDs)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid CategoryIDs format")
+			return
+		}
+	}
+	privacy := r.FormValue("Privacy")
+
+	// Validate the fields
+	if len(title) < 3 || len(title) > 100 {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Title must be between 3 and 100 characters")
+		return
+	}
+	if len(text) < 10 || len(text) > 5000 {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Content must be between 10 and 5000 characters")
 		return
 	}
 
-	// Sanitize the input
-	post.Title = html.EscapeString(post.Title)
-	post.Text = html.EscapeString(post.Text)
-
-	// Create post in database
+	// Create the post object
+	post := models.Post{
+		Title:      html.EscapeString(title),
+		Text:       html.EscapeString(text),
+		Categories: categoryIDs,
+		UserID:     userID,
+		Privacy:    privacy,
+		Image:      imagePath,
+	}
+	// Validate the post using PostValidation
+	err = PostValidation(&post)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		return
+	}
+	// Save the post to the database
 	err = database.CreatePost(&post)
 	if err != nil {
 		log.Printf("Database error: %v", err)
-		http.Error(w, "Error creating post", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating post")
 		return
 	}
 
@@ -53,34 +127,11 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		"status": "success",
 		"post":   post,
 	}
-
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
 
-func PostValidation(post *models.Post) error {
-
-	// Validate title
-	if len(post.Title) < 3 || len(post.Title) > 100 {
-		return fmt.Errorf("title must be between 3 and 100 characters")
-	}
-
-	// Validate content
-	if len(post.Text) < 10 || len(post.Text) > 5000 {
-		return fmt.Errorf("content must be between 10 and 5000 characters")
-	}
-
-	// Title character validation using more precise regex
-	titleRegex := regexp.MustCompile(`^[a-zA-Z0-9\s!?.,'-]+$`)
-	if !titleRegex.MatchString(post.Title) {
-		return fmt.Errorf("title Contains Invalid Characters")
-	}
-
-	return nil
-}
-
 func GetPosts(w http.ResponseWriter, r *http.Request) {
-	// log.Println("Original GetPosts called")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
@@ -90,12 +141,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	if limit < 1 {
 		limit = 10
 	}
-	// log.Println("📃📃📃📃page:", page)
 
-	// posts, totalCount, err := database.GetPosts(page, limit)
 	posts, totalCount, err := database.GetFilteredPosts(page, limit, nil, r)
 	if err != nil {
-		http.Error(w, "❌ Error fetching posts", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "❌ Error fetching posts")
 		return
 	}
 
@@ -110,13 +159,13 @@ func GetPostByID(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil {
-		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid post ID")
 		return
 	}
 
 	post, err := database.GetPostByID(postID)
 	if err != nil {
-		http.Error(w, "Error fetching post", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching post")
 		return
 	}
 	json.NewEncoder(w).Encode(post)
@@ -126,13 +175,13 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	postIDStr := r.URL.Query().Get("id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil {
-		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid post ID")
 		return
 	}
 
 	err = database.DeletePost(postID)
 	if err != nil {
-		http.Error(w, "Error deleting post", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error deleting post")
 		return
 	}
 
@@ -143,7 +192,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 func ServePostPage(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.ParseFiles("web/templates/post.html")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	tmpl.Execute(w, nil)
@@ -178,7 +227,7 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal([]byte(filtersJSON), &filters)
 	if err != nil {
 		log.Printf("Error unmarshaling filters: %v", err)
-		http.Error(w, "Invalid filters", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid filters")
 		return
 	}
 	log.Printf("Parsed filters: %+v", filters)
@@ -186,26 +235,25 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	posts, totalCount, err := database.GetFilteredPosts(page, limit, filters, r)
 	if err != nil {
 		log.Printf("Error getting filtered posts: %v", err)
-		http.Error(w, fmt.Sprintf("GetFilteredPosts issue: %v", err), http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("GetFilteredPosts issue: %v", err))
 		return
 	}
 	log.Printf("Retrieved %d posts out of %d total", len(posts), totalCount)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
-
-	err = json.NewEncoder(w).Encode(posts)
-	if err != nil {
-		log.Printf("Error encoding posts to JSON: %v", err)
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
-	log.Println("Response sent successfully")
+	totalPages := (totalCount + limit - 1) / limit
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"posts":        posts,
+		"totalPages":   totalPages,
+		"totalResults": totalCount,
+	})
 }
+
 func GetOldestPostDate(w http.ResponseWriter, r *http.Request) {
 	date, err := database.GetOldestPostDate()
 	if err != nil {
-		http.Error(w, "Error fetching oldest post date", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching oldest post date")
 		return
 	}
 	json.NewEncoder(w).Encode(date)
@@ -214,7 +262,7 @@ func GetOldestPostDate(w http.ResponseWriter, r *http.Request) {
 func GetNewestPostDate(w http.ResponseWriter, r *http.Request) {
 	date, err := database.GetNewestPostDate()
 	if err != nil {
-		http.Error(w, "Error fetching newest post date", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching newest post date")
 		return
 	}
 	json.NewEncoder(w).Encode(date)
@@ -234,3 +282,38 @@ func GetNewestPostDate(w http.ResponseWriter, r *http.Request) {
 
 	client.Send <- messageToJSON(message)
 }*/
+
+// PostLikeDislikeRouter routes to like or dislike based on the URL path
+func PostLikeDislikeRouter(w http.ResponseWriter, r *http.Request) {
+	// Path: /api/posts/{id}/like or /api/posts/{id}/dislike
+	path := r.URL.Path
+	// Remove prefix
+	prefix := "/api/posts/"
+	if !strings.HasPrefix(path, prefix) {
+		utils.WriteJSONError(w, http.StatusNotFound, "Invalid path")
+		return
+	}
+	rest := path[len(prefix):] // e.g. 123/like
+	parts := strings.Split(rest, "/")
+	if len(parts) != 2 {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid path format")
+		return
+	}
+	postIDStr, action := parts[0], parts[1]
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid post ID")
+		return
+	}
+	// Prepare a fake request body with post ID
+	r.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"PostID":%d}`, postID)))
+	r.Header.Set("Content-Type", "application/json")
+	switch action {
+	case "like":
+		LikePost(w, r)
+	case "dislike":
+		DislikePost(w, r)
+	default:
+		utils.WriteJSONError(w, http.StatusNotFound, "Unknown action")
+	}
+}
