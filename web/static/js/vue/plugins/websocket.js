@@ -131,10 +131,15 @@ const WebSocketPlugin = {
                     LastMessageTime: Date.now()
                 });
             }
-            // Force a refresh of online users from server
-            // console.time("fetchOnlineUsers");
-            // fetchOnlineUsers();
-            // console.timeEnd("fetchOnlineUsers");
+            
+            // Dispatch event for user status change
+            window.dispatchEvent(new CustomEvent('user-status-change', { 
+                detail: {
+                    userId: data.user_id,
+                    status: data.status,
+                    username: data.username
+                }
+            }));
         }
 
         // Handle chat messages
