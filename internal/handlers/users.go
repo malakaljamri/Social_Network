@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	// "log"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"social_network/internal/database"
 	"social_network/internal/models"
@@ -412,4 +415,180 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
+}
+
+// UpdateProfileImage handles profile image upload and update
+func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
+	// Get current user ID from session
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Parse multipart form with 10MB max memory
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Error parsing form")
+		return
+	}
+
+	// Get file from form
+	file, handler, err := r.FormFile("image")
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Error retrieving file")
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	if !utils.IsValidImageType(handler.Header.Get("Content-Type")) {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid file type. Only JPEG, PNG and GIF are allowed")
+		return
+	}
+
+	// Generate unique filename
+	filename := fmt.Sprintf("profile_%d_%s", currentUserID, handler.Filename)
+	filepath := filepath.Join("web/uploads", filename)
+
+	// Create destination file
+	dst, err := os.Create(filepath)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating file")
+		return
+	}
+	defer dst.Close()
+
+	// Copy file contents
+	if _, err := io.Copy(dst, file); err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error saving file")
+		return
+	}
+
+	// Update user's avatar in database
+	err = database.UpdateUserAvatar(currentUserID, filename)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error updating profile image")
+		return
+	}
+
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Profile image updated successfully",
+		"image":   filename,
+	})
+}
+
+// UpdateProfileInfo handles updating user profile information
+func UpdateProfileInfo(w http.ResponseWriter, r *http.Request) {
+	// Get current user ID from session
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Parse request body
+	var profileData struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Nickname  string `json:"nickname"`
+		AboutMe   string `json:"about_me"`
+		Gender    string `json:"gender"`
+		BirthDate string `json:"birth_date"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&profileData); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Update user profile in database
+	err = database.UpdateUserProfile(currentUserID, profileData)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error updating profile")
+		return
+	}
+
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Profile updated successfully",
+	})
+}
+
+// ToggleProfilePrivacy handles toggling profile privacy between public and private
+func ToggleProfilePrivacy(w http.ResponseWriter, r *http.Request) {
+	// Get current user ID from session
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Parse request body
+	var privacyData struct {
+		IsPrivate bool `json:"is_private"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&privacyData); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Update privacy setting in database
+	err = database.UpdateUserPrivacy(currentUserID, privacyData.IsPrivate)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error updating privacy settings")
+		return
+	}
+
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Privacy settings updated successfully",
+	})
+}
+
+// HandleFollowRequest handles accepting or declining follow requests
+func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
+	// Get current user ID from session
+	currentUserID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Get follower ID from URL
+	followerIDStr := r.URL.Query().Get("follower_id")
+	followerID, err := strconv.Atoi(followerIDStr)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid follower ID")
+		return
+	}
+
+	// Parse request body
+	var requestData struct {
+		Action string `json:"action"` // "accept" or "decline"
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Handle the follow request
+	switch requestData.Action {
+	case "accept":
+		err = database.AcceptFollowRequest(followerID, currentUserID)
+	case "decline":
+		err = database.DeclineFollowRequest(followerID, currentUserID)
+	default:
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid action")
+		return
+	}
+
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error handling follow request")
+		return
+	}
+
+	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
+		"message": "Follow request handled successfully",
+	})
 }

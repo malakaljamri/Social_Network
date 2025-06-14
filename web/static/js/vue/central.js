@@ -1,24 +1,58 @@
 // Central Vue App
 const app = Vue.createApp({
+    delimiters: ['[[', ']]'],
     data() {
         return {
-            currentView: 'login',
-            showRegisterModal: false,
-            showCreatePostModal: false,
-            showCreateGroupModal: false,
-            showCreateGroupPostModal: false,
-            selectedGroupIdForModal: null,
+            currentView: 'home',
             currentUser: Vue.ref({
                 isLoggedIn: false,
                 id: null,
                 username: null,
                 email: null
             }),
+            isAuthenticated: false,
+            showLoginModal: false,
+            showRegisterModal: false,
+            showCreatePostModal: false,
+            showCreateGroupModal: false,
+            showCreateEventModal: false,
+            showGroupEventsModal: false,
+            selectedGroupId: null,
+            selectedGroup: null,
+            selectedEvent: null,
+            showFilters: false,
+            filters: {
+                status: 'all',
+                minAge: 18,
+                maxAge: 100,
+                distance: 50,
+                tags: []
+            },
+            users: [],
+            loading: false,
+            error: null,
+            ws: null,
+            messages: [],
+            newMessage: '',
+            groups: [],
+            selectedGroupForEvents: null,
+            events: [],
             chatWindows: new Map(),
             minimizedChats: new Set(),
-            posts: [], // for updating after post creation
-            groups: [], // for updating after group creation
-            openChats: [] // <-- moved from HomeView
+            selectedChatUser: null,
+            chatMessages: [],
+            newChatMessage: '',
+            unreadMessages: {},
+            notifications: [],
+            showNotifications: false,
+            notificationCount: 0,
+            showProfileEdit: false,
+            showFollowRequests: false,
+            followRequests: [],
+            showCreateGroupPostModal: false,
+            selectedGroupIdForModal: null,
+            posts: [],
+            openChats: []
         };
     },
     watch: {

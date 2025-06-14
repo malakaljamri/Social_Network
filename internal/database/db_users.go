@@ -194,3 +194,57 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 	}
 	return result
 }*/
+
+// UpdateUserAvatar updates the user's avatar filename in the database
+func UpdateUserAvatar(userID int, avatarFilename string) error {
+	query := `UPDATE users SET avatar = ? WHERE id = ?`
+	_, err := ExecuteQuery(query, avatarFilename, userID)
+	return err
+}
+
+// UpdateUserProfile updates the user's profile information
+func UpdateUserProfile(userID int, profileData struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Nickname  string `json:"nickname"`
+	AboutMe   string `json:"about_me"`
+	Gender    string `json:"gender"`
+	BirthDate string `json:"birth_date"`
+}) error {
+	query := `
+		UPDATE users 
+		SET first_name = ?, 
+			last_name = ?, 
+			nickname = ?, 
+			about_me = ?, 
+			gender = ?, 
+			birthDate = ?
+		WHERE id = ?
+	`
+	_, err := ExecuteQuery(query,
+		profileData.FirstName,
+		profileData.LastName,
+		profileData.Nickname,
+		profileData.AboutMe,
+		profileData.Gender,
+		profileData.BirthDate,
+		userID,
+	)
+	return err
+}
+
+// UpdateUserPrivacy updates the user's privacy settings
+func UpdateUserPrivacy(userID int, isPrivate bool) error {
+	query := `
+		UPDATE users 
+		SET is_private = ?,
+			profile_privacy = ?
+		WHERE id = ?
+	`
+	privacy := "public"
+	if isPrivate {
+		privacy = "private"
+	}
+	_, err := ExecuteQuery(query, isPrivate, privacy, userID)
+	return err
+}

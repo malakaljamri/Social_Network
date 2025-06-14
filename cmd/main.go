@@ -60,6 +60,12 @@ func main() {
 	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 
+	// New profile-related endpoints
+	mux.HandleFunc("/api/profile/image", handlers.UpdateProfileImage)
+	mux.HandleFunc("/api/profile/info", handlers.UpdateProfileInfo)
+	mux.HandleFunc("/api/profile/privacy", handlers.ToggleProfilePrivacy)
+	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest)
+
 	// Other API routes
 	mux.HandleFunc("/api/categories", handlers.GetCategories)
 	mux.HandleFunc("/category/create", handlers.CreateCategory)

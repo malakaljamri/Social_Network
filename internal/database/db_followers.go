@@ -151,3 +151,36 @@ func GetUserWithFollowCounts(userID int) (models.UserProfile, error) {
 		PostsCount:     postsCount,
 	}, nil
 }
+
+// AcceptFollowRequest accepts a follow request by updating the status to 'accepted'
+func AcceptFollowRequest(followerID, followedID int) error {
+	query := `
+		UPDATE followers 
+		SET status = 'accepted' 
+		WHERE follower_id = ? AND followed_id = ?
+	`
+	_, err := ExecuteQuery(query, followerID, followedID)
+	return err
+}
+
+// DeclineFollowRequest declines a follow request by updating the status to 'declined'
+func DeclineFollowRequest(followerID, followedID int) error {
+	query := `
+		UPDATE followers 
+		SET status = 'declined' 
+		WHERE follower_id = ? AND followed_id = ?
+	`
+	_, err := ExecuteQuery(query, followerID, followedID)
+	return err
+}
+
+// GetPendingFollowRequests returns all pending follow requests for a user
+func GetPendingFollowRequests(userID int) ([]models.User, error) {
+	query := `
+		SELECT u.id, u.username, u.email 
+		FROM users u
+		JOIN followers f ON u.id = f.follower_id
+		WHERE f.followed_id = ? AND f.status = 'pending'
+	`
+	return fetchUsers(query, userID)
+}
