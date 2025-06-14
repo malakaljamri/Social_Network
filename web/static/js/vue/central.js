@@ -111,7 +111,7 @@ const app = Vue.createApp({
             this.selectedGroupIdForModal = null;
         },
         handleShowModal(modalType) {
-            console.log('Handling show modal:', modalType, 'Current user:', this.currentUser);
+            console.log('Handling show modal:', modalType, 'Current user:', this.currentUser.value);
             if (modalType === 'createPost') {
                 console.log('About to open create post modal');
                 this.openCreatePostModal();
@@ -212,6 +212,88 @@ const app = Vue.createApp({
         openChat(user) {
             if (!this.openChats.some(u => u.ID === user.ID)) {
                 this.openChats.push(user);
+            }
+        },
+        async checkUserStatus() {
+            try {
+                const response = await fetch('/api/user', { credentials: 'include' });
+                const userData = await response.json();
+                const isLoggedIn = userData && userData.id;
+                const userId = userData.id || userData.userID;
+                if (isLoggedIn) {
+                    this.currentUser.value = {
+                        isLoggedIn: true,
+                        id: userId,
+                        username: userData.username,
+                        email: userData.email
+                    };
+                    this.currentView = 'home';
+                } else {
+                    this.currentUser.value = {
+                        isLoggedIn: false,
+                        id: null,
+                        username: null,
+                        email: null
+                    };
+                    this.currentView = 'login';
+                }
+            } catch (e) {
+                console.error('Error fetching user status:', e);
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
+                this.currentView = 'login';
+            }
+        },
+        async handleUserResponse(response) {
+            try {
+                const data = await response.json();
+                const isLoggedIn = data && (data.id || data.userID);
+                const userId = data.id || data.userID;
+                if (isLoggedIn) {
+                    this.currentUser.value = {
+                        isLoggedIn: true,
+                        id: userId,
+                        username: data.username,
+                        email: data.email
+                    };
+                    this.goToHome();
+                } else {
+                    this.currentUser.value = {
+                        isLoggedIn: false,
+                        id: null,
+                        username: null,
+                        email: null
+                    };
+                    this.currentView = 'login';
+                }
+            } catch (e) {
+                console.error('Error parsing user response:', e);
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
+                this.currentView = 'login';
+            }
+        },
+        async fetchUserStatus() {
+            try {
+                const response = await fetch('/api/user', { credentials: 'include' });
+                await this.handleUserResponse(response);
+            } catch (error) {
+                console.error('Error fetching user status:', error);
+                this.currentUser.value = {
+                    isLoggedIn: false,
+                    id: null,
+                    username: null,
+                    email: null
+                };
+                this.currentView = 'login';
             }
         }
     },
@@ -348,26 +430,20 @@ app.component('nav-bar', NavBar);
 app.component('users-list', UsersList);
 app.component('filters-sidebar', FiltersSidebar);
 app.component('chat-window', ChatWindow);
+app.component('g-group-list', G_GroupList);
+app.component('g-group-main', G_GroupMain);
+app.component('g-group-chat', G_GroupChat);
+app.component('login-view', LoginView);
+app.component('home-view', HomeView);
+app.component('groups-view', GroupsView);
+app.component('create-post-modal', CreatePostModal);
+app.component('comment-section', CommentSection);
 app.component('m-register', M_Register);
 app.component('m-create-post', M_CreatePost);
 app.component('m-group-create', M_GroupCreate);
 app.component('m-group-create-post', M_GroupCreatePost);
-app.component('m-group-create-event', window.M_GroupCreateEvent);
-// Register main views with correct names for dynamic :is usage
-app.component('login-view', LoginView);
-app.component('home-view', HomeView);
-app.component('groups-view', GroupsView);
-app.component('profile-view', ProfileView);
-// Stub components for missing group features
-app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
-app.component('group-events', { template: '<div>Group Events (stub)</div>' });
-app.component('group-chat', GroupChat);
-app.component('g-group-list', G_GroupList);
-app.component('g-group-main', G_GroupMain);
-app.component('g-group-chat', G_GroupChat);
-app.component('g-group-events-modal', window.G_GroupEventsModal);
-app.component('create-post-modal', CreatePostModal);
-app.component('comment-section', CommentSection);
+app.component('m-group-create-event', M_GroupCreateEvent);
+app.component('g-group-events-modal', G_GroupEventsModal);
 
 // Mount the app
 app.mount('#app'); 
