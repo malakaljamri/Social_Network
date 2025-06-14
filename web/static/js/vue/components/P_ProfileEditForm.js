@@ -1,5 +1,5 @@
 // ProfileEditForm Component
-const ProfileEditForm = {
+const P_ProfileEditForm = {
     template: `
         <div class="profile-edit-form">
             <h3>Edit Profile</h3>

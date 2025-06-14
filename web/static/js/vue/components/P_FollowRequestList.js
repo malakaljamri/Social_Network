@@ -1,6 +1,5 @@
-
 // FollowRequestList Component
-const FollowRequestList = {
+const P_FollowRequestList = {
     template: `
         <div class="follow-requests">
             <h3>Follow Requests</h3>

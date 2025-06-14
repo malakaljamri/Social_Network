@@ -52,7 +52,8 @@ const app = Vue.createApp({
             showCreateGroupPostModal: false,
             selectedGroupIdForModal: null,
             posts: [],
-            openChats: []
+            openChats: [],
+            selectedProfileUserId: null
         };
     },
     watch: {
@@ -329,6 +330,10 @@ const app = Vue.createApp({
                 };
                 this.currentView = 'login';
             }
+        },
+        viewUserProfile(userId) {
+            this.selectedProfileUserId = userId;
+            this.currentView = 'profile';
         }
     },
     mounted() {
@@ -423,6 +428,7 @@ const app = Vue.createApp({
                 @open-create-group-post-modal="openCreateGroupPostModal"
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
+                v-bind="currentView === 'profile' ? { userId: selectedProfileUserId } : {}"
             ></component>
             <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>
             <m-create-post
@@ -470,6 +476,7 @@ app.component('g-group-chat', G_GroupChat);
 app.component('login-view', LoginView);
 app.component('home-view', HomeView);
 app.component('groups-view', GroupsView);
+app.component('profile-view', ProfileView);
 app.component('create-post-modal', CreatePostModal);
 app.component('comment-section', CommentSection);
 app.component('m-register', M_Register);
@@ -478,6 +485,8 @@ app.component('m-group-create', M_GroupCreate);
 app.component('m-group-create-post', M_GroupCreatePost);
 app.component('m-group-create-event', M_GroupCreateEvent);
 app.component('g-group-events-modal', G_GroupEventsModal);
+app.component('p-profile-edit-form', P_ProfileEditForm);
+app.component('p-follow-request-list', P_FollowRequestList);
 
 // Mount the app
 app.mount('#app'); 

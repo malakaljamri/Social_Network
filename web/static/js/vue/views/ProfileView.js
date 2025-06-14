@@ -42,14 +42,14 @@ const ProfileView = {
                     </div>
 
                     <!-- Profile Edit Form -->
-                    <profile-edit-form v-if="showEditForm && isOwnProfile"
+                    <p-profile-edit-form v-if="showEditForm && isOwnProfile"
                                      @profile-updated="onProfileUpdated">
-                    </profile-edit-form>
+                    </p-profile-edit-form>
 
                     <!-- Follow Requests -->
-                    <follow-request-list v-if="isOwnProfile"
+                    <p-follow-request-list v-if="isOwnProfile"
                                        @request-handled="onRequestHandled">
-                    </follow-request-list>
+                    </p-follow-request-list>
 
                     <!-- Profile Content -->
                     <div class="profile-content">
@@ -130,7 +130,11 @@ const ProfileView = {
         async fetchProfile() {
             this.loading = true;
             try {
-                const response = await fetch('/api/user/profile', {
+                let userId = this.userId;
+                if (!userId) {
+                    userId = this.$root.currentUser.value.id;
+                }
+                const response = await fetch(`/api/user/profile?id=${userId}`, {
                     credentials: 'include'
                 });
                 if (!response.ok) {
@@ -159,6 +163,12 @@ const ProfileView = {
     },
     mounted() {
         this.fetchProfile();
+    },
+    props: {
+        userId: {
+            type: [String, Number],
+            default: null
+        }
     }
 };
 
