@@ -9,6 +9,7 @@ const ProfileView = {
                     <div class="profile-header">
                         <div class="profile-avatar">
                             <img :src="profile.user.avatar || '/static/images/default-avatar.png'" 
+                                 style="max-width: 100%; height: auto; object-fit: cover;"
                                  :alt="profile.user.username" 
                                  class="avatar-large">
                             <button v-if="isOwnProfile" 
@@ -162,14 +163,22 @@ const ProfileView = {
         }
     },
     mounted() {
-        this.fetchProfile();
+        //this.fetchProfile(); // Now it is handled by the watch. This is for the van button to work.
     },
     props: {
         userId: {
             type: [String, Number],
             default: null
         }
-    }
+    },
+    watch: {
+        userId: {
+            immediate: true,
+            handler() {
+                this.fetchProfile();
+            }
+        }
+    },
 };
 
 // No mount here, will be registered globally. 

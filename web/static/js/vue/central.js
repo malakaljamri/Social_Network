@@ -174,7 +174,15 @@ const app = Vue.createApp({
             // Optionally refresh group posts here
         },
         handleNavigate(view) {
-            this.currentView = view;
+            if (this.currentView === view) {
+                // Force a re-render by temporarily setting to null
+                this.currentView = null;
+                this.$nextTick(() => {
+                    this.currentView = view;
+                });
+            } else {
+                this.currentView = view;
+            }
         },
         async onLogin(data) {
             // Called when login-form emits 'login' with user data
