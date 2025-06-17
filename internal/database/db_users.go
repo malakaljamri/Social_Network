@@ -9,8 +9,8 @@ import (
 var OnlineUsers = make(map[int]bool)
 
 func CreateUser(user *models.User) error {
-	query := `INSERT INTO users (username, email, password, birthDate, gender, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	result, err := ExecuteQuery(query, user.Username, user.Email, user.Password, fmt.Sprint(user.BirthDate.Year(), "-", int(user.BirthDate.Month()), "-", user.BirthDate.Day()), user.Gender, user.FirstName, user.LastName)
+	query := `INSERT INTO users (username, email, password, birthDate, gender, first_name, last_name, avatar, about_me) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	result, err := ExecuteQuery(query, user.Username, user.Email, user.Password, fmt.Sprint(user.BirthDate.Year(), "-", int(user.BirthDate.Month()), "-", user.BirthDate.Day()), user.Gender, user.FirstName, user.LastName, user.Avatar, user.AboutMe)
 	if err != nil {
 		return err
 	}

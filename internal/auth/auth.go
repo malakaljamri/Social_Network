@@ -41,9 +41,9 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
-	if user.Username == "" || /* user.BirthDate == (time.Time{}) ||*/ user.Gender == "" || user.FirstName == "" || user.LastName == "" || user.Email == "" || user.Password == "" {
-		writeJSONError(w, "All fields are required", http.StatusBadRequest)
+	// Validate required fields (username is now optional)
+	if user.Email == "" || user.Password == "" || user.FirstName == "" || user.LastName == "" || user.Gender == "" {
+		writeJSONError(w, "Email, Password, First Name, Last Name, and Gender are required", http.StatusBadRequest)
 		return
 	}
 
