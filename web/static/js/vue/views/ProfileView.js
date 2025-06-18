@@ -20,6 +20,19 @@ const ProfileView = {
                         </div>
                         <div class="profile-info">
                             <h2>{{ profile.user.Username || profile.user.username }}'s Profile</h2>
+                            <!-- Follow/Unfollow/Request Button for non-own profiles -->
+                            <div v-if="!isOwnProfile && !isViewingOwnProfile" class="follow-action">
+                                <button v-if="profile.IsFollowing" class="btn btn-danger" @click="unfollowUser" title="Click to unfollow this user">
+                                    Unfollow
+                                </button>
+                                <button v-else-if="profile.IsPending" class="btn btn-secondary" disabled title="Your follow request is awaiting approval">
+                                    Request Pending
+                                </button>
+                                <button v-else class="btn btn-success" @click="followUser" title="Click to follow. If the profile is private, your request will need approval.">
+                                    Follow
+                                </button>
+                                <span v-if="followStatusMessage" class="follow-status-message" style="margin-left:10px; color: #007bff;">{{ followStatusMessage }}</span>
+                            </div>
                             <div class="privacy-status">
                                 <span><strong>Status:</strong> {{ (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) ? 'Private' : 'Public' }}</span>
                                 <button v-if="isOwnProfile" @click="togglePrivacy" class="btn btn-secondary btn-sm" style="margin-left: 10px;">
@@ -120,8 +133,8 @@ const ProfileView = {
         return {
             profile: {
                 user: {
-                    username: '',
-                    email: '',
+                    Username: '',
+                    Email: '',
                     FirstName: '',
                     LastName: '',
                     nickname: '',
@@ -133,7 +146,9 @@ const ProfileView = {
                 },
                 followers_count: 0,
                 following_count: 0,
-                posts_count: 0
+                posts_count: 0,
+                IsFollowing: false,
+                IsPending: false
             },
             loading: false,
             profileFilter: 'all',
@@ -142,11 +157,19 @@ const ProfileView = {
             showFollowing: false,
             followers: [],
             following: [],
+            followStatusMessage: ''
         };
     },
     computed: {
         isOwnProfile() {
-            return this.profile.user.id === this.$root.currentUser.value.id;
+            // Robust check for both ID and id fields
+            const currentId = this.$root.currentUser.value.ID || this.$root.currentUser.value.id;
+            const profileId = this.profile.user.ID || this.profile.user.id;
+            return currentId === profileId;
+        },
+        isViewingOwnProfile() {
+            // Alias for template clarity
+            return this.isOwnProfile;
         },
         isFollower() {
             // Check if current user is in followers list
@@ -247,6 +270,42 @@ const ProfileView = {
         },
         onRequestHandled() {
             this.fetchProfile();
+        },
+        async followUser() {
+            try {
+                const response = await fetch('/api/user/follow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: this.profile.user.ID || this.profile.user.id }),
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to follow user');
+                // Always re-fetch profile to get correct state (IsPending, IsFollowing, followers_count)
+                await this.fetchProfile();
+                this.followStatusMessage = (this.profile.IsPending ? 'Follow request sent!' : 'Followed!');
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            } catch (error) {
+                this.followStatusMessage = 'Failed to follow user.';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            }
+        },
+        async unfollowUser() {
+            try {
+                const response = await fetch('/api/user/unfollow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: this.profile.user.ID || this.profile.user.id }),
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to unfollow user');
+                // Always re-fetch profile to get correct state
+                await this.fetchProfile();
+                this.followStatusMessage = 'Unfollowed!';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            } catch (error) {
+                this.followStatusMessage = 'Failed to unfollow user.';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            }
         }
     },
     mounted() {

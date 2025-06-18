@@ -129,6 +129,11 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			profile.IsFollowing = isFollowing
 		}
+		// Check if there is a pending follow request
+		isPending, err := database.IsPendingFollowRequest(currentUserID, targetUserID)
+		if err == nil {
+			profile.IsPending = isPending
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

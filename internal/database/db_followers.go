@@ -184,3 +184,21 @@ func GetPendingFollowRequests(userID int) ([]models.User, error) {
 	`
 	return fetchUsers(query, userID)
 }
+
+// IsPendingFollowRequest checks if there is a pending follow request from followerID to followedID
+func IsPendingFollowRequest(followerID, followedID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM followers WHERE follower_id = ? AND followed_id = ? AND status = 'pending'`
+	rows, err := FetchData(query, followerID, followedID)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	var count int
+	if rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			return false, err
+		}
+	}
+	return count > 0, nil
+}
