@@ -19,9 +19,15 @@ const ProfileView = {
                             </button>
                         </div>
                         <div class="profile-info">
-                            <h2>{{ profile.user.username }}'s Profile</h2>
-                            <p v-if="profile.user.first_name || profile.user.last_name">
-                                <strong>Name:</strong> {{ profile.user.first_name }} {{ profile.user.last_name }}
+                            <h2>{{ profile.user.Username || profile.user.username }}'s Profile</h2>
+                            <div class="privacy-status">
+                                <span><strong>Status:</strong> {{ (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) ? 'Private' : 'Public' }}</span>
+                                <button v-if="isOwnProfile" @click="togglePrivacy" class="btn btn-secondary btn-sm" style="margin-left: 10px;">
+                                    {{ (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) ? 'Make Public' : 'Make Private' }}
+                                </button>
+                            </div>
+                            <p v-if="profile.user.FirstName || profile.user.LastName">
+                                <strong>Name:</strong> {{ profile.user.FirstName }} {{ profile.user.LastName }}
                             </p>
                             <p v-if="profile.user.nickname">
                                 <strong>Nickname:</strong> {{ profile.user.nickname }}
@@ -35,7 +41,7 @@ const ProfileView = {
                             <p v-if="profile.user.birthDate">
                                 <strong>Birth Date:</strong> {{ formatDate(profile.user.birthDate) }}
                             </p>
-                            <p><strong>Email:</strong> {{ profile.user.email }}</p>
+                            <p><strong>Email:</strong> {{ profile.user.Email }}</p>
                             <p><strong>Followers:</strong> {{ profile.followers_count }}</p>
                             <p><strong>Following:</strong> {{ profile.following_count }}</p>
                             <p><strong>Posts:</strong> {{ profile.posts_count }}</p>
@@ -52,26 +58,60 @@ const ProfileView = {
                                        @request-handled="onRequestHandled">
                     </p-follow-request-list>
 
-                    <!-- Profile Content -->
-                    <div class="profile-content">
-                        <h3>{{ profileFilterLabel }}</h3>
-                        <div v-if="filteredPosts.length === 0" class="no-content">
-                            No content to show.
-                        </div>
-                        <div v-else class="content-list">
-                            <div v-for="post in filteredPosts" 
-                                 :key="post.ID" 
-                                 class="post-card">
-                                <div class="post-header">
-                                    <h2>{{ post.Title }}</h2>
-                                    <div class="post-meta">
-                                        <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                                    </div>
-                                </div>
-                                <div class="post-content">{{ post.Text }}</div>
+                    <!-- Privacy Enforcement -->
+                    <div v-if="(profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isOwnProfile && !isFollower" class="private-profile-message">
+                        <p>This profile is private. Only followers can view the full profile.</p>
+                    </div>
+                    <template v-else>
+                        <!-- Expandable Followers Section -->
+                        <div class="expandable-section">
+                            <button class="btn btn-link" @click="showFollowers = !showFollowers">
+                                {{ showFollowers ? 'Hide' : 'Show' }} Followers ({{ followers.length }})
+                            </button>
+                            <div v-if="showFollowers">
+                                <ul>
+                                    <li v-for="user in followers" :key="user.id">
+                                        <img :src="user.avatar || '/static/images/default-avatar.png'" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                        {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
-                    </div>
+                        <!-- Expandable Following Section -->
+                        <div class="expandable-section">
+                            <button class="btn btn-link" @click="showFollowing = !showFollowing">
+                                {{ showFollowing ? 'Hide' : 'Show' }} Following ({{ following.length }})
+                            </button>
+                            <div v-if="showFollowing">
+                                <ul>
+                                    <li v-for="user in following" :key="user.id">
+                                        <img :src="user.avatar || '/static/images/default-avatar.png'" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                        {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- Profile Content -->
+                        <div class="profile-content">
+                            <h3>{{ profileFilterLabel }}</h3>
+                            <div v-if="filteredPosts.length === 0" class="no-content">
+                                No content to show.
+                            </div>
+                            <div v-else class="content-list">
+                                <div v-for="post in filteredPosts" 
+                                     :key="post.ID" 
+                                     class="post-card">
+                                    <div class="post-header">
+                                        <h2>{{ post.Title }}</h2>
+                                        <div class="post-meta">
+                                            <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="post-content">{{ post.Text }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -82,13 +122,14 @@ const ProfileView = {
                 user: {
                     username: '',
                     email: '',
-                    first_name: '',
-                    last_name: '',
+                    FirstName: '',
+                    LastName: '',
                     nickname: '',
                     about_me: '',
                     gender: '',
                     birthDate: '',
-                    avatar: ''
+                    avatar: '',
+                    is_private: false
                 },
                 followers_count: 0,
                 following_count: 0,
@@ -96,12 +137,20 @@ const ProfileView = {
             },
             loading: false,
             profileFilter: 'all',
-            showEditForm: false
+            showEditForm: false,
+            showFollowers: false,
+            showFollowing: false,
+            followers: [],
+            following: [],
         };
     },
     computed: {
         isOwnProfile() {
             return this.profile.user.id === this.$root.currentUser.value.id;
+        },
+        isFollower() {
+            // Check if current user is in followers list
+            return this.followers.some(u => u.id === this.$root.currentUser.value.id);
         },
         filteredPosts() {
             switch (this.profileFilter) {
@@ -142,10 +191,48 @@ const ProfileView = {
                     throw new Error('Failed to fetch profile');
                 }
                 this.profile = await response.json();
+                // Fetch followers and following lists
+                await this.fetchFollowers();
+                await this.fetchFollowing();
             } catch (error) {
                 console.error('Error fetching profile:', error);
             } finally {
                 this.loading = false;
+            }
+        },
+        async fetchFollowers() {
+            try {
+                const response = await fetch('/api/user/followers', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch followers');
+                this.followers = await response.json();
+            } catch (error) {
+                this.followers = [];
+            }
+        },
+        async fetchFollowing() {
+            try {
+                let userId = this.userId;
+                if (!userId) userId = this.$root.currentUser.value.id;
+                const response = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch following');
+                this.following = await response.json();
+            } catch (error) {
+                this.following = [];
+            }
+        },
+        async togglePrivacy() {
+            try {
+                const newPrivacy = !this.profile.user.is_private;
+                const response = await fetch('/api/profile/privacy', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_private: newPrivacy }),
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to update privacy');
+                this.profile.user.is_private = newPrivacy;
+            } catch (error) {
+                alert('Failed to update privacy.');
             }
         },
         onProfileFilterChanged(newFilter) {
