@@ -9,9 +9,8 @@ const ProfileView = {
                     <div class="profile-header">
                         <div class="profile-avatar">
                             <img :src="profile.user.avatar || '/static/images/default-avatar.png'" 
-                                 style="max-width: 100%; height: auto; object-fit: cover;"
-                                 :alt="profile.user.username" 
-                                 class="avatar-large">
+                                 class="avatar-large profile-avatar-img"
+                                 :alt="profile.user.username">
                             <button v-if="isOwnProfile" 
                                     @click="showEditForm = !showEditForm"
                                     class="btn btn-primary">

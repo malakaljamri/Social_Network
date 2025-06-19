@@ -285,14 +285,29 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get target user to check privacy settings
+	targetUser, err := database.GetUserByID(followReq.UserID)
+	if err != nil {
+		http.Error(w, "Error fetching user", http.StatusInternalServerError)
+		return
+	}
+
 	// Follow user
 	if err := database.FollowUser(currentUserID, followReq.UserID); err != nil {
 		http.Error(w, "Error following user", http.StatusInternalServerError)
 		return
 	}
 
+	// Provide appropriate response based on privacy settings
+	var message string
+	if targetUser.IsPrivate {
+		message = "Follow request sent successfully"
+	} else {
+		message = "User followed successfully"
+	}
+
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User followed successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": message})
 }
 
 // UnfollowUser handles unfollow requests
@@ -596,4 +611,22 @@ func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Follow request handled successfully",
 	})
+}
+
+// GetPendingFollowRequestsHandler returns all pending follow requests for the current user
+func GetPendingFollowRequestsHandler(w http.ResponseWriter, r *http.Request) {
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+		return
+	}
+	requests, err := database.GetPendingFollowRequests(userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to fetch follow requests"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(requests)
 }

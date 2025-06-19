@@ -86,10 +86,8 @@ CREATE TABLE IF NOT EXISTS "users" (
     avatar TEXT,
     nickname TEXT,
     about_me TEXT,
-    profile_privacy TEXT CHECK (profile_privacy IN ('public', 'private')) DEFAULT 'public'
+    is_private BOOLEAN DEFAULT FALSE
 );
--- -- Privacy feature: Add is_private column to users table
--- ALTER TABLE users ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
 CREATE TABLE IF NOT EXISTS followers (
     id INTEGER PRIMARY KEY,
     follower_id INTEGER,

@@ -6,8 +6,23 @@ import (
 
 // FollowUser creates a follower relationship between two users
 func FollowUser(followerID, followedID int) error {
-	query := `INSERT OR IGNORE INTO followers (follower_id, followed_id) VALUES (?, ?)`
-	_, err := ExecuteQuery(query, followerID, followedID)
+	// First, check if the target user has a private profile
+	targetUser, err := GetUserByID(followedID)
+	if err != nil {
+		return err
+	}
+
+	var status string
+	if targetUser.IsPrivate {
+		// For private profiles, set status to 'pending'
+		status = "pending"
+	} else {
+		// For public profiles, automatically accept the follow request
+		status = "accepted"
+	}
+
+	query := `INSERT OR REPLACE INTO followers (follower_id, followed_id, status) VALUES (?, ?, ?)`
+	_, err = ExecuteQuery(query, followerID, followedID, status)
 	return err
 }
 
@@ -20,7 +35,7 @@ func UnfollowUser(followerID, followedID int) error {
 
 // IsFollowing checks if user is following another user
 func IsFollowing(followerID, followedID int) (bool, error) {
-	query := `SELECT COUNT(*) FROM followers WHERE follower_id = ? AND followed_id = ?`
+	query := `SELECT COUNT(*) FROM followers WHERE follower_id = ? AND followed_id = ? AND status = 'accepted'`
 	rows, err := FetchData(query, followerID, followedID)
 	if err != nil {
 		return false, err
@@ -42,7 +57,7 @@ func GetFollowers(userID int) ([]models.User, error) {
 		SELECT u.id, u.username, u.email 
 		FROM users u
 		JOIN followers f ON u.id = f.follower_id
-		WHERE f.followed_id = ?
+		WHERE f.followed_id = ? AND f.status = 'accepted'
 	`
 	return fetchUsers(query, userID)
 }
@@ -53,15 +68,15 @@ func GetFollowing(userID int) ([]models.User, error) {
 		SELECT u.id, u.username, u.email 
 		FROM users u
 		JOIN followers f ON u.id = f.followed_id
-		WHERE f.follower_id = ?
+		WHERE f.follower_id = ? AND f.status = 'accepted'
 	`
 	return fetchUsers(query, userID)
 }
 
 // GetFollowCounts returns the number of followers and following for a user
 func GetFollowCounts(userID int) (followers int, following int, err error) {
-	// Get followers count
-	followersQuery := `SELECT COUNT(*) FROM followers WHERE followed_id = ?`
+	// Get followers count (only accepted)
+	followersQuery := `SELECT COUNT(*) FROM followers WHERE followed_id = ? AND status = 'accepted'`
 	followersRows, err := FetchData(followersQuery, userID)
 	if err != nil {
 		return 0, 0, err
@@ -74,8 +89,8 @@ func GetFollowCounts(userID int) (followers int, following int, err error) {
 		}
 	}
 
-	// Get following count
-	followingQuery := `SELECT COUNT(*) FROM followers WHERE follower_id = ?`
+	// Get following count (only accepted)
+	followingQuery := `SELECT COUNT(*) FROM followers WHERE follower_id = ? AND status = 'accepted'`
 	followingRows, err := FetchData(followingQuery, userID)
 	if err != nil {
 		return followers, 0, err

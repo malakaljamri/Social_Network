@@ -1,32 +1,36 @@
 // FollowRequestList Component
 const P_FollowRequestList = {
     template: `
-        <div class="follow-requests">
-            <h3>Follow Requests</h3>
-            <div v-if="loading" class="loading">Loading follow requests...</div>
-            <div v-else-if="requests.length === 0" class="no-requests">
-                No pending follow requests
-            </div>
-            <div v-else class="request-list">
-                <div v-for="request in requests" :key="request.id" class="request-item">
-                    <div class="user-info">
-                        <img :src="request.avatar || '/static/images/default-avatar.png'" 
-                             :alt="request.username" 
-                             class="avatar">
-                        <div class="user-details">
-                            <h4>{{ request.username }}</h4>
-                            <p>{{ request.email }}</p>
+        <div class="expandable-section follow-requests">
+            <button class="btn btn-link" @click="showRequests = !showRequests">
+                {{ showRequests ? 'Hide' : 'Show' }} Follow Requests ({{ requests.length }})
+            </button>
+            <div v-if="showRequests">
+                <div v-if="loading" class="loading">Loading follow requests...</div>
+                <div v-else-if="requests.length === 0" class="no-requests">
+                    No pending follow requests
+                </div>
+                <div v-else class="request-list">
+                    <div v-for="request in requests" :key="request.id" class="request-item">
+                        <div class="user-info">
+                            <img :src="request.Avatar || '/static/images/default-avatar.png'" 
+                                 :alt="request.Username" 
+                                 class="avatar avatar-large profile-avatar-img">
+                            <div class="user-details">
+                                <h4>{{ request.Username }}</h4>
+                                <p>{{ request.Email }}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="request-actions">
-                        <button @click="handleRequest(request.id, 'accept')" 
-                                class="btn btn-success">
-                            Accept
-                        </button>
-                        <button @click="handleRequest(request.id, 'decline')" 
-                                class="btn btn-danger">
-                            Decline
-                        </button>
+                        <div class="request-actions">
+                            <button @click="handleRequest(request.id, 'accept')" 
+                                    class="btn btn-success">
+                                Accept
+                            </button>
+                            <button @click="handleRequest(request.id, 'decline')" 
+                                    class="btn btn-danger">
+                                Decline
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -35,7 +39,8 @@ const P_FollowRequestList = {
     data() {
         return {
             requests: [],
-            loading: true
+            loading: true,
+            showRequests: false
         };
     },
     methods: {

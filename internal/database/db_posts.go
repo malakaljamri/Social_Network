@@ -136,9 +136,9 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 	LEFT JOIN post_categories pc ON p.id = pc.post_id
 	WHERE (
 		    p.privacy = 'public' OR p.user_id = ?
-		or (p.privacy = 'almost_private' AND p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?))
+		or (p.privacy = 'almost_private' AND p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ? AND status = 'accepted'))
 		or (p.privacy = 'private' AND
-				p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ?) and
+				p.user_id IN (SELECT followed_id FROM followers WHERE follower_id = ? AND status = 'accepted') and
 				p.id in      (select post_id    from post_viewers where viewer_id = ?)
 			)
 	)
