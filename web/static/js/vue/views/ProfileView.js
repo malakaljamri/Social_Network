@@ -244,7 +244,8 @@ const ProfileView = {
         },
         async togglePrivacy() {
             try {
-                const newPrivacy = !this.profile.user.is_private;
+                const currentPrivacy = (this.profile.user.IsPrivate !== undefined ? this.profile.user.IsPrivate : this.profile.user.is_private);
+                const newPrivacy = !currentPrivacy;
                 const response = await fetch('/api/profile/privacy', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -252,7 +253,8 @@ const ProfileView = {
                     credentials: 'include'
                 });
                 if (!response.ok) throw new Error('Failed to update privacy');
-                this.profile.user.is_private = newPrivacy;
+                // After successful update, fetch the latest profile from backend
+                await this.fetchProfile();
             } catch (error) {
                 alert('Failed to update privacy.');
             }
