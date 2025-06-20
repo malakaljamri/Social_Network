@@ -95,6 +95,9 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i := range onlineUsers {
+		onlineUsers[i].Password = ""
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"onlineUsers": onlineUsers,
@@ -136,6 +139,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Remove sensitive information before sending
+	profile.User.Password = ""
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }
@@ -230,6 +235,9 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 		followers = []models.User{}
 	}
 
+	for i := range followers {
+		followers[i].Password = ""
+	}
 	// log.Printf("Returning %d followers for user %d", len(followers), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(followers)
@@ -258,6 +266,9 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 		following = []models.User{}
 	}
 
+	for i := range following {
+		following[i].Password = ""
+	}
 	// log.Printf("Returning %d following for user %d", len(following), userID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(following)
@@ -433,6 +444,9 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i := range users {
+		users[i].Password = ""
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
 }
