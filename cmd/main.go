@@ -10,6 +10,7 @@ import (
 	"social_network/internal/database"
 	"social_network/internal/handlers"
 	"social_network/internal/websocket"
+	"strings"
 )
 
 func main() {
@@ -97,7 +98,21 @@ func main() {
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 
 	// --- Static file handlers registered LAST ---
-	mux.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
+	// Custom file server to handle both avatar files and regular uploads
+	mux.HandleFunc("/web/", func(w http.ResponseWriter, r *http.Request) {
+		// Remove the /web/ prefix
+		path := strings.TrimPrefix(r.URL.Path, "/web/")
+
+		// If path starts with "uploads/", remove it for file system lookup
+		// This handles files stored with /uploads/ prefix in database
+		if after, ok :=strings.CutPrefix(path, "uploads/"); ok  {
+			path = after
+		}
+
+		// Serve the file from web/uploads directory
+		filePath := filepath.Join(dir, "..", "web", "uploads", path)
+		http.ServeFile(w, r, filePath)
+	})
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
 	mux.HandleFunc("/", handlers.IndexHandler(template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))))
 
