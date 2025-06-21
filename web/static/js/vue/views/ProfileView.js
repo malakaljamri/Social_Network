@@ -8,7 +8,7 @@ const ProfileView = {
                 <div v-else>
                     <div class="profile-header">
                         <div class="profile-avatar">
-                            <img :src="profile.user.avatar || '/static/images/default-avatar.png'" 
+                            <img :src="avatarUrl" 
                                  class="avatar-large profile-avatar-img"
                                  :alt="profile.user.username">
                             <button v-if="isOwnProfile" 
@@ -83,7 +83,7 @@ const ProfileView = {
                             <div v-if="showFollowers">
                                 <ul>
                                     <li v-for="user in followers" :key="user.id">
-                                        <img :src="user.avatar || '/static/images/default-avatar.png'" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                        <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
                                         {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
                                     </li>
                                 </ul>
@@ -97,7 +97,7 @@ const ProfileView = {
                             <div v-if="showFollowing">
                                 <ul>
                                     <li v-for="user in following" :key="user.id">
-                                        <img :src="user.avatar || '/static/images/default-avatar.png'" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                        <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
                                         {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
                                     </li>
                                 </ul>
@@ -196,6 +196,17 @@ const ProfileView = {
                 case 'following': return 'Following';
                 default: return 'All Posts';
             }
+        },
+        avatarUrl() {
+            if (!this.profile.user.Avatar) {
+                return '/static/images/default-avatar.png';
+            }
+            // If it's already a full URL, return as is
+            if (this.profile.user.Avatar.startsWith('http')) {
+                return this.profile.user.Avatar;
+            }
+            // Construct the proper URL for uploaded files
+            return `/web/${this.profile.user.Avatar}`;
         }
     },
     methods: {
@@ -307,6 +318,17 @@ const ProfileView = {
                 this.followStatusMessage = 'Failed to unfollow user.';
                 setTimeout(() => { this.followStatusMessage = ''; }, 3000);
             }
+        },
+        getAvatarUrl(avatar) {
+            if (!avatar) {
+                return '/static/images/default-avatar.png';
+            }
+            // If it's already a full URL, return as is
+            if (avatar.startsWith('http')) {
+                return avatar;
+            }
+            // Construct the proper URL for uploaded files
+            return `/web/${avatar}`;
         }
     },
     mounted() {

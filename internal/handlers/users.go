@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"social_network/internal/database"
 	"social_network/internal/models"
@@ -110,10 +111,22 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	// Get target user ID from URL query
 	targetUserIDStr := r.URL.Query().Get("id")
-	targetUserID, err := strconv.Atoi(targetUserIDStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+	var targetUserID int
+	var err error
+
+	if targetUserIDStr == "" {
+		// If no id provided, use current session user
+		targetUserID, err = database.GetUserIDFromSession(r)
+		if err != nil || targetUserID <= 0 {
+			utils.WriteJSONError(w, http.StatusBadRequest, "No user ID provided and not logged in")
+			return
+		}
+	} else {
+		targetUserID, err = strconv.Atoi(targetUserIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
+			return
+		}
 	}
 
 	// Get current logged-in user ID
@@ -481,12 +494,30 @@ func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate unique filename
-	filename := fmt.Sprintf("profile_%d_%s", currentUserID, handler.Filename)
-	filepath := filepath.Join("web/uploads", filename)
+	// --- Path construction ---
+	// Get the path of the currently running file to determine the project root
+	_, b, _, _ := runtime.Caller(0)
+	basepath := filepath.Dir(b)
+	// Navigate up to the project root from 'internal/handlers'
+	projectRoot := filepath.Join(basepath, "..", "..")
+
+	// Define the relative path for database storage (using forward slashes for web)
+	relativePathForDB := fmt.Sprintf("userID%d/avatar/%s", currentUserID, handler.Filename)
+
+	// Create the absolute path for file system operations
+	absoluteSaveDir := filepath.Join(projectRoot, "web", "uploads", fmt.Sprintf("userID%d", currentUserID), "avatar")
+
+	// Create directories if they don't exist
+	if err := os.MkdirAll(absoluteSaveDir, 0755); err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating directory")
+		return
+	}
+
+	// Generate the full absolute path for the file
+	fullPath := filepath.Join(absoluteSaveDir, handler.Filename)
 
 	// Create destination file
-	dst, err := os.Create(filepath)
+	dst, err := os.Create(fullPath)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating file")
 		return
@@ -499,8 +530,8 @@ func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user's avatar in database
-	err = database.UpdateUserAvatar(currentUserID, filename)
+	// Update user's avatar in database with the web-friendly relative path
+	err = database.UpdateUserAvatar(currentUserID, relativePathForDB)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error updating profile image")
 		return
@@ -508,7 +539,7 @@ func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
 		"message": "Profile image updated successfully",
-		"image":   filename,
+		"image":   relativePathForDB,
 	})
 }
 

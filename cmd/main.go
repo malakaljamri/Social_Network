@@ -97,7 +97,7 @@ func main() {
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 
 	// --- Static file handlers registered LAST ---
-	mux.Handle("/web/", http.StripPrefix("/web/uploads", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
+	mux.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "uploads")))))
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
 	mux.HandleFunc("/", handlers.IndexHandler(template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))))
 

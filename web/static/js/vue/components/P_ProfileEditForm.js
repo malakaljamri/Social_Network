@@ -128,15 +128,29 @@ const P_ProfileEditForm = {
                     throw new Error('Failed to load profile data');
                 }
                 const data = await response.json();
+                
+                // Convert ISO date string to YYYY-MM-DD format for date input
+                let birthDate = '';
+                if (data.user.BirthDate) {
+                    const date = new Date(data.user.BirthDate);
+                    birthDate = date.toISOString().split('T')[0];
+                }
+                
+                // Normalize gender to lowercase for select options
+                let gender = '';
+                if (data.user.Gender) {
+                    gender = data.user.Gender.toLowerCase();
+                }
+                
                 this.profileData = {
-                    first_name: data.user.first_name || '',
-                    last_name: data.user.last_name || '',
-                    nickname: data.user.nickname || '',
-                    about_me: data.user.about_me || '',
-                    gender: data.user.gender || '',
-                    birth_date: data.user.birthDate || ''
+                    first_name: data.user.FirstName || '',
+                    last_name: data.user.LastName || '',
+                    nickname: data.user.Nickname || '',
+                    about_me: data.user.AboutMe || '',
+                    gender: gender,
+                    birth_date: birthDate
                 };
-                this.isPrivate = data.user.is_private || false;
+                this.isPrivate = data.user.IsPrivate || false;
             } catch (error) {
                 console.error('Error loading profile data:', error);
             }
