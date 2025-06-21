@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"social_network/internal/models"
+	"time"
 )
 
 var OnlineUsers = make(map[int]bool)
@@ -51,14 +52,35 @@ func GetUserByID(id int) (models.User, error) {
 	defer rows.Close()
 
 	var user models.User
+	var birthDate, gender, firstName, lastName, avatar, nickname, aboutMe sql.NullString
+
 	if rows.Next() {
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.BirthDate, &user.Gender, &user.FirstName, &user.LastName, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsPrivate)
+		err := rows.Scan(
+			&user.ID, &user.Username, &user.Email, &user.Password,
+			&birthDate, &gender, &firstName, &lastName, &avatar, &nickname, &aboutMe,
+			&user.IsPrivate,
+		)
 		if err != nil {
 			return models.User{}, err
 		}
 	} else {
 		return models.User{}, sql.ErrNoRows
 	}
+
+	if birthDate.Valid {
+		parsedDate, err := time.Parse("2006-01-02", birthDate.String)
+		if err == nil {
+			user.BirthDate = parsedDate
+		}
+	}
+
+	user.Gender = gender.String
+	user.FirstName = firstName.String
+	user.LastName = lastName.String
+	user.Avatar = avatar.String
+	user.Nickname = nickname.String
+	user.AboutMe = aboutMe.String
+
 	return user, nil
 }
 

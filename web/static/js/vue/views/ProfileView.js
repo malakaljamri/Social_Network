@@ -2,7 +2,12 @@
 const ProfileView = {
     template: `
         <div class="profile-view">
-            <filters-sidebar :is-profile="true" @profile-filter-changed="onProfileFilterChanged"></filters-sidebar>
+            <filters-sidebar 
+                :is-profile="true" 
+                @filters-changed="onFiltersChanged" 
+                :categories="categories" 
+                :total-results="profile.posts ? profile.posts.length : 0">
+            </filters-sidebar>
             <div class="profile-main">
                 <div v-if="loading" class="loading-indicator">Loading profile...</div>
                 <div v-else>
@@ -105,12 +110,12 @@ const ProfileView = {
                         </div>
                         <!-- Profile Content -->
                         <div class="profile-content">
-                            <h3>{{ profileFilterLabel }}</h3>
-                            <div v-if="filteredPosts.length === 0" class="no-content">
-                                No content to show.
+                            <h3>Posts</h3>
+                            <div v-if="!profile.posts || profile.posts.length === 0" class="no-content">
+                                No posts to show.
                             </div>
                             <div v-else class="content-list">
-                                <div v-for="post in filteredPosts" 
+                                <div v-for="post in profile.posts" 
                                      :key="post.ID" 
                                      class="post-card">
                                     <div class="post-header">
@@ -150,7 +155,8 @@ const ProfileView = {
                 IsPending: false
             },
             loading: false,
-            profileFilter: 'all',
+            filters: null,
+            categories: [],
             showEditForm: false,
             showFollowers: false,
             showFollowing: false,
@@ -175,27 +181,7 @@ const ProfileView = {
             return this.followers.some(u => u.id === this.$root.currentUser.value.id);
         },
         filteredPosts() {
-            switch (this.profileFilter) {
-                case 'posts':
-                    return this.profile.posts || [];
-                case 'likes':
-                    return this.profile.likedPosts || [];
-                case 'followers':
-                    return this.profile.followers || [];
-                case 'following':
-                    return this.profile.following || [];
-                default:
-                    return (this.profile.posts || []).concat(this.profile.likedPosts || []);
-            }
-        },
-        profileFilterLabel() {
-            switch (this.profileFilter) {
-                case 'posts': return 'My Posts';
-                case 'likes': return 'Liked Posts';
-                case 'followers': return 'Followers';
-                case 'following': return 'Following';
-                default: return 'All Posts';
-            }
+            return this.profile.posts || [];
         },
         avatarUrl() {
             if (!this.profile.user.Avatar) {
@@ -217,7 +203,13 @@ const ProfileView = {
                 if (!userId) {
                     userId = this.$root.currentUser.value.id;
                 }
-                const response = await fetch(`/api/user/profile?id=${userId}`, {
+                
+                let url = `/api/user/profile?id=${userId}`;
+                if (this.filters) {
+                    url += `&filters=${encodeURIComponent(JSON.stringify(this.filters))}`;
+                }
+
+                const response = await fetch(url, {
                     credentials: 'include'
                 });
                 if (!response.ok) {
@@ -231,6 +223,16 @@ const ProfileView = {
                 console.error('Error fetching profile:', error);
             } finally {
                 this.loading = false;
+            }
+        },
+        async fetchCategories() {
+            try {
+                const response = await fetch('/api/categories', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch categories');
+                this.categories = await response.json();
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                this.categories = [];
             }
         },
         async fetchFollowers() {
@@ -270,8 +272,14 @@ const ProfileView = {
                 alert('Failed to update privacy.');
             }
         },
-        onProfileFilterChanged(newFilter) {
-            this.profileFilter = newFilter;
+        onFiltersChanged(newFilters) {
+            this.filters = newFilters;
+            let userId = this.userId;
+            if (!userId) {
+                userId = this.$root.currentUser.value.id;
+            }
+            this.filters.UserID = userId;
+            this.fetchProfile();
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleString();
@@ -345,6 +353,7 @@ const ProfileView = {
             immediate: true,
             handler() {
                 this.fetchProfile();
+                this.fetchCategories();
             }
         }
     },

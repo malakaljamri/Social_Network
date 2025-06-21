@@ -179,6 +179,11 @@ func GetFilteredPosts(page, limit int, filters map[string]interface{}, r *http.R
 		}
 	}
 
+	if userIDFilter, ok := filters["UserID"].(float64); ok && userIDFilter > 0 {
+		query += " AND p.user_id = ?"
+		args = append(args, int(userIDFilter))
+	}
+
 	if likedByUserID, ok := filters["likedOnly"].(bool); ok && likedByUserID {
 		if userID > 0 {
 			query += " AND p.id IN (SELECT post_id FROM likes_dislikes WHERE user_id = ? AND is_like = 1)"

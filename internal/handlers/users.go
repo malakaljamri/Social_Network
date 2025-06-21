@@ -111,6 +111,8 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	// Get target user ID from URL query
 	targetUserIDStr := r.URL.Query().Get("id")
+	filtersJSON := r.URL.Query().Get("filters")
+
 	var targetUserID int
 	var err error
 
@@ -137,6 +139,23 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Error fetching user profile", http.StatusInternalServerError)
 		return
+	}
+
+	if filtersJSON != "" {
+		var filters map[string]interface{}
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err == nil {
+			// Use page 1 and a high limit to get all filtered posts for the profile view
+			posts, _, err := database.GetFilteredPosts(1, 1000, filters, r)
+			if err == nil {
+				profile.Posts = posts
+			}
+		}
+	} else {
+		// Fetch all posts by the user if no filters are applied
+		posts, err := database.GetPostsByUserID(targetUserID)
+		if err == nil {
+			profile.Posts = posts
+		}
 	}
 
 	// If user is logged in, check if they follow the profile user
