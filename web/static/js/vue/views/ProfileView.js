@@ -115,17 +115,13 @@ const ProfileView = {
                                 No posts to show.
                             </div>
                             <div v-else class="content-list">
-                                <div v-for="post in profile.posts" 
-                                     :key="post.ID" 
-                                     class="post-card">
-                                    <div class="post-header">
-                                        <h2>{{ post.Title }}</h2>
-                                        <div class="post-meta">
-                                            <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="post-content">{{ post.Text }}</div>
-                                </div>
+                                <feed-main
+                                    :posts="profile.posts || []"
+                                    :categories="categories"
+                                    :current-user="$root.currentUser.value"
+                                    :total-pages="1"
+                                    :current-page="1"
+                                ></feed-main>
                             </div>
                         </div>
                     </template>

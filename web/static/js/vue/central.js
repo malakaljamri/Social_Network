@@ -495,6 +495,7 @@ app.component('m-group-create-event', M_GroupCreateEvent);
 app.component('g-group-events-modal', G_GroupEventsModal);
 app.component('p-profile-edit-form', P_ProfileEditForm);
 app.component('p-follow-request-list', P_FollowRequestList);
+app.component('feed-main', FeedMain);
 
 // Mount the app
 app.mount('#app'); 
