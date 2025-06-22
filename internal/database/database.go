@@ -246,3 +246,203 @@ func GenerateFakeData() {
 
 	// fmt.Println("Realistic fake data generation complete")
 }
+
+// MigrateFollowersTable fixes the followers table schema while preserving existing data
+func MigrateFollowersTable() error {
+	log.Printf("Starting followers table migration with data preservation...")
+
+	// Get a fresh connection for migration
+	if db == nil {
+		log.Printf("ERROR: Database not initialized")
+		return fmt.Errorf("database not initialized")
+	}
+
+	// First, try a simple approach: just add the unique constraint if it doesn't exist
+	log.Printf("Attempting simple migration approach...")
+
+	// Check if table has the old schema (with id column) - this is the key check
+	schemaQuery := `PRAGMA table_info(followers)`
+	schemaRows, err := db.Query(schemaQuery)
+	if err != nil {
+		log.Printf("ERROR: Failed to get table schema: %v", err)
+		return err
+	}
+	defer schemaRows.Close()
+
+	hasIdColumn := false
+	hasCompositePrimaryKey := false
+
+	for schemaRows.Next() {
+		var cid, notnull, pk int
+		var name, typ string
+		var dflt_value interface{}
+		if err := schemaRows.Scan(&cid, &name, &typ, &notnull, &dflt_value, &pk); err != nil {
+			log.Printf("ERROR: Failed to scan schema info: %v", err)
+			return err
+		}
+		log.Printf("Column: %s, Type: %s, PK: %d", name, typ, pk)
+		if name == "id" {
+			hasIdColumn = true
+		}
+		if name == "follower_id" && pk == 1 {
+			hasCompositePrimaryKey = true
+		}
+	}
+
+	log.Printf("Schema analysis - hasIdColumn: %v, hasCompositePrimaryKey: %v", hasIdColumn, hasCompositePrimaryKey)
+
+	// If table has the old schema (id column) and no composite primary key, migrate
+	if hasIdColumn && !hasCompositePrimaryKey {
+		log.Printf("Old schema detected (with id column), migration needed")
+	} else {
+		log.Printf("Table already has correct schema, no migration needed")
+		return nil
+	}
+
+	log.Printf("Old schema detected, attempting complex migration...")
+
+	// Try to start a transaction with retries
+	var tx *sql.Tx
+	maxRetries := 5
+
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			log.Printf("Retry %d/%d: Waiting before retry...", i+1, maxRetries)
+			time.Sleep(time.Duration(i*500) * time.Millisecond) // Exponential backoff
+		}
+
+		tx, err = db.Begin()
+		if err == nil {
+			break
+		}
+
+		log.Printf("WARNING: Failed to start transaction (attempt %d/%d): %v", i+1, maxRetries, err)
+		if i == maxRetries-1 {
+			return fmt.Errorf("failed to start transaction after %d attempts: %v", maxRetries, err)
+		}
+	}
+
+	// Ensure transaction is rolled back on error
+	defer func() {
+		if err != nil && tx != nil {
+			log.Printf("Rolling back migration transaction due to error")
+			tx.Rollback()
+		}
+	}()
+
+	// Disable foreign key constraints
+	_, err = tx.Exec("PRAGMA foreign_keys = OFF")
+	if err != nil {
+		log.Printf("ERROR: Failed to disable foreign keys: %v", err)
+		return err
+	}
+	log.Printf("Disabled foreign key constraints")
+
+	// Backup existing data
+	backupQuery := `SELECT follower_id, followed_id, status FROM followers`
+	backupRows, err := tx.Query(backupQuery)
+	if err != nil {
+		log.Printf("ERROR: Failed to backup existing data: %v", err)
+		return err
+	}
+	defer backupRows.Close()
+
+	var backupData []struct {
+		FollowerID int
+		FollowedID int
+		Status     string
+	}
+
+	for backupRows.Next() {
+		var followerID, followedID int
+		var status string
+		if err := backupRows.Scan(&followerID, &followedID, &status); err != nil {
+			log.Printf("ERROR: Failed to scan backup data: %v", err)
+			return err
+		}
+		backupData = append(backupData, struct {
+			FollowerID int
+			FollowedID int
+			Status     string
+		}{followerID, followedID, status})
+	}
+
+	log.Printf("Backed up %d follow relationships", len(backupData))
+
+	// Drop the old table
+	_, err = tx.Exec("DROP TABLE followers")
+	if err != nil {
+		log.Printf("ERROR: Failed to drop old followers table: %v", err)
+		return err
+	}
+	log.Printf("Dropped old followers table")
+
+	// Create new table with correct schema
+	createQuery := `
+		CREATE TABLE followers (
+			follower_id INTEGER,
+			followed_id INTEGER,
+			status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+			PRIMARY KEY (follower_id, followed_id),
+			FOREIGN KEY (follower_id) REFERENCES users(id),
+			FOREIGN KEY (followed_id) REFERENCES users(id)
+		)
+	`
+	_, err = tx.Exec(createQuery)
+	if err != nil {
+		log.Printf("ERROR: Failed to create new followers table: %v", err)
+		return err
+	}
+	log.Printf("Created new followers table with composite primary key")
+
+	// Restore the data
+	if len(backupData) > 0 {
+		insertQuery := `INSERT INTO followers (follower_id, followed_id, status) VALUES (?, ?, ?)`
+		insertStmt, err := tx.Prepare(insertQuery)
+		if err != nil {
+			log.Printf("ERROR: Failed to prepare insert statement: %v", err)
+			return err
+		}
+		defer insertStmt.Close()
+
+		for _, data := range backupData {
+			_, err = insertStmt.Exec(data.FollowerID, data.FollowedID, data.Status)
+			if err != nil {
+				log.Printf("WARNING: Failed to restore follow relationship %d->%d: %v", data.FollowerID, data.FollowedID, err)
+				// Continue with other records
+			}
+		}
+		log.Printf("Restored %d follow relationships", len(backupData))
+	}
+
+	// Add indexes for better performance
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_followers_follower_id ON followers(follower_id)",
+		"CREATE INDEX IF NOT EXISTS idx_followers_followed_id ON followers(followed_id)",
+		"CREATE INDEX IF NOT EXISTS idx_followers_status ON followers(status)",
+	}
+
+	for _, indexQuery := range indexes {
+		_, err = tx.Exec(indexQuery)
+		if err != nil {
+			log.Printf("WARNING: Failed to create index: %v", err)
+		}
+	}
+
+	// Re-enable foreign key constraints
+	_, err = tx.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		log.Printf("ERROR: Failed to re-enable foreign keys: %v", err)
+		return err
+	}
+	log.Printf("Re-enabled foreign key constraints")
+
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		log.Printf("ERROR: Failed to commit migration transaction: %v", err)
+		return err
+	}
+
+	log.Printf("Followers table migration completed successfully")
+	return nil
+}

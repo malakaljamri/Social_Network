@@ -49,6 +49,22 @@ const UsersList = {
                 this.users = [];
             }
         },
+        handleUserStatusChange(event) {
+            const { userId, status, username } = event.detail;
+            const userIndex = this.users.findIndex(u => u.ID === userId);
+            
+            if (userIndex === -1) {
+                // If user doesn't exist in the list, fetch all users
+                this.fetchUsers();
+                return;
+            }
+            
+            // Update user status
+            this.users[userIndex].Online = status === 'online';
+            if (status === 'online') {
+                this.users[userIndex].LastMessageTime = new Date().toISOString();
+            }
+        },
         openChat(userId) {
             const user = this.users.find(u => u.ID === userId);
             if (user) {
@@ -59,6 +75,8 @@ const UsersList = {
     },
     mounted() {
         this.fetchUsers();
+        // Listen for user status changes
+        window.addEventListener('user-status-change', this.handleUserStatusChange);
         // Refresh users list every 30 seconds
         this.refreshInterval = setInterval(this.fetchUsers, 30000);
     },
@@ -66,6 +84,7 @@ const UsersList = {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
         }
+        window.removeEventListener('user-status-change', this.handleUserStatusChange);
     }
 };
 

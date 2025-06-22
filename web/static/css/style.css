@@ -646,6 +646,8 @@ button.pagination-button.active {
   display: flex;
   justify-content: space-between;
   color: #666;
+  max-width: 105px;
+  height: auto;
 }
 
 .post-title {
@@ -2125,5 +2127,11 @@ button.pagination-button.active {
 .page-info {
     font-size: 0.9rem;
     color: #666;
+}
+
+.profile-avatar-img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
 }
 
