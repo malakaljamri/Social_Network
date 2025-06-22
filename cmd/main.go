@@ -11,7 +11,10 @@ import (
 	"social_network/internal/handlers"
 	"social_network/internal/websocket"
 	"strings"
+	"time"
 )
+
+var migrate = false;
 
 func main() {
 	// Initialize the database
@@ -20,6 +23,19 @@ func main() {
 		log.Fatal("Error initializing database:", err)
 	}
 	defer db.Close()
+
+	if migrate {
+		// Run followers table migration to fix schema
+		log.Println("Waiting for database to be ready before migration...")
+		time.Sleep(2 * time.Second) // Give database time to be ready
+
+		if err := database.MigrateFollowersTable(); err != nil {
+			log.Printf("WARNING: Failed to migrate followers table: %v", err)
+			// Don't fatal here as the app can still work with the old schema
+		} else {
+			log.Println("Followers table migration completed successfully")
+		}
+	}
 
 	go websocket.MainHub.Run()
 
@@ -105,7 +121,7 @@ func main() {
 
 		// If path starts with "uploads/", remove it for file system lookup
 		// This handles files stored with /uploads/ prefix in database
-		if after, ok :=strings.CutPrefix(path, "uploads/"); ok  {
+		if after, ok := strings.CutPrefix(path, "uploads/"); ok {
 			path = after
 		}
 

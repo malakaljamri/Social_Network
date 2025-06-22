@@ -26,10 +26,10 @@ const ProfileView = {
                             <h2>{{ profile.user.Username || profile.user.username }}'s Profile</h2>
                             <!-- Follow/Unfollow/Request Button for non-own profiles -->
                             <div v-if="!isOwnProfile && !isViewingOwnProfile" class="follow-action">
-                                <button v-if="profile.IsFollowing" class="btn btn-danger" @click="unfollowUser" title="Click to unfollow this user">
+                                <button v-if="profile.is_following" class="btn btn-danger" @click="unfollowUser" title="Click to unfollow this user">
                                     Unfollow
                                 </button>
-                                <button v-else-if="profile.IsPending" class="btn btn-secondary" disabled title="Your follow request is awaiting approval">
+                                <button v-else-if="profile.is_pending" class="btn btn-secondary" disabled title="Your follow request is awaiting approval">
                                     Request Pending
                                 </button>
                                 <button v-else class="btn btn-success" @click="followUser" title="Click to follow. If the profile is private, your request will need approval.">
@@ -121,6 +121,7 @@ const ProfileView = {
                                     :current-user="$root.currentUser.value"
                                     :total-pages="1"
                                     :current-page="1"
+                                    :profile-user-name="profile.user.Username || profile.user.username"
                                 ></feed-main>
                             </div>
                         </div>
@@ -147,8 +148,8 @@ const ProfileView = {
                 followers_count: 0,
                 following_count: 0,
                 posts_count: 0,
-                IsFollowing: false,
-                IsPending: false
+                is_following: false,
+                is_pending: false
             },
             loading: false,
             filters: null,
@@ -194,29 +195,46 @@ const ProfileView = {
     methods: {
         async fetchProfile() {
             this.loading = true;
+            console.log('=== Frontend fetchProfile started ===');
+            
             try {
                 let userId = this.userId;
                 if (!userId) {
                     userId = this.$root.currentUser.value.id;
                 }
+                console.log('Fetching profile for user ID:', userId);
                 
                 let url = `/api/user/profile?id=${userId}`;
                 if (this.filters) {
                     url += `&filters=${encodeURIComponent(JSON.stringify(this.filters))}`;
                 }
+                console.log('Profile URL:', url);
 
                 const response = await fetch(url, {
                     credentials: 'include'
                 });
+                
+                console.log('Profile response status:', response.status);
+                console.log('Profile response ok:', response.ok);
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Profile fetch failed:', errorText);
                     throw new Error('Failed to fetch profile');
                 }
+                
                 this.profile = await response.json();
+                console.log('Profile data received:', this.profile);
+                console.log('Profile follow status - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
+                
                 // Fetch followers and following lists
+                console.log('Fetching followers and following lists...');
                 await this.fetchFollowers();
                 await this.fetchFollowing();
+                
+                console.log('=== Frontend fetchProfile completed successfully ===');
             } catch (error) {
-                console.error('Error fetching profile:', error);
+                console.error('=== Frontend fetchProfile failed ===', error);
             } finally {
                 this.loading = false;
             }
@@ -233,7 +251,11 @@ const ProfileView = {
         },
         async fetchFollowers() {
             try {
-                const response = await fetch('/api/user/followers', { credentials: 'include' });
+                let userId = this.userId;
+                if (!userId) {
+                    userId = this.$root.currentUser.value.id;
+                }
+                const response = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch followers');
                 this.followers = await response.json();
             } catch (error) {
@@ -288,19 +310,50 @@ const ProfileView = {
             this.fetchProfile();
         },
         async followUser() {
+            console.log('=== Frontend followUser started ===');
+            console.log('Profile user ID:', this.profile.user.ID || this.profile.user.id);
+            console.log('Current follow status - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
+            
             try {
+                const requestBody = { user_id: this.profile.user.ID || this.profile.user.id };
+                console.log('Sending follow request with body:', requestBody);
+                
                 const response = await fetch('/api/user/follow', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: this.profile.user.ID || this.profile.user.id }),
+                    body: JSON.stringify(requestBody),
                     credentials: 'include'
                 });
-                if (!response.ok) throw new Error('Failed to follow user');
-                // Always re-fetch profile to get correct state (IsPending, IsFollowing, followers_count)
+                
+                console.log('Follow response status:', response.status);
+                console.log('Follow response ok:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Follow request failed:', errorText);
+                    throw new Error('Failed to follow user');
+                }
+                
+                const responseData = await response.json();
+                console.log('Follow response data:', responseData);
+                
+                // Always re-fetch profile to get correct state (is_following, is_pending, followers_count)
+                console.log('Re-fetching profile after follow...');
                 await this.fetchProfile();
-                this.followStatusMessage = (this.profile.IsPending ? 'Follow request sent!' : 'Followed!');
-                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+                
+                console.log('Profile after re-fetch - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
+                
+                this.followStatusMessage = (this.profile.is_pending ? 'Follow request sent!' : 'Followed!');
+                console.log('Setting follow status message:', this.followStatusMessage);
+                
+                setTimeout(() => { 
+                    this.followStatusMessage = '';
+                    console.log('Follow status message cleared');
+                }, 3000);
+                
+                console.log('=== Frontend followUser completed successfully ===');
             } catch (error) {
+                console.error('=== Frontend followUser failed ===', error);
                 this.followStatusMessage = 'Failed to follow user.';
                 setTimeout(() => { this.followStatusMessage = ''; }, 3000);
             }

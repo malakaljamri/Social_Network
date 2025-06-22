@@ -89,13 +89,12 @@ CREATE TABLE IF NOT EXISTS "users" (
     is_private BOOLEAN DEFAULT FALSE
 );
 CREATE TABLE IF NOT EXISTS followers (
-    id INTEGER PRIMARY KEY,
     follower_id INTEGER,
     followed_id INTEGER,
     status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+    PRIMARY KEY (follower_id, followed_id),
     FOREIGN KEY (follower_id) REFERENCES users(id),
-    FOREIGN KEY (followed_id) REFERENCES users(id),
-    UNIQUE (follower_id, followed_id)
+    FOREIGN KEY (followed_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY,

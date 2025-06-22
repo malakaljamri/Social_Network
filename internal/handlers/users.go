@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -160,15 +161,26 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	// If user is logged in, check if they follow the profile user
 	if currentUserID > 0 && currentUserID != targetUserID {
+		log.Printf("Checking follow status for currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
+
 		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
 		if err == nil {
 			profile.IsFollowing = isFollowing
+			log.Printf("IsFollowing set to: %v", isFollowing)
+		} else {
+			log.Printf("ERROR: Failed to check IsFollowing: %v", err)
 		}
+
 		// Check if there is a pending follow request
 		isPending, err := database.IsPendingFollowRequest(currentUserID, targetUserID)
 		if err == nil {
 			profile.IsPending = isPending
+			log.Printf("IsPending set to: %v", isPending)
+		} else {
+			log.Printf("ERROR: Failed to check IsPending: %v", err)
 		}
+	} else {
+		log.Printf("Skipping follow status check - currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
 	}
 
 	// Remove sensitive information before sending
@@ -247,17 +259,31 @@ func GetUserPosts(w http.ResponseWriter, r *http.Request) {
 
 // GetUserFollowers returns users following the specified user
 func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
-	// Get current logged-in user ID from session
-	userID, err := database.GetUserIDFromSession(r)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+	var userID int
+	var err error
+
+	// Get target user ID from URL query if it exists
+	targetUserIDStr := r.URL.Query().Get("id")
+
+	if targetUserIDStr != "" {
+		// If an ID is provided in the URL, use it
+		userID, err = strconv.Atoi(targetUserIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
+			return
+		}
+	} else {
+		// Otherwise, default to the logged-in user's ID from the session
+		userID, err = database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Error: Unauthorized")
+			return
+		}
 	}
 
-	// Fetch followers
+	// Fetch followers for the determined user ID
 	followers, err := database.GetFollowers(userID)
 	if err != nil {
-		// log.Printf("Error fetching followers for user %d: %v", userID, err)
 		http.Error(w, "Error fetching followers", http.StatusInternalServerError)
 		return
 	}
@@ -270,7 +296,7 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 	for i := range followers {
 		followers[i].Password = ""
 	}
-	// log.Printf("Returning %d followers for user %d", len(followers), userID)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(followers)
 }
@@ -308,22 +334,29 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 
 // FollowUser handles follow requests
 func FollowUser(w http.ResponseWriter, r *http.Request) {
+	log.Printf("=== FollowUser handler started ===")
+
 	// Must be logged in
 	currentUserID, err := database.GetUserIDFromSession(r)
 	if err != nil {
+		log.Printf("ERROR: Failed to get current user ID from session: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	log.Printf("Current user ID: %d", currentUserID)
 
 	// Parse request
 	var followReq models.FollowRequest
 	if err := json.NewDecoder(r.Body).Decode(&followReq); err != nil {
+		log.Printf("ERROR: Failed to decode follow request: %v", err)
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+	log.Printf("Follow request - Target user ID: %d", followReq.UserID)
 
 	// Prevent self-follow
 	if currentUserID == followReq.UserID {
+		log.Printf("ERROR: User %d attempted to follow themselves", currentUserID)
 		http.Error(w, "Cannot follow yourself", http.StatusBadRequest)
 		return
 	}
@@ -331,24 +364,62 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 	// Get target user to check privacy settings
 	targetUser, err := database.GetUserByID(followReq.UserID)
 	if err != nil {
+		log.Printf("ERROR: Failed to get target user %d: %v", followReq.UserID, err)
 		http.Error(w, "Error fetching user", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Target user privacy setting: IsPrivate=%v", targetUser.IsPrivate)
+
+	// Check current follow status before following
+	isFollowingBefore, err := database.IsFollowing(currentUserID, followReq.UserID)
+	if err != nil {
+		log.Printf("WARNING: Failed to check if following before: %v", err)
+	} else {
+		log.Printf("Follow status before: IsFollowing=%v", isFollowingBefore)
+	}
+
+	isPendingBefore, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
+	if err != nil {
+		log.Printf("WARNING: Failed to check if pending before: %v", err)
+	} else {
+		log.Printf("Pending status before: IsPending=%v", isPendingBefore)
+	}
 
 	// Follow user
+	log.Printf("Calling database.FollowUser(%d, %d)", currentUserID, followReq.UserID)
 	if err := database.FollowUser(currentUserID, followReq.UserID); err != nil {
+		log.Printf("ERROR: Failed to follow user in database: %v", err)
 		http.Error(w, "Error following user", http.StatusInternalServerError)
 		return
+	}
+	log.Printf("SUCCESS: Database follow operation completed")
+
+	// Check follow status after following
+	isFollowingAfter, err := database.IsFollowing(currentUserID, followReq.UserID)
+	if err != nil {
+		log.Printf("WARNING: Failed to check if following after: %v", err)
+	} else {
+		log.Printf("Follow status after: IsFollowing=%v", isFollowingAfter)
+	}
+
+	isPendingAfter, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
+	if err != nil {
+		log.Printf("WARNING: Failed to check if pending after: %v", err)
+	} else {
+		log.Printf("Pending status after: IsPending=%v", isPendingAfter)
 	}
 
 	// Provide appropriate response based on privacy settings
 	var message string
 	if targetUser.IsPrivate {
 		message = "Follow request sent successfully"
+		log.Printf("Response: Private profile - follow request sent")
 	} else {
 		message = "User followed successfully"
+		log.Printf("Response: Public profile - user followed")
 	}
 
+	log.Printf("=== FollowUser handler completed - Message: %s ===", message)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": message})
 }

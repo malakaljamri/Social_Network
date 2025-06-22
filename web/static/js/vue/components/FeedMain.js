@@ -32,6 +32,10 @@ const FeedMain = {
         getCategoryName: {
             type: Function,
             required: false
+        },
+        profileUserName: {
+            type: String,
+            default: ''
         }
     },
     methods: {
@@ -61,7 +65,7 @@ const FeedMain = {
                 <div class="post-header">
                     <h2>{{ post.Title }}</h2>
                     <div class="post-meta">
-                        <span class="post-author">Posted by <span class="user-clickable" @click="viewUserProfile(post.UserID)">{{ post.Author }}</span>
+                        <span class="post-author">Posted by <span class="user-clickable" @click="viewUserProfile(post.UserID)">{{ post.Author || profileUserName }}</span>
                             <span class="post-id">  Post ID: {{ post.ID }}</span>
                         </span>
                         <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>

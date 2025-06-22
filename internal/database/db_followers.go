@@ -1,29 +1,73 @@
 package database
 
 import (
+	"log"
 	"social_network/internal/models"
 )
 
 // FollowUser creates a follower relationship between two users
 func FollowUser(followerID, followedID int) error {
+	log.Printf("=== Database FollowUser started - followerID: %d, followedID: %d ===", followerID, followedID)
+
 	// First, check if the target user has a private profile
 	targetUser, err := GetUserByID(followedID)
 	if err != nil {
+		log.Printf("ERROR: Failed to get target user %d: %v", followedID, err)
 		return err
 	}
+	log.Printf("Target user retrieved - IsPrivate: %v", targetUser.IsPrivate)
 
 	var status string
 	if targetUser.IsPrivate {
 		// For private profiles, set status to 'pending'
 		status = "pending"
+		log.Printf("Private profile detected - setting status to 'pending'")
 	} else {
 		// For public profiles, automatically accept the follow request
 		status = "accepted"
+		log.Printf("Public profile detected - setting status to 'accepted'")
 	}
 
+	// Use INSERT OR REPLACE with the correct composite primary key
 	query := `INSERT OR REPLACE INTO followers (follower_id, followed_id, status) VALUES (?, ?, ?)`
-	_, err = ExecuteQuery(query, followerID, followedID, status)
-	return err
+	log.Printf("Executing query: %s with params: followerID=%d, followedID=%d, status=%s", query, followerID, followedID, status)
+
+	result, err := ExecuteQuery(query, followerID, followedID, status)
+	if err != nil {
+		log.Printf("ERROR: Failed to execute follow query: %v", err)
+		return err
+	}
+
+	// Log the result
+	if result != nil {
+		lastInsertID, _ := result.LastInsertId()
+		rowsAffected, _ := result.RowsAffected()
+		log.Printf("Query executed successfully - LastInsertID: %d, RowsAffected: %d", lastInsertID, rowsAffected)
+	} else {
+		log.Printf("Query executed successfully - no result info available")
+	}
+
+	// Verify the insertion/update
+	verifyQuery := `SELECT status FROM followers WHERE follower_id = ? AND followed_id = ?`
+	verifyRows, err := FetchData(verifyQuery, followerID, followedID)
+	if err != nil {
+		log.Printf("WARNING: Failed to verify follow relationship: %v", err)
+	} else {
+		defer verifyRows.Close()
+		if verifyRows.Next() {
+			var verifyStatus string
+			if err := verifyRows.Scan(&verifyStatus); err != nil {
+				log.Printf("WARNING: Failed to scan verify status: %v", err)
+			} else {
+				log.Printf("VERIFICATION: Follow relationship confirmed - status: %s", verifyStatus)
+			}
+		} else {
+			log.Printf("ERROR: Follow relationship not found after insertion!")
+		}
+	}
+
+	log.Printf("=== Database FollowUser completed successfully ===")
+	return nil
 }
 
 // UnfollowUser removes a follower relationship
