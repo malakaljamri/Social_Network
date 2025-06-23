@@ -403,9 +403,10 @@ const ProfileView = {
             handler() {
                 this.fetchProfile();
                 this.fetchCategories();
+                //document.querySelector('.category-item input').dispatchEvent(new Event('change', { bubbles: true }));
+                this.onFiltersChanged(this.filters || {}); // to load images
             }
         }
     },
 };
-
-// No mount here, will be registered globally. 
+// No mount here, will be registered globally.
