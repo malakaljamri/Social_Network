@@ -20,7 +20,7 @@ func main() {
 	}
 	defer db.Close()
 
-	go websocket.MainHub.Run()
+	go websocket.MainHub.Run() //Starts the WebSocket hub's main loop in a new goroutine.
 
 	// go websocket.BroadcastTime(hub) // This function is only for testing purposes
 
@@ -29,7 +29,7 @@ func main() {
 	chatHandlers := handlers.NewChatHandlers(websocket.MainHub)
 
 	// Create a new ServeMux
-	mux := http.NewServeMux()
+	mux := http.NewServeMux() //multiplexer route incoming HTTP based on thier req url , method
 	// Get the directory of the current file
 	_, currentFile, _, _ := runtime.Caller(0)
 	dir := filepath.Dir(currentFile)

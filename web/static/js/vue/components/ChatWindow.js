@@ -1,7 +1,7 @@
 // ChatWindow Component
 const ChatWindow = {
-    props: ['user', 'currentUser', 'onClose'],
-    inject: ['websocket'],
+    props: ['user', 'currentUser', 'onClose'], //( props = properties in vue (parent and passes data to child component , expects to receive )
+    inject: ['websocket'],  //inject is araay of strings , component except to recive
     template: `
         <div class="chat-window card">
             <div class="chat-header">
