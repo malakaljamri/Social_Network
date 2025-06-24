@@ -16,7 +16,7 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("[]"))
 		return
 	}
-	users, err := db.SearchUsersByUsername(q)
+	users, err := db.SearchUsers(q)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Database error")
 		return

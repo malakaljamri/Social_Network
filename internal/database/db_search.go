@@ -7,12 +7,14 @@ import (
 type UserSearchResult struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
+	Email    string `json:"email"`
+	Nickname string `json:"nickname"`
 }
 
-// SearchUsersByUsername returns users whose username matches the query (case-insensitive, partial)
-func SearchUsersByUsername(query string) ([]UserSearchResult, error) {
+// SearchUsers returns users whose username, email, or nickname matches the query (case-insensitive, partial)
+func SearchUsers(query string) ([]UserSearchResult, error) {
 	likeQuery := "%" + strings.ToLower(query) + "%"
-	rows, err := db.Query(`SELECT id, username FROM users WHERE LOWER(username) LIKE ? LIMIT 10`, likeQuery)
+	rows, err := db.Query(`SELECT id, username, email, nickname FROM users WHERE LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(nickname) LIKE ? LIMIT 10`, likeQuery, likeQuery, likeQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +22,7 @@ func SearchUsersByUsername(query string) ([]UserSearchResult, error) {
 	var results []UserSearchResult
 	for rows.Next() {
 		var u UserSearchResult
-		if err := rows.Scan(&u.ID, &u.Username); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Nickname); err != nil {
 			continue
 		}
 		results = append(results, u)

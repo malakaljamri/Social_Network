@@ -2,12 +2,15 @@
 const ProfileView = {
     template: `
         <div class="profile-view">
-            <filters-sidebar 
-                :is-profile="true" 
-                @filters-changed="onFiltersChanged" 
-                :categories="categories" 
-                :total-results="profile.posts ? profile.posts.length : 0">
-            </filters-sidebar>
+            <div class="profile-sidebar">
+                <filters-sidebar 
+                    :is-profile="true" 
+                    @filters-changed="onFiltersChanged" 
+                    :categories="categories" 
+                    :total-results="profile.posts ? profile.posts.length : 0">
+                </filters-sidebar>
+                <users-list class="users-list" @open-chat="openChat"></users-list>
+            </div>
             <div class="profile-main">
                 <div v-if="loading" class="loading-indicator">Loading profile...</div>
                 <div v-else>
@@ -407,6 +410,9 @@ const ProfileView = {
                 this.onFiltersChanged(this.filters || {}); // to load images
             }
         }
+    },
+    components: {
+        'users-list': window.UsersList
     },
 };
 // No mount here, will be registered globally.

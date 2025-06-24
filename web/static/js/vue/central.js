@@ -475,7 +475,7 @@ app.use(WebSocketPlugin);
 
 // Register all components and views globally
 app.component('nav-bar', NavBar);
-app.component('users-list', UsersList);
+app.component('users-list', window.UsersList);
 app.component('filters-sidebar', FiltersSidebar);
 app.component('chat-window', ChatWindow);
 app.component('g-group-list', G_GroupList);

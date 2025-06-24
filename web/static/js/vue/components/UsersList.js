@@ -3,11 +3,14 @@ const UsersList = {
     template: `
         <div class="users-list card">
             <h3>Users</h3>
+            <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
-                <div v-if="users && users.length">
-                    <div v-for="user in sortedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }" @click="openChat(user.ID)">
+                <div v-if="displayedUsers && displayedUsers.length">
+                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }" @click="openChat(user.ID)">
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        {{ user.Username }}
+                        <strong>{{ user.Username }}</strong>
+                        <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
+                        <span style="color: #888; font-size: 0.9em;">{{ user.Email }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
@@ -17,22 +20,24 @@ const UsersList = {
     data() {
         return {
             users: [],
+            searchResults: [],
+            searching: false,
             refreshInterval: null
         }
     },
     computed: {
-        sortedUsers() {
-            return [...this.users].sort((a, b) => {
-                // First sort by online status
+        displayedUsers() {
+            return this.searchResults.length > 0 ? this.searchResults : this.users;
+        },
+        sortedDisplayedUsers() {
+            return [...this.displayedUsers].sort((a, b) => {
                 if (a.Online !== b.Online) {
                     return a.Online ? -1 : 1;
                 }
-                // Then sort by last message time if available
                 if (a.LastMessageTime && b.LastMessageTime) {
                     return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
                 }
-                // If no messages or equal times, sort alphabetically by username
-                return a.Username.toLowerCase().localeCompare(b.Username.toLowerCase());
+                return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
             });
         }
     },
@@ -52,32 +57,38 @@ const UsersList = {
         handleUserStatusChange(event) {
             const { userId, status, username } = event.detail;
             const userIndex = this.users.findIndex(u => u.ID === userId);
-            
             if (userIndex === -1) {
-                // If user doesn't exist in the list, fetch all users
                 this.fetchUsers();
                 return;
             }
-            
-            // Update user status
             this.users[userIndex].Online = status === 'online';
             if (status === 'online') {
                 this.users[userIndex].LastMessageTime = new Date().toISOString();
             }
         },
-        openChat(userId) {
-            const user = this.users.find(u => u.ID === userId);
+        openChat(userOrId) {
+            let user = null;
+            if (typeof userOrId === 'object') {
+                user = userOrId;
+                // Normalize ID property for chat compatibility
+                if (!user.ID && user.id) {
+                    user.ID = user.id;
+                }
+                // Normalize Username property for chat compatibility
+                if (!user.Username && user.username) {
+                    user.Username = user.username;
+                }
+            } else {
+                user = this.displayedUsers.find(u => u.ID === userOrId || u.id === userOrId);
+            }
             if (user) {
                 this.$emit('open-chat', user);
-                // window.dispatchEvent(new CustomEvent('open-chat', { detail: user }));
             }
         }
     },
     mounted() {
         this.fetchUsers();
-        // Listen for user status changes
         window.addEventListener('user-status-change', this.handleUserStatusChange);
-        // Refresh users list every 30 seconds
         this.refreshInterval = setInterval(this.fetchUsers, 30000);
     },
     beforeUnmount() {
@@ -85,6 +96,9 @@ const UsersList = {
             clearInterval(this.refreshInterval);
         }
         window.removeEventListener('user-status-change', this.handleUserStatusChange);
+    },
+    components: {
+        'user-search': window.UserSearch
     }
 };
 
