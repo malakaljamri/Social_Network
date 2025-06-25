@@ -156,6 +156,7 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 			u.first_name, 
 			u.last_name, 
 			u.email,
+			u.avatar,
 			(SELECT MAX(timestamp) 
 				FROM chat_messages 
 				WHERE (sender_id = u.id and Receiver_id = ?) or (sender_id = ? AND Receiver_id = u.id)) as last_message_time
@@ -174,6 +175,7 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 	for rows.Next() {
 		var user models.User
 		var lastMessageTime sql.NullString
+		var avatar sql.NullString
 		err := rows.Scan(
 			&user.ID,
 			&user.Username,
@@ -182,11 +184,13 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 			&user.FirstName,
 			&user.LastName,
 			&user.Email,
+			&avatar,
 			&lastMessageTime,
 		)
 		if err != nil {
 			return nil, err
 		}
+		user.Avatar = avatar.String
 		user.LastMessageTime = lastMessageTime.String
 		_, user.Online = OnlineUsers[user.ID]
 		users = append(users, user)

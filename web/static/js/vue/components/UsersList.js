@@ -6,9 +6,16 @@ const UsersList = {
             <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
                 <div v-if="displayedUsers && displayedUsers.length">
-                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }" @click="openChat(user.ID)">
+                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }">
+                        <img
+                            :src="getAvatarUrl(user.Avatar)"
+                            class="avatar-small profile-link-avatar"
+                            style="width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;"
+                            :alt="user.Username + ' avatar'"
+                            @click.stop="goToProfile(user.ID)"
+                        >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong>{{ user.Username }}</strong>
+                        <strong @click="openChat(user.ID)" style="cursor:pointer;">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
                         <span style="color: #888; font-size: 0.9em;">{{ user.Email }}</span>
                     </div>
@@ -84,6 +91,19 @@ const UsersList = {
             if (user) {
                 this.$emit('open-chat', user);
             }
+        },
+        getAvatarUrl(avatar) {
+            if (!avatar) {
+                return '/static/images/default-avatar.png';
+            }
+            if (avatar.startsWith('http')) {
+                return avatar;
+            }
+            return `/web/${avatar}`;
+        },
+        goToProfile(userId) {
+            this.$root.currentView = 'profile';
+            this.$root.viewUserProfile(userId);
         }
     },
     mounted() {
@@ -103,4 +123,4 @@ const UsersList = {
 };
 
 // Remove export default and attach to window for global access
-window.UsersList = UsersList; 
+window.UsersList = UsersList;
