@@ -1,0 +1,59 @@
+/* Base Styles */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary-color);
+}
+
+a {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Utility Classes */
+.center {
+  margin: auto;
+  width: fit-content;
+}
+
+.hidden {
+  display: none;
+}
+
+.loading {
+  text-align: center;
+  padding: 10px;
+  color: var(--text-secondary);
+}
+
+.error {
+  color: #dc3545;
+  padding: 10px;
+  text-align: center;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: var(--border-radius);
+  margin-bottom: 10px;
+}
+
+/* Floating Effects */
+.floating {
+  box-shadow: 0 8px 16px var(--shadow-color);
+  transition: transform 0.3s ease;
+}
+
+.floating:hover {
+  transform: translateY(-4px);
+}

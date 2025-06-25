@@ -1,0 +1,245 @@
+/* Post Styles */
+
+.post-card {
+  background-color: var(--card-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 5px var(--shadow-color);
+  margin-bottom: 20px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.post-header {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+}
+
+.post-header h2 {
+  margin: 0 0 10px 0;
+  font-size: var(--font-size-xl);
+  color: var(--primary-color);
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.post-author {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.post-timestamp {
+  color: var(--text-muted);
+}
+
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.post-category {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.post-category span {
+  background-color: var(--surface-alt-color);
+  border-radius: 15px;
+  padding: 3px 10px;
+  font-size: var(--font-size-sm);
+  color: #555;
+}
+
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+
+.post-title {
+  font-size: var(--font-size-xl);
+  margin: 10px 0;
+  color: #333;
+}
+
+.post-text {
+  line-height: 1.6;
+  color: #444;
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Post Images */
+.post-image {
+  margin: 1rem 0;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background-color: #f5f5f5;
+  position: relative;
+}
+
+.post-image img {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Image Upload Styles */
+.image-upload-section {
+  margin: 1rem 0;
+}
+
+.image-upload-container {
+  border: 2px dashed #ccc;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.image-upload-container:hover {
+  border-color: #666;
+  background-color: #f9f9f9;
+}
+
+.image-upload-container.has-image {
+  border-style: solid;
+  padding: 0;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-placeholder i {
+  font-size: 2rem;
+  color: #666;
+}
+
+.upload-hint {
+  font-size: var(--font-size-sm);
+  color: #666;
+}
+
+.image-preview {
+  width: 100%;
+  height: 200px; /* Fixed height for preview */
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  position: relative;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* changed from cover to contain */
+  display: block;
+}
+
+.remove-image {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.3s ease;
+}
+
+.remove-image:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.remove-image {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Privacy Controls */
+.privacy-badge {
+  font-size: 18px;
+  margin-left: 5px;
+}
+
+.privacy-btn {
+  background-color: #f1f1f1;
+  color: #333;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.privacy-dropdown {
+  margin-left: 10px;
+  display: inline-block;
+}
+
+.privacy-select {
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  border: 1px solid #ddd;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+  width: 170px;
+}
+
+.privacy-select:focus {
+  outline: none;
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.2);
+}

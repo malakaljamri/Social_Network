@@ -1,0 +1,194 @@
+/* Layout Styles */
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* Main app container for consistent width and centering */
+#forum-container {
+  max-width: 900px;
+  margin: 40px auto 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  padding: 32px 28px 28px 28px;
+  margin: 72px auto 0 auto; /* For default (home page) */
+}
+
+#forum-container.groups-view {
+  margin-top: 72px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Header alignment */
+#forum-container h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: var(--font-size-3xl);
+  text-align: center;
+}
+
+/* Home page grid layout */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 250px 1fr 250px;
+  gap: 24px;
+  align-items: flex-start;
+  margin: 24px auto;
+  max-width: 1200px;
+}
+
+.sidebar {
+  grid-column: 1;
+}
+
+.main-content {
+  grid-column: 2;
+}
+
+.users-list {
+  grid-column: 3;
+}
+
+/* Posts Grid */
+#posts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+#posts-feed main {
+  margin-top: 10px;
+  padding: 18px 0 0 0;
+}
+
+#posts-feed h1 {
+  margin-bottom: 20px;
+}
+
+/* Make both views take the full width */
+#posts-feed, #profile-view {
+  width: 100%;
+}
+
+/* Fix for profile view visibility */
+#profile-view[style*="display: block"] {
+  display: block !important;
+  z-index: var(--z-index-modal);
+  position: relative;
+  background: white;
+  min-height: 100vh;
+}
+
+/* Make sure profile view doesn't get hidden */
+#profile-view {
+  min-height: 100vh;
+  background: white;
+  position: relative;
+  z-index: 1;
+}
+
+/* Sidebar Styles */
+#sidebar, #chat-section {
+  width: 250px;
+  float: left;
+  background-color: var(--surface-alt-color);
+  position: sticky;
+  top: 0; 
+  left: 0;
+  z-index: var(--z-index-sticky);
+}
+
+#chat-section {
+  float: right;
+  margin-top: 32px;
+  display: flex;
+  gap: 24px;
+}
+
+#sidebar .filter-section {
+  margin-bottom: 20px;
+}
+
+#sidebar .collapsible {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+#sidebar .active, #sidebar .collapsible:hover {
+  background-color: #ccc;
+}
+
+#sidebar .content {
+  padding: 0 18px;
+  display: none;
+  background-color: #f1f1f1;
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* Fix for sidebar elements */
+#sidebar, #chat-section {
+  z-index: var(--z-index-dropdown);
+}
+
+/* Responsive Layout */
+@media (max-width: 900px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  .sidebar, .users-list {
+    display: none;
+  }
+  
+  .main-content {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 1000px) {
+  #forum-container { 
+    padding: 16px 4vw; 
+  }
+}
+
+@media (max-width: 700px) {
+  #forum-container { 
+    max-width: 99vw; 
+  }
+  
+  #chat-section { 
+    flex-direction: column; 
+    gap: 12px; 
+  }
+}
+
+@media (max-width: 768px) {
+  .post-meta {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .post-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .post-category {
+    margin-top: 10px;
+  }
+}

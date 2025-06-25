@@ -1,0 +1,252 @@
+/* Responsive Design and Media Queries */
+
+/* Mobile-first responsive design */
+@media (max-width: 768px) {
+  /* Navigation adjustments */
+  nav {
+    flex-direction: column;
+    padding: var(--spacing-sm);
+  }
+  
+  nav a {
+    margin: var(--spacing-xs) 0;
+  }
+
+  /* Container adjustments */
+  .container {
+    padding: var(--spacing-sm);
+    margin: 0;
+  }
+
+  .forum-container {
+    padding: var(--spacing-sm);
+  }
+
+  /* Grid adjustments */
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  /* Sidebar adjustments */
+  .sidebar {
+    position: static;
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Post card adjustments */
+  .post-card {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .post-header h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .post-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  /* Button adjustments */
+  .button, .secondary-button {
+    padding: 10px 16px;
+    font-size: var(--font-size-sm);
+  }
+
+  /* Form adjustments */
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Chat window adjustments */
+  .chat-window {
+    width: 90%;
+    height: 70%;
+    bottom: 10px;
+    right: 5%;
+  }
+
+  /* Profile adjustments */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-avatar {
+    margin-right: 0;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .profile-stats {
+    justify-content: center;
+  }
+
+  .profile-actions {
+    margin-left: 0;
+    margin-top: var(--spacing-md);
+  }
+
+  /* Groups page adjustments */
+  #group-main {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-sm);
+    margin-top: 60px;
+  }
+
+  .group-list-container {
+    position: static;
+    width: 100%;
+    max-height: 200px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Image upload adjustments */
+  .image-upload-container {
+    min-height: 150px;
+  }
+
+  /* User search adjustments */
+  #user-search {
+    width: 95%;
+    margin: 10px auto;
+  }
+
+  #user-search input.search-input {
+    width: 100%;
+  }
+
+  .search-dropdown {
+    width: 100%;
+    left: 0;
+    transform: none;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    max-width: 90%;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 300px;
+  }
+
+  .sidebar {
+    width: 280px;
+  }
+
+  #group-main {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .group-list-container {
+    width: 180px;
+  }
+}
+
+/* Large screen adjustments */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1200px;
+  }
+
+  .forum-container {
+    max-width: 1200px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 350px;
+  }
+
+  .sidebar {
+    width: 330px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .sidebar,
+  .chat-window,
+  .floating-notification,
+  nav,
+  .button,
+  .secondary-button {
+    display: none !important;
+  }
+
+  .container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .post-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --border-color: #000;
+  }
+
+  .card {
+    border: 2px solid var(--border-color);
+  }
+
+  .button {
+    border: 2px solid var(--button-color);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .floating:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode support (if implemented) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a1a;
+    --card-color: #2d2d2d;
+    --text-color: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #999999;
+    --surface-alt-color: #333333;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .search-dropdown {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .search-result:hover {
+    background: #3a3a3a;
+  }
+
+  .modal-content {
+    background: #2d2d2d;
+    color: #ffffff;
+  }
+}

@@ -1,0 +1,265 @@
+/* Component Styles */
+
+/* Cards */
+.card {
+  background-color: var(--card-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 6px var(--shadow-color);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: box-shadow 0.3s ease;
+}
+
+.card p {
+  word-wrap: break-word;
+}
+
+.card:hover {
+  box-shadow: 0 8px 12px var(--shadow-color);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.card p {
+  margin-bottom: 15px;
+}
+
+.sub-card {
+  background-color: var(--sub-card-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+/* Buttons */
+.button {
+  background-color: var(--button-color);
+  color: var(--button-text-color);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 12px 24px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.button:hover {
+  background-color: #303f9f;
+}
+
+.secondary-button {
+  background-color: var(--secondary-button-color);
+  color: var(--secondary-button-text-color);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 12px 24px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.secondary-button:hover {
+  background-color: #d5d5d5;
+}
+
+.button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Like/Dislike Buttons */
+.like-dislike-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.like-button {
+  background-color: #4caf5050;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.dislike-button {
+  background-color: #f4433650;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Interactions */
+.interactions {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.interactions button {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.interactions button:hover {
+  background-color: var(--surface-alt-color);
+}
+
+/* Status Indicators */
+.online-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin-right: 8px;
+}
+
+.online-indicator.is-online {
+  background-color: #4caf50;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: #ccc;
+}
+
+.status-dot.online {
+  background-color: #4CAF50;
+}
+
+/* Pagination */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--surface-alt-color);
+  border-color: #ccc;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Vue.js specific pagination controls */
+#pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+#pagination-container button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 8px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#pagination-container button:hover:not(:disabled) {
+  background-color: #303f9f;
+}
+
+#pagination-container button:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+}
+
+button.pagination-button.active {
+  font-size: var(--font-size-base);
+}
+
+/* Notifications */
+.floating-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  max-width: 300px;
+  z-index: var(--z-index-modal);
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+}
+
+.floating-notification.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.notification-body {
+  font-size: 0.9em;
+}
+
+/* Custom Alert */
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  z-index: var(--z-index-modal);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
