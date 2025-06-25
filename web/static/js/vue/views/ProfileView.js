@@ -1,17 +1,15 @@
 // ProfileView Component
 const ProfileView = {
     template: `
-        <div class="profile-view">
-            <div class="profile-sidebar">
-                <filters-sidebar 
-                    :is-profile="true" 
-                    @filters-changed="onFiltersChanged" 
-                    :categories="categories" 
-                    :total-results="profile.posts ? profile.posts.length : 0">
-                </filters-sidebar>
-                <users-list class="users-list" @open-chat="openChat"></users-list>
-            </div>
-            <div class="profile-main">
+        <div class="profile-view layout-grid">
+            <filters-sidebar 
+                class="sidebar"
+                :is-profile="true" 
+                @filters-changed="onFiltersChanged" 
+                :categories="categories" 
+                :total-results="profile.posts ? profile.posts.length : 0">
+            </filters-sidebar>
+            <div class="profile-main main-content">
                 <div v-if="loading" class="loading-indicator">Loading profile...</div>
                 <div v-else>
                     <div class="profile-header">
@@ -131,6 +129,10 @@ const ProfileView = {
                     </template>
                 </div>
             </div>
+            <users-list class="users-list" @open-chat="openChat"></users-list>
+            <div id="chat-section">
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="$root.currentUser.value" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
+            </div>
         </div>
     `,
     data() {
@@ -162,7 +164,8 @@ const ProfileView = {
             showFollowing: false,
             followers: [],
             following: [],
-            followStatusMessage: ''
+            followStatusMessage: '',
+            openChats: []
         };
     },
     computed: {
@@ -389,6 +392,15 @@ const ProfileView = {
             }
             // Construct the proper URL for uploaded files
             return `/web/${avatar}`;
+        },
+        openChat(user) {
+            this.openChats.push(user);
+        },
+        closeChat(userId) {
+            this.openChats = this.openChats.filter(user => user.ID !== userId);
+        },
+        getChatZIndex(userId) {
+            return this.openChats.length - this.openChats.indexOf(this.openChats.find(user => user.ID === userId));
         }
     },
     mounted() {
