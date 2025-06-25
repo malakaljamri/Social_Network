@@ -7,6 +7,10 @@ type UserProfile struct {
 	FollowingCount int    `json:"following_count"`
 	PostsCount     int    `json:"posts_count"`
 	IsFollowing    bool   `json:"is_following,omitempty"`
+	IsPending      bool   `json:"is_pending,omitempty"`
+	Followers      []User `json:"followers"`
+	Following      []User `json:"following"`
+	Posts          []Post `json:"posts"`
 }
 
 // FollowRequest represents a follow/unfollow request

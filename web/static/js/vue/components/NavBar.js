@@ -74,7 +74,9 @@ const NavBar = {
             this.$emit('navigate', 'groups');
         },
         goToProfile() {
+            this.$root.selectedProfileUserId = null;
             this.$emit('navigate', 'profile');
+            this.$root.viewUserProfile(this.currentUserValue.id);
         },
         showCreateGroupModal() {
             this.$emit('show-modal', 'createGroup');
