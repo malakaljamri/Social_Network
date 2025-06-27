@@ -1,5 +1,3 @@
-/* Post Styles */
-
 .post-card {
   background-color: var(--card-color);
   border-radius: var(--border-radius);
@@ -59,17 +57,17 @@
 }
 
 .post-category span {
-  background-color: var(--surface-alt-color);
+  background-color: whitesmoke;
   border-radius: 15px;
   padding: 3px 10px;
   font-size: var(--font-size-sm);
-  color: #555;
+  color: navy;
 }
 
 .user-info {
   display: flex;
   justify-content: space-between;
-  color: var(--text-secondary);
+  color: white;
 }
 
 .post-title {
