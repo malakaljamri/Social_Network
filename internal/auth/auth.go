@@ -3,6 +3,12 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	// "log"
 	"net/http"
@@ -12,6 +18,10 @@ import (
 	"social_network/internal/models"
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
+
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -34,14 +44,44 @@ func writeJSONError(w http.ResponseWriter, message string, code int) {
 
 // RegisterHandler handles user registration
 func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	var user models.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	// Parse multipart form (max 10MB)
+	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
+	form := r.MultipartForm
+	get := func(key string) string {
+		if vs, ok := form.Value[key]; ok && len(vs) > 0 {
+			return vs[0]
+		}
+		return ""
+	}
+	var user models.User
+	user.Username = get("username")
+	user.Email = get("email")
+	user.Password = get("password")
+	user.FirstName = get("firstName")
+	user.LastName = get("lastName")
+	user.Gender = get("gender")
+	user.AboutMe = get("aboutMe")
+	birthDateStr := get("birthDate")
+	if birthDateStr != "" {
+		var t time.Time
+		var err error
+		if len(birthDateStr) > 10 {
+			t, err = time.Parse(time.RFC3339, birthDateStr)
+		} else {
+			t, err = time.Parse("2006-01-02", birthDateStr)
+		}
+		if err != nil {
+			writeJSONError(w, "Invalid birthDate format. Use YYYY-MM-DD or ISO format.", http.StatusBadRequest)
+			return
+		}
+		user.BirthDate = t
+	}
 
-	// Validate required fields (username is now optional)
+	// Validate required fields
 	if user.Email == "" || user.Password == "" || user.FirstName == "" || user.LastName == "" || user.Gender == "" {
 		writeJSONError(w, "Email, Password, First Name, Last Name, and Gender are required", http.StatusBadRequest)
 		return
@@ -54,20 +94,89 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user.Password = string(hashedPassword)
 
-	// Create the user in the database
+	// Create the user in the database (ID will be set)
 	err = database.CreateUser(&user)
 	if err != nil {
 		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Handle avatar file if present
+	avatarPath := ""
+	files := form.File["avatar"]
+	if len(files) > 0 {
+		fileHeader := files[0]
+		if fileHeader.Size > 2*1024*1024 {
+			writeJSONError(w, "Avatar image size must not exceed 2MB", http.StatusBadRequest)
+			return
+		}
+		file, err := fileHeader.Open()
+		if err != nil {
+			writeJSONError(w, "Error opening avatar file", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		// Validate file type
+		buf := make([]byte, 512)
+		n, _ := file.Read(buf)
+		contentType := http.DetectContentType(buf[:n])
+		if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/gif" {
+			writeJSONError(w, "Invalid avatar file type. Only JPEG, PNG, and GIF are allowed.", http.StatusBadRequest)
+			return
+		}
+		// Reset file pointer
+		file.Seek(0, 0)
+		// Validate dimensions
+		img, _, err := image.DecodeConfig(file)
+		if err != nil {
+			writeJSONError(w, "Invalid image file", http.StatusBadRequest)
+			log.Printf("🧑 avatar: %s", err)
+			return
+		}
+		if img.Width > 2048 || img.Height > 2048 {
+			writeJSONError(w, "Avatar image dimensions must not exceed 2048x2048px", http.StatusBadRequest)
+			return
+		}
+		file.Seek(0, 0)
+		// Get project root using runtime.Caller (like database.go)
+		_, currentFile, _, _ := runtime.Caller(0)
+		projectRoot := filepath.Join(filepath.Dir(currentFile), "..", "..")
+		avatarDir := filepath.Join(projectRoot, "web", "uploads", fmt.Sprintf("userID%d", user.ID), "avatar")
+		if err := os.MkdirAll(avatarDir, 0755); err != nil {
+			writeJSONError(w, "Error creating avatar directory", http.StatusInternalServerError)
+			return
+		}
+		avatarPath = filepath.Join(avatarDir, fileHeader.Filename)
+		out, err := os.Create(avatarPath)
+		if err != nil {
+			writeJSONError(w, "Error saving avatar file", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		if _, err := io.Copy(out, file); err != nil {
+			writeJSONError(w, "Error saving avatar file", http.StatusInternalServerError)
+			return
+		}
+		// Store relative path for DB/web
+		relPath := fmt.Sprintf("userID%d/avatar/%s", user.ID, fileHeader.Filename)
+		// Update user avatar in DB
+		err = database.UpdateUserAvatar(user.ID, relPath)
+		if err != nil {
+			writeJSONError(w, "Error updating user avatar", http.StatusInternalServerError)
+			return
+		}
+		avatarPath = relPath
+	}
+
 	createSession(w, user, h)
 
 	// Send success response
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":  "User registered and logged in successfully",
 		"username": user.Username,
+		"avatar":   avatarPath,
+		"user_id":  user.ID,
 	})
 }
 

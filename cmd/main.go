@@ -17,6 +17,7 @@ import (
 var migrate = false;
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// Initialize the database
 	db, err := database.InitializeDB()
 	if err != nil {

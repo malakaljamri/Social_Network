@@ -39,50 +39,99 @@ const RegisterModal = {
                 gender: '',
                 firstName: '',
                 lastName: '',
-                avatar: '',
+                avatar: null,
                 aboutMe: '',
                 loading: false,
-                error: ''
-            }
+                error: '',
+                imageError: ''
+            },
+            imagePreview: null,
+            maxFileSize: 2 * 1024 * 1024, // 2MB
+            maxDimensions: 2048
         };
     },
     methods: {
         handleAvatarChange(event) {
             const file = event.target.files[0];
             if (file) {
-                // For now, we'll store the filename. In a real app, you'd upload the file
-                this.form.avatar = file.name;
+                this.validateAndSetImage(file);
+            }
+        },
+        async validateAndSetImage(file) {
+            this.form.imageError = '';
+            // Check file type
+            if (!file.type.match(/^image\/(jpeg|png|gif)$/)) {
+                this.form.imageError = 'Please upload a valid image file (JPEG, PNG, or GIF)';
+                return;
+            }
+            // Check file size
+            if (file.size > this.maxFileSize) {
+                this.form.imageError = 'Image size must not exceed 2MB';
+                return;
+            }
+            // Check image dimensions
+            try {
+                const dimensions = await this.getImageDimensions(file);
+                if (dimensions.width > this.maxDimensions || dimensions.height > this.maxDimensions) {
+                    this.form.imageError = `Image dimensions must not exceed ${this.maxDimensions}x${this.maxDimensions}px`;
+                    return;
+                }
+            } catch (error) {
+                this.form.imageError = 'Failed to validate image dimensions';
+                return;
+            }
+            this.form.avatar = file;
+            this.imagePreview = URL.createObjectURL(file);
+        },
+        getImageDimensions(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve({ width: img.width, height: img.height });
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        },
+        removeImage() {
+            this.form.avatar = null;
+            if (this.imagePreview) {
+                URL.revokeObjectURL(this.imagePreview);
+                this.imagePreview = null;
             }
         },
         async submitRegister() {
             this.form.loading = true;
             this.form.error = '';
-            
             // Validate required fields
             if (!this.form.email || !this.form.password || !this.form.firstName || !this.form.lastName || !this.form.birthDate || !this.form.gender) {
                 this.form.error = 'Email, Password, First Name, Last Name, Date of Birth, and Gender are required';
                 this.form.loading = false;
                 return;
             }
-
+            if (this.form.imageError) {
+                this.form.error = this.form.imageError;
+                this.form.loading = false;
+                return;
+            }
             try {
+                const formData = new FormData();
+                formData.append('username', this.form.username || '');
+                formData.append('email', this.form.email);
+                formData.append('password', this.form.password);
+                formData.append('birthDate', this.form.birthDate + 'T00:00:00Z');
+                formData.append('gender', this.form.gender);
+                formData.append('firstName', this.form.firstName);
+                formData.append('lastName', this.form.lastName);
+                formData.append('aboutMe', this.form.aboutMe || '');
+                if (this.form.avatar) {
+                    formData.append('avatar', this.form.avatar);
+                }
                 const response = await fetch('/api/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: this.form.username || '', // Optional field
-                        email: this.form.email,
-                        password: this.form.password,
-                        birthDate: this.form.birthDate + 'T00:00:00Z', // Convert to ISO format
-                        gender: this.form.gender,
-                        firstName: this.form.firstName,
-                        lastName: this.form.lastName,
-                        avatar: this.form.avatar || '', // Optional field
-                        aboutMe: this.form.aboutMe || '' // Optional field
-                    }),
+                    body: formData,
                     credentials: 'include'
                 });
-                
                 const data = await response.json();
                 if (!response.ok) {
                     if (data.error === "failed to execute query: UNIQUE constraint failed: users.email") {
