@@ -27,17 +27,25 @@ nav::before {
   z-index: -1;
 }
 
-/* Navigation links */
-nav a {
-  color: var(--button-text-color);
-  text-decoration: none;
-  margin-right: var(--spacing-lg);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius);
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition-all);
-  position: relative;
-  overflow: hidden;
+/* Navigation buttons */
+.nav-center .secondary-button,
+.nav-right .secondary-button {
+  color: #000000 !important; /* Force black text */
+  background: rgba(255, 255, 255, 0.9) !important; /* Slightly transparent white background */
+  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* Subtle border */
+}
+
+.nav-center .secondary-button:hover,
+.nav-right .secondary-button:hover {
+  background: rgba(255, 255, 255, 1) !important; /* Solid white on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.nav-center .secondary-button:active,
+.nav-right .secondary-button:active {
+  transform: translateY(0);
+  box-shadow: none !important;
 }
 
 nav a::before {
