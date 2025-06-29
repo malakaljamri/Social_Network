@@ -1,4 +1,4 @@
-
+/* this is the past css file just ignore it  */
 :root {
   --primary-color: #3f51b5;
   --secondary-color: #ff4081;
@@ -656,7 +656,9 @@ button.pagination-button.active {
 
 .post-text {
   line-height: 1.6;
-  color: #444;
+  color: white !important;
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .interactions {
@@ -898,11 +900,14 @@ button.pagination-button.active {
 }
 
 .post-category span {
-  background-color: #f0f0f0;
+  background-color: #f1f5f9;
+  border: 1px solid rgba(102, 126, 234, 0.2);
   border-radius: 15px;
-  padding: 3px 10px;
+  padding: 5px 12px;
   font-size: 0.8rem;
-  color: #555;
+  color: #1e293b !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 /* Online Users List Styles */
@@ -1916,6 +1921,8 @@ button.pagination-button.active {
 .category-item label {
     cursor: pointer;
     flex: 1;
+    color: #1e293b !important;
+    font-weight: 500;
 }
 
 /* Private Viewers Styles */

@@ -17,14 +17,15 @@ const ProfileView = {
                             <img :src="avatarUrl" 
                                  class="avatar-large profile-avatar-img"
                                  :alt="profile.user.username">
-                            <button v-if="isOwnProfile" 
-                                    @click="showEditForm = !showEditForm"
-                                    class="btn btn-primary">
-                                {{ showEditForm ? 'Cancel Edit' : 'Edit Profile' }}
-                            </button>
                         </div>
                         <div class="profile-info">
                             <h2>{{ profile.user.Username || profile.user.username }}'s Profile</h2>
+                            <!-- Edit Profile Button for own profile -->
+                            <button v-if="isOwnProfile" 
+                                    @click="showEditForm = !showEditForm"
+                                    class="btn btn-primary edit-profile-btn">
+                                {{ showEditForm ? 'Cancel Edit' : 'Edit Profile' }}
+                            </button>
                             <!-- Follow/Unfollow/Request Button for non-own profiles -->
                             <div v-if="!isOwnProfile && !isViewingOwnProfile" class="follow-action">
                                 <button v-if="profile.is_following" class="btn btn-danger" @click="unfollowUser" title="Click to unfollow this user">

@@ -9,7 +9,7 @@
   display: block;
   margin-bottom: var(--spacing-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--text-color);
+  color: black;
   font-size: var(--font-size-sm);
   transition: var(--transition-colors);
 }
@@ -169,6 +169,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  color: var(--text-color) !important;
 }
 
 .category-item:last-child {
