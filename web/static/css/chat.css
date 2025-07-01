@@ -1,0 +1,179 @@
+/* Chat and Real-time Features */
+
+.chat-window {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  height: 400px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: var(--z-index-modal);
+}
+
+/* Online Users List Styles */
+.online-users-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+  background-color: #f5f5f5;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.13s;
+}
+
+.user-item:hover {
+  background: #e9f2ff;
+}
+
+.username {
+  font-weight: 500;
+  margin-right: 10px;
+}
+
+.view-profile-hint {
+  font-size: 0.93em;
+  color: #888;
+}
+
+/* Better styling for username in online users list */
+.user-item .username {
+  font-weight: 500;
+  color: #333;
+}
+
+/* Ensure profile links have proper hover effects */
+.profile-link {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profile-link:hover {
+  background-color: var(--surface-alt-color);
+}
+
+/* Make sure view-profile-hint is visible on hover */
+.user-item:hover .view-profile-hint {
+  opacity: 1 !important;
+  color: #7d6ee7;
+  font-size: 11px;
+  margin-left: 5px;
+}
+
+/* Fix for user items in the sidebar to clearly indicate they're clickable */
+.user-item.profile-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.user-item.profile-link:hover {
+  background-color: var(--surface-alt-color);
+}
+
+.view-profile-hint {
+  font-size: 10px;
+  color: #7d6ee7;
+  margin-left: 5px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.user-item.profile-link:hover .view-profile-hint {
+  opacity: 1;
+}
+
+/* Users List Styling */
+.users-list {
+  margin: 1rem;
+  padding: 1rem;
+  background: rgb(116, 116, 116);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.users-list h3 {
+  margin: 0 0 1rem 0;
+  color: #000000;
+  font-size: var(--font-size-lg);
+}
+
+.users-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.users-container {
+  margin-top: 10px;
+}
+
+.user-item.online-user {
+  font-weight: 500;
+}
+
+#online-users.card {
+  min-width: 220px;
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 16px 12px;
+}
+
+/* Typing Indicators */
+.typing-indicator {
+  padding: 10px;
+  font-style: italic;
+}
+
+.typing-indicator .dots span {
+  animation: typing 1s infinite;
+  opacity: 0;
+}
+
+.typing-indicator .dots span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator .dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.typing-dots span {
+  animation: blink 1s infinite;
+  opacity: 0;
+  margin-left: 2px;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0%, 50% { opacity: 0; }
+  25% { opacity: 1; }
+}

@@ -7,56 +7,17 @@ const HomeView = {
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
-                <div v-for="post in filteredPosts" :key="post.ID" class="post-card" :data-post-id="post.ID">
-                    <div class="post-header">
-                        <h2>{{ post.Title }}</h2>
-                        <div class="post-meta">
-                            <span class="post-author">Posted by <span class="user-clickable" @click="viewPostsByUser(post.UserID)">{{ post.Author }}</span>
-                                <span class="post-id">  Post ID: {{ post.ID }}</span>
-                            </span>                            
-                            <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                        </div>
-                    </div>
-                    <div class="post-content">
-                        <div v-if="post.Image" class="post-image">
-                            <img 
-                                :src="getImageUrl(post.Image)" 
-                                :alt="post.Title"
-                                @error="handleImageError"
-                                loading="lazy"
-                            >
-                        </div>
-                        <div class="post-text">{{ post.Text }}</div>
-                    </div>
-                    <div class="post-footer">
-                        <!--<div class="post-interactions">
-                            <button @click="likePost(post.ID)" class="like-btn" :disabled="!currentUserValue || !currentUserValue.isLoggedIn">{{ post.Likes || 0 }}</button>
-                            <button @click="dislikePost(post.ID)" class="dislike-btn" :disabled="!currentUserValue || !currentUserValue.isLoggedIn">{{ post.Dislikes || 0 }}</button>
-                        </div>-->
-                        <div class="post-category" v-if="post.Categories && post.Categories.length">
-                            <span v-for="catId in post.Categories" :key="catId">{{ getCategoryName(catId) }}</span>
-                        </div>
-                    </div>
-                    <comment-section :post-id="post.ID" :current-user="currentUserValue"></comment-section>
-                </div>
-                <!-- Add pagination controls -->
-                <div class="pagination-controls" v-if="totalPages > 1">
-                    <button 
-                        @click="prevPage" 
-                        :disabled="currentPage === 1"
-                        class="pagination-btn"
-                    >
-                        Previous
-                    </button>
-                    <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
-                    <button 
-                        @click="nextPage" 
-                        :disabled="currentPage === totalPages"
-                        class="pagination-btn"
-                    >
-                        Next
-                    </button>
-                </div>
+                <feed-main
+                    :posts="filteredPosts"
+                    :categories="categories"
+                    :current-user="currentUserValue"
+                    :total-pages="totalPages"
+                    :current-page="currentPage"
+                    :on-prev-page="prevPage"
+                    :on-next-page="nextPage"
+                    :get-category-name="getCategoryName"
+                    @view-user-profile="viewPostsByUser"
+                ></feed-main>
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section">
@@ -237,4 +198,4 @@ const HomeView = {
     }
 };
 
-// No mount here, will be registered globally. 
+// No mount here, will be registered globally.

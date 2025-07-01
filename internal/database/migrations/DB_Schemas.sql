@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_receiver ON chat_messages(sender_id, "Receiver_id");
 CREATE TABLE IF NOT EXISTS "users" (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     birthDate DATE,
@@ -86,18 +86,15 @@ CREATE TABLE IF NOT EXISTS "users" (
     avatar TEXT,
     nickname TEXT,
     about_me TEXT,
-    profile_privacy TEXT CHECK (profile_privacy IN ('public', 'private')) DEFAULT 'public'
+    is_private BOOLEAN DEFAULT FALSE
 );
--- -- Privacy feature: Add is_private column to users table
--- ALTER TABLE users ADD COLUMN is_private BOOLEAN DEFAULT FALSE;
 CREATE TABLE IF NOT EXISTS followers (
-    id INTEGER PRIMARY KEY,
     follower_id INTEGER,
     followed_id INTEGER,
     status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+    PRIMARY KEY (follower_id, followed_id),
     FOREIGN KEY (follower_id) REFERENCES users(id),
-    FOREIGN KEY (followed_id) REFERENCES users(id),
-    UNIQUE (follower_id, followed_id)
+    FOREIGN KEY (followed_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY,

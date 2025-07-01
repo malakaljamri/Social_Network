@@ -1,0 +1,332 @@
+/* Enhanced Responsive Design and Media Queries */
+
+/* Base styles are mobile-first, then enhanced for larger screens */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+  .container {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+  }
+  
+  .form-row {
+    display: flex;
+    gap: var(--spacing-lg);
+  }
+  
+  .button-group {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+  }
+  
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+  
+  .form-container {
+    padding: var(--spacing-3xl);
+  }
+  
+  .card {
+    padding: var(--spacing-2xl);
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+  .container {
+    max-width: 960px;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .main-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr 300px;
+    gap: var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .sidebar-left {
+    grid-column: 1;
+  }
+  
+  .main-content {
+    grid-column: 2;
+  }
+  
+  .sidebar-right {
+    grid-column: 3;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+  
+  .main-layout {
+    max-width: 1400px;
+    grid-template-columns: 280px 1fr 320px;
+  }
+}
+
+/* Mobile-specific adjustments (max-width: 767px) */
+@media (max-width: 767px) {
+  /* Enhanced navigation for mobile */
+  nav {
+    flex-direction: column;
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+  
+  nav a {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    text-align: center;
+    transition: var(--transition-colors);
+  }
+  
+  nav a:hover {
+    background: rgba(var(--primary-color-rgb), 0.1);
+  }
+
+  /* Container adjustments */
+  .container {
+    padding: var(--spacing-sm);
+    margin: 0;
+  }
+
+  .forum-container {
+    padding: var(--spacing-sm);
+  }
+
+  /* Grid adjustments */
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  /* Sidebar adjustments */
+  .sidebar {
+    position: static;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    order: -1;
+  }
+
+  /* Enhanced card adjustments */
+  .card {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--border-radius);
+  }
+  
+  .post-card {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .post-header h2 {
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-tight);
+  }
+
+  .post-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  /* Button adjustments */
+  .button,
+  .secondary-button,
+  .success-button,
+  .danger-button {
+    width: 100%;
+    justify-content: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .button-group {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .like-dislike-container {
+    justify-content: center;
+    gap: var(--spacing-lg);
+  }
+
+  /* Form adjustments */
+  .form-container {
+    padding: var(--spacing-lg);
+    margin: var(--spacing-sm);
+    border-radius: var(--border-radius);
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: var(--spacing-sm);
+  }
+  
+  .form-actions .button,
+  .form-actions .secondary-button {
+    width: 100%;
+  }
+
+  /* Chat adjustments */
+  .chat-container {
+    height: 60vh;
+    margin: var(--spacing-sm);
+  }
+  
+  .chat-input-container {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .chat-input {
+    width: 100%;
+  }
+
+  /* Modal adjustments */
+  .modal-content {
+    width: 95%;
+    margin: var(--spacing-sm);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Typography adjustments */
+  h1 {
+    font-size: var(--font-size-3xl);
+  }
+  
+  h2 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  h3 {
+    font-size: var(--font-size-xl);
+  }
+
+  /* Spacing adjustments */
+  .section {
+    padding: var(--spacing-lg) 0;
+  }
+  
+  .page-header {
+    padding: var(--spacing-lg) 0;
+    text-align: center;
+  }
+}
+
+/* Tablet-specific adjustments (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .main-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: var(--spacing-lg);
+  }
+  
+  .sidebar-right {
+    display: none;
+  }
+  
+  .card {
+    padding: var(--spacing-xl);
+  }
+  
+  .form-container {
+    max-width: 500px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure crisp rendering on high DPI displays */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode support (if user prefers dark) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #0f172a;
+    --background-secondary: #1e293b;
+    --card-color: #1e293b;
+    --sub-card-color: #334155;
+    --surface-alt-color: #334155;
+    --text-color: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-light: #64748b;
+  }
+  
+  .card::before {
+    background: linear-gradient(90deg, var(--primary-color-light), var(--secondary-color));
+  }
+}
+
+/* Print styles */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  
+  .sidebar,
+  .navigation,
+  .button,
+  .form-actions {
+    display: none !important;
+  }
+  
+  .card {
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+  
+  a::after {
+    content: " (" attr(href) ")";
+  }
+}

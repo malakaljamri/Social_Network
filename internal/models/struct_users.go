@@ -3,17 +3,20 @@ package models
 import "time"
 
 type User struct {
-	ID        int
-	Username  string
-	BirthDate time.Time
-	Gender    string
-	FirstName string
-	LastName  string
-	Email     string
-	Password  string
+	ID              int
+	Username        string
+	BirthDate       time.Time
+	Gender          string
+	FirstName       string
+	LastName        string
+	Email           string
+	Password        string
 	LastMessageTime string
-	Online    bool
-	IsPrivate bool    // Whether the profile is private (only followers can see posts)
+	Online          bool
+	IsPrivate       bool // Whether the profile is private (only followers can see posts)
+	Avatar          string
+	AboutMe         string
+	Nickname        string
 }
 
 type Session struct {

@@ -11,12 +11,12 @@ import (
 // SearchUsers handles /api/search/users?q= query for user search autocomplete
 func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	if len(q) < 2 {
+	if len(q) < 1 {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("[]"))
 		return
 	}
-	users, err := db.SearchUsersByUsername(q)
+	users, err := db.SearchUsers(q)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Database error")
 		return
