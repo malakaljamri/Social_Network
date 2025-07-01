@@ -110,6 +110,7 @@ const GroupMain = {
                 :group-id="selectedGroup.ID"
                 @close="closeGroupEventsModal"
                 @refresh-events="$emit('refresh-group-events')"
+                @event-click="$emit('event-click', $event)"
             />
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">

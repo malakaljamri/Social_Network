@@ -18,7 +18,12 @@ const app = Vue.createApp({
             minimizedChats: new Set(),
             posts: [], // for updating after post creation
             groups: [], // for updating after group creation
-            openChats: [] // <-- moved from HomeView
+            openChats: [], // <-- moved from HomeView
+            selectedEvent: null,
+            showEventDetailsModal: false,
+            showGroupEventsModal: false,
+            upcomingEvents: [],
+            pastEvents: []
         };
     },
     watch: {
@@ -213,6 +218,17 @@ const app = Vue.createApp({
             if (!this.openChats.some(u => u.ID === user.ID)) {
                 this.openChats.push(user);
             }
+        },
+        openEventDetailsModal(event) {
+            this.selectedEvent = event;
+            this.showEventDetailsModal = true;
+        },
+        closeEventDetailsModal() {
+            this.showEventDetailsModal = false;
+            this.selectedEvent = null;
+        },
+        closeGroupEventsModal() {
+            this.showGroupEventsModal = false;
         }
     },
     mounted() {
@@ -307,6 +323,7 @@ const app = Vue.createApp({
                 @open-create-group-post-modal="openCreateGroupPostModal"
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
+                @event-click="openEventDetailsModal"
             ></component>
             <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>
             <m-create-post
@@ -328,6 +345,18 @@ const app = Vue.createApp({
             <div id="chat-section">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
+            <G_GroupEventDetailsModal
+                v-if="showEventDetailsModal"
+                :event="selectedEvent"
+                @close="closeEventDetailsModal"
+            />
+            <G_GroupEventsModal
+                v-if="showGroupEventsModal"
+                :upcomingEvents="upcomingEvents"
+                :pastEvents="pastEvents"
+                @close="closeGroupEventsModal"
+                @event-click="openEventDetailsModal"
+            />
         </div>
     `,
     setup() {
@@ -337,6 +366,10 @@ const app = Vue.createApp({
         return {
             websocket,
         };
+    },
+    components: {
+        G_GroupEventDetailsModal: window.G_GroupEventDetailsModal,
+        G_GroupEventsModal: window.G_GroupEventsModal,
     },
 });
 
@@ -365,9 +398,6 @@ app.component('group-chat', GroupChat);
 app.component('g-group-list', G_GroupList);
 app.component('g-group-main', G_GroupMain);
 app.component('g-group-chat', G_GroupChat);
-app.component('g-group-events-modal', window.G_GroupEventsModal);
-app.component('create-post-modal', CreatePostModal);
-app.component('comment-section', CommentSection);
 
 // Mount the app
 app.mount('#app'); 

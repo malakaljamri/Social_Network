@@ -64,14 +64,18 @@ const GroupEventsModal = {
                         <h3>Upcoming Events</h3>
                         <div v-if="upcomingEvents.length === 0" style="color: #888; padding: 8px;">No upcoming events</div>
                         <div v-for="event in upcomingEvents" :key="event.id" class="event-item">
-                            <strong>{{ event.title }}</strong> - {{ formatDate(event.event_date) }}
+                            <button class="event-btn" @click="$emit('event-click', event)">
+                                {{ event.title || event.name || event.id }} - {{ formatDate(event.event_date) || formatDate(event.date) }}
+                            </button>
                         </div>
                     </div>
                     <div class="form-group">
                         <h3>Past Events</h3>
                         <div v-if="pastEvents.length === 0" style="color: #888; padding: 8px;">No past events</div>
                         <div v-for="event in pastEvents" :key="event.id" class="event-item">
-                            <strong>{{ event.title }}</strong> - {{ formatDate(event.event_date) }}
+                            <button class="event-btn" @click="$emit('event-click', event)">
+                                {{ event.title || event.name || event.id }} - {{ formatDate(event.event_date) || formatDate(event.date) }}
+                            </button>
                         </div>
                     </div>
                     <button type="button" class="cancel-btn" @click="close">Close</button>
@@ -88,7 +92,7 @@ const GroupEventsModal = {
     components: {
         'm-group-create-event': window.M_GroupCreateEvent
     },
-    emits: ['close', 'refresh-events']
+    emits: ['close', 'refresh-events', 'event-click']
 };
 
 window.G_GroupEventsModal = GroupEventsModal; 

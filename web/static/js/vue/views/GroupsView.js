@@ -82,6 +82,9 @@ const GroupsView = {
         },
         handleOpenCreateGroupModal() {
             this.$emit('open-create-group-modal');
+        },
+        handleEventClick(event) {
+            this.$emit('event-click', event);
         }
     },
     mounted() {
@@ -106,6 +109,7 @@ const GroupsView = {
                     @create-group-post="handleCreateGroupPost"
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
+                    @event-click="handleEventClick"
                 ></g-group-main>
             </div>
             <users-list class="sidebar"></users-list>
