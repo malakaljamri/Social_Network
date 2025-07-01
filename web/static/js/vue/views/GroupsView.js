@@ -96,6 +96,7 @@ const GroupsView = {
             <g-group-list
                 :groups="groups"
                 :selected-group-id="selectedGroupId"
+                :current-user="$root.currentUser.value"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
                 class="sidebar"
@@ -106,6 +107,7 @@ const GroupsView = {
                     :group-posts="groupPosts"
                     :group-events="groupEvents"
                     :categories="categories"
+                    :current-user="$root.currentUser.value"
                     @create-group-post="handleCreateGroupPost"
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
