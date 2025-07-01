@@ -1,28 +1,18 @@
-FROM golang:1.23.0
+# Build stage
+FROM golang:1.22.5 as builder
 
 WORKDIR /app
-
-# Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download all dependencies
 RUN go mod download
-
-# Copy the source code
 COPY . .
+RUN go build -o server ./cmd
 
-# Update the database and file paths in sqlite.go and auth_util.go
-RUN sed -i 's|../../pkg/db/app.db|/app/pkg/db/app.db|g' pkg/db/sqlite/sqlite.go && \
-    sed -i 's|file://../../pkg/db/migrations|file:///app/pkg/db/migrations|g' pkg/db/sqlite/sqlite.go && \
-    sed -i 's|../../pkg/db/uploads|/app/pkg/db/uploads|g' pkg/utilities/auth_util.go
-
-# Build the application
-WORKDIR /app/cmd/server
-RUN go build -o main .
-
-# Create necessary directories
-RUN mkdir -p /app/pkg/db/uploads
-
+# Final stage
+FROM debian:bookworm-slim
+WORKDIR /app
+COPY --from=builder /app/server .
+COPY --from=builder /app/web ./web
+COPY --from=builder /app/forum.db .
+COPY --from=builder /app/internal/database/migrations /app/internal/database/migrations
 EXPOSE 8080
-
-CMD ["./main"]
+CMD ["./server"]
