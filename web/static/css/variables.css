@@ -1,60 +1,108 @@
 /* CSS Custom Properties (Variables) */
 :root {
-  /* Primary Colors */
-  --primary-color: #3f51b5;
-  --secondary-color: #ff4081;
-  --accent-color: #4CAF50;
-  --accent-color-dark: #388E3C;
-  --error-color: #F44336;
-  --error-color-dark: #D32F2F;
+  /* Modern Color Palette */
+  --primary-color: #667eea;
+  --primary-color-light: #818cf8;
+  --primary-color-dark: #4f46e5;
+  --secondary-color: #f093fb;
+  --accent-color: #10b981;
+  --accent-color-dark: #059669;
+  --error-color: #ef4444;
+  --error-color-dark: #dc2626;
+  --warning-color: #f59e0b;
+  --success-color: #10b981;
   
   /* RGB Values for Transparency */
-  --accent-color-rgb: 76, 175, 80;
-  --accent-color-dark-rgb: 56, 142, 60;
-  --error-color-rgb: 244, 67, 54;
-  --error-color-dark-rgb: 211, 47, 47;
+  --primary-color-rgb: 102, 126, 234;
+  --accent-color-rgb: 16, 185, 129;
+  --accent-color-dark-rgb: 5, 150, 105;
+  --error-color-rgb: 239, 68, 68;
+  --error-color-dark-rgb: 220, 38, 38;
   
-  /* Background Colors */
-  --background-color: #f5f5f5;
+  /* Modern Background Colors */
+  --background-color: #fafbfc;
+  --background-secondary: #f1f5f9;
   --card-color: #ffffff;
-  --sub-card-color: #f9f9f9;
-  --surface-alt-color: #f0f0f0;
+  --sub-card-color: #f8fafc;
+  --surface-alt-color: #f1f5f9;
+  --overlay-color: rgba(15, 23, 42, 0.8);
   
-  /* Text Colors */
-  --text-color: #333333;
-  --text-secondary: #666;
-  --text-muted: #999999;
+  /* Enhanced Text Colors */
+  --text-color: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-light: #cbd5e1;
+  --text-on-primary: #ffffff;
   
-  /* Button Colors */
-  --button-color: #3f51b5;
-  --button-text-color: #ffffff;
-  --secondary-button-color: #e0e0e0;
-  --secondary-button-text-color: #333333;
+  /* Modern Button Colors */
+  --button-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
+  --button-secondary: #f1f5f9;
+  --button-secondary-text: var(--text-color);
+  --button-success: linear-gradient(135deg, var(--success-color), var(--accent-color-dark));
+  --button-danger: linear-gradient(135deg, var(--error-color), var(--error-color-dark));
   
-  /* Shadow Colors */
+  /* Enhanced Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-color: rgba(0, 0, 0, 0.1);
   --shadow-color-2: rgba(255, 0, 0, 0.3);
   
-  /* Border Radius */
-  --border-radius: 8px;
+  /* Modern Border Radius */
+  --border-radius-sm: 6px;
+  --border-radius: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-full: 9999px;
   
-  /* Spacing */
+  /* Enhanced Spacing Scale */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
   
-  /* Font Sizes */
-  --font-size-sm: 0.8rem;
+  /* Modern Typography Scale */
+  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-secondary: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
-  --font-size-lg: 1.2rem;
-  --font-size-xl: 1.4rem;
-  --font-size-2xl: 1.8rem;
-  --font-size-3xl: 2.2rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
   
-  /* Z-Index Scale */
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* Enhanced Z-Index Scale */
   --z-index-dropdown: 10;
   --z-index-sticky: 100;
   --z-index-modal: 1000;
+  --z-index-tooltip: 1100;
+  
+  /* Animation Durations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  
+  /* Transitions */
+  --transition-all: all var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-colors: color var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1), 
+                       background-color var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-transform: transform var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
 }

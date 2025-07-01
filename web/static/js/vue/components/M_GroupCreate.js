@@ -39,11 +39,11 @@ const CreateGroupModal = {
                 const response = await fetch('/api/groups/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: this.form.name,
-                        description: this.form.description,
-                        privacy: this.form.privacy
-                    }),
+                                    body: JSON.stringify({
+                    name: this.form.name,
+                    description: this.form.description,
+                    privacy_setting: this.form.privacy
+                }),
                     credentials: 'include'
                 });
                 if (!response.ok) {

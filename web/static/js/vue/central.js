@@ -53,7 +53,15 @@ const app = Vue.createApp({
             selectedGroupIdForModal: null,
             posts: [],
             openChats: [],
-            selectedProfileUserId: null
+            selectedProfileUserId: null,
+            posts: [], // for updating after post creation
+            groups: [], // for updating after group creation
+            openChats: [], // <-- moved from HomeView
+            selectedEvent: null,
+            showEventDetailsModal: false,
+            showGroupEventsModal: false,
+            upcomingEvents: [],
+            pastEvents: []
         };
     },
     watch: {
@@ -342,6 +350,17 @@ const app = Vue.createApp({
         viewUserProfile(userId) {
             this.selectedProfileUserId = userId;
             this.currentView = 'profile';
+        },
+        openEventDetailsModal(event) {
+            this.selectedEvent = event;
+            this.showEventDetailsModal = true;
+        },
+        closeEventDetailsModal() {
+            this.showEventDetailsModal = false;
+            this.selectedEvent = null;
+        },
+        closeGroupEventsModal() {
+            this.showGroupEventsModal = false;
         }
     },
     mounted() {
@@ -437,6 +456,7 @@ const app = Vue.createApp({
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
                 v-bind="currentView === 'profile' ? { userId: selectedProfileUserId } : {}"
+                @event-click="openEventDetailsModal"
             ></component>
             <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>
             <m-create-post
@@ -458,6 +478,19 @@ const app = Vue.createApp({
             <div id="chat-section">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
+            <div v-if="showEventDetailsModal" style="display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3000; background: rgba(0,0,0,0.15);">
+                <G_GroupEventDetailsModal
+                    :event="selectedEvent"
+                    @close="closeEventDetailsModal"
+                />
+            </div>
+            <G_GroupEventsModal
+                v-if="showGroupEventsModal"
+                :upcomingEvents="upcomingEvents"
+                :pastEvents="pastEvents"
+                @close="closeGroupEventsModal"
+                @event-click="openEventDetailsModal"
+            />
         </div>
     `,
     setup() {
@@ -467,6 +500,10 @@ const app = Vue.createApp({
         return {
             websocket,
         };
+    },
+    components: {
+        G_GroupEventDetailsModal: window.G_GroupEventDetailsModal,
+        G_GroupEventsModal: window.G_GroupEventsModal,
     },
 });
 
@@ -496,6 +533,13 @@ app.component('g-group-events-modal', G_GroupEventsModal);
 app.component('p-profile-edit-form', P_ProfileEditForm);
 app.component('p-follow-request-list', P_FollowRequestList);
 app.component('feed-main', FeedMain);
+// Stub components for missing group features
+app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
+app.component('group-events', { template: '<div>Group Events (stub)</div>' });
+app.component('group-chat', GroupChat);
+app.component('g-group-list', G_GroupList);
+app.component('g-group-main', G_GroupMain);
+app.component('g-group-chat', G_GroupChat);
 
 // Mount the app
 app.mount('#app'); 

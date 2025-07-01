@@ -27,4 +27,11 @@ query := `INSERT INTO users (email, password, birthDate, first_name, last_name, 
 
 # ignore the Docker for now i will make sure it will work if we finish inshallah 
 
+-------------
 
+# Docker now is done 
+
+to run it use " docker-compose up "
+
+![alt text](image.png)
+![alt text](image-1.png)

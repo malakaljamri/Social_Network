@@ -1,6 +1,6 @@
 // GroupMain Component
 const GroupMain = {
-    props: ['selectedGroup', 'groupPosts', 'groupEvents', 'categories'],
+    props: ['selectedGroup', 'groupPosts', 'groupEvents', 'categories', 'currentUser'],
     data() {
         return {
             showCreateGroupPostForm: false,
@@ -13,7 +13,10 @@ const GroupMain = {
                 category_id: ''
             },
             today: new Date().toISOString().split('T')[0],
-            eventError: ''
+            eventError: '',
+            groupAccess: false,
+            groupMembership: '',
+            joinLoading: false
         };
     },
     methods: {
@@ -46,29 +49,95 @@ const GroupMain = {
             const iso = dateStr.replace(' ', 'T');
             const d = new Date(iso);
             return isNaN(d) ? dateStr : d.toLocaleString();
+        },
+        async checkGroupAccess() {
+            if (!this.selectedGroup || !this.currentUser || !this.currentUser.isLoggedIn) {
+                this.groupAccess = false;
+                this.groupMembership = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/groups/access?group_id=${this.selectedGroup.ID}`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this.groupAccess = data.has_access;
+                    this.groupMembership = data.membership_status || '';
+                }
+            } catch (error) {
+                console.error('Error checking group access:', error);
+                this.groupAccess = false;
+                this.groupMembership = '';
+            }
+        },
+        async requestJoinGroup() {
+            if (!this.selectedGroup || !this.currentUser || !this.currentUser.isLoggedIn) return;
+            
+            this.joinLoading = true;
+            try {
+                const response = await fetch('/api/groups/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ group_id: this.selectedGroup.ID }),
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    this.groupMembership = 'pending';
+                }
+            } catch (error) {
+                console.error('Error requesting to join group:', error);
+            } finally {
+                this.joinLoading = false;
+            }
+        }
+    },
+    watch: {
+        selectedGroup: {
+            handler() {
+                this.checkGroupAccess();
+            },
+            immediate: true
         }
     },
     template: `
         <div class="group-main-content">
             <div class="group-description">
-                <h2>Group Description</h2>
+                <h2>{{ selectedGroup ? (selectedGroup.Name + ' Description') : 'Group Description' }}</h2>
                 <div class="card">
                     <template v-if="!selectedGroup">
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                     </template>
                     <template v-else>
-                        <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-plus-circle"></i> Create Group Post
-                        </button>
-                        <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-calendar-alt"></i> Group Events
-                        </button>
-                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
-                            <i class="fas fa-comments"></i> Group Chat
-                        </button>
                         <p><strong>created by:</strong> {{ selectedGroup.Creator?.Username || 'unknown' }}</p>
                         <p><strong>created on:</strong> {{ formatDate(selectedGroup.CreatedAt) }}</p>
                         <p>{{ selectedGroup.Description }}</p>
+                        
+                        <!-- Show action buttons only if user has access -->
+                        <div v-if="groupAccess">
+                            <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-plus-circle"></i> Create Group Post
+                            </button>
+                            <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-calendar-alt"></i> Group Events
+                            </button>
+                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-comments"></i> Group Chat
+                            </button>
+                        </div>
+                        
+                        <!-- Show join button if user doesn't have access and hasn't requested to join -->
+                        <div v-else-if="!groupAccess && groupMembership !== 'pending'">
+                            <button @click="requestJoinGroup" class="button" :disabled="joinLoading" style="margin-top: 16px;">
+                                {{ joinLoading ? 'Joining...' : 'Join ' + selectedGroup.Name }}
+                            </button>
+                        </div>
+                        
+                        <!-- Show pending message if user has requested to join -->
+                        <div v-else-if="groupMembership === 'pending'">
+                            <p style="color: #666; font-style: italic; margin-top: 16px;">⏳ Awaiting group admin approval</p>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -108,8 +177,10 @@ const GroupMain = {
                 v-if="showGroupEventsModal && selectedGroup"
                 :events="groupEvents"
                 :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
                 @close="closeGroupEventsModal"
                 @refresh-events="$emit('refresh-group-events')"
+                @event-click="$emit('event-click', $event)"
             />
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
@@ -122,16 +193,23 @@ const GroupMain = {
                     <p style="color: grey;">Select a group to view its posts</p>
                 </div>
                 <div v-else>
-                    <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
-                    <div v-for="post in groupPosts" :key="post.ID" class="post-card">
-                        <div class="post-header">
-                            <h3>{{ post.Title }}</h3>
-                            <div class="post-meta">
-                                <span class="post-author">Posted by {{ post.Author }}</span>
-                                <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
+                    <!-- Show posts only if user has access -->
+                    <div v-if="groupAccess">
+                        <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
+                        <div v-for="post in groupPosts" :key="post.ID" class="post-card">
+                            <div class="post-header">
+                                <h3>{{ post.Title }}</h3>
+                                <div class="post-meta">
+                                    <span class="post-author">Posted by {{ post.Author }}</span>
+                                    <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
+                                </div>
                             </div>
+                            <div class="post-content">{{ post.Content }}</div>
                         </div>
-                        <div class="post-content">{{ post.Content }}</div>
+                    </div>
+                    <!-- Show message if user doesn't have access -->
+                    <div v-else>
+                        <p style="color: #666; font-style: italic;">join group to see posts</p>
                     </div>
                 </div>
             </div>
