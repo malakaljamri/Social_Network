@@ -79,6 +79,7 @@ func main() {
 	mux.HandleFunc("/api/groups/posts", handlers.GetGroupPostsHandler(db))
 	mux.HandleFunc("/api/groups/events", handlers.GetGroupEventsHandler(db))
 	mux.HandleFunc("/api/groups/events/create", handlers.CreateGroupEventHandler(db))
+	mux.HandleFunc("/api/groups/events/attendance", handlers.EventAttendanceHandler(db))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})
