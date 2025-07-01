@@ -51,7 +51,7 @@ const GroupMain = {
     template: `
         <div class="group-main-content">
             <div class="group-description">
-                <h2>Group Description</h2>
+                <h2>{{ selectedGroup ? (selectedGroup.Name + ' Description') : 'Group Description' }}</h2>
                 <div class="card">
                     <template v-if="!selectedGroup">
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
@@ -108,6 +108,7 @@ const GroupMain = {
                 v-if="showGroupEventsModal && selectedGroup"
                 :events="groupEvents"
                 :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
                 @close="closeGroupEventsModal"
                 @refresh-events="$emit('refresh-group-events')"
                 @event-click="$emit('event-click', $event)"
