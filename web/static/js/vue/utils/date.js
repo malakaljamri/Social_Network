@@ -1,14 +1,13 @@
 // date.js
-// Utility to format a date string as dd/mm/yyyy
+// Utility to format a date string as dd/mm/yyyy (no time)
 
-export function formatDateDDMMYYYY(dateString) {
+function formatDateDDMMYYYY(dateString) {
   if (!dateString) return '';
   // Extract only the date part (YYYY-MM-DD) from ISO or SQL string
   let datePart = dateString.split('T')[0].split(' ')[0];
-  // Now datePart should be YYYY-MM-DD
-  const [year, month, day] = datePart.split('-');
-  if (!year || !month || !day) return dateString;
-  return `${day}/${month}/${year}`;
+  const parts = datePart.split('-');
+  if (parts.length !== 3) return dateString;
+  // Reverse to dd/mm/yyyy
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
-// Optionally attach to window for global use
 window.formatDateDDMMYYYY = formatDateDDMMYYYY; 

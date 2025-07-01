@@ -140,3 +140,29 @@ func EventAttendanceHandler(db *sql.DB) http.HandlerFunc {
 		}
 	}
 }
+
+// ListEventAttendeesHandler returns a list of users who are 'going' to a given event
+func ListEventAttendeesHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		eventIDStr := r.URL.Query().Get("event_id")
+		if eventIDStr == "" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Event ID is required")
+			return
+		}
+		eventID, err := strconv.Atoi(eventIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid event ID")
+			return
+		}
+		attendees, err := database.ListEventAttendees(db, eventID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch attendees")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"count":     len(attendees),
+			"attendees": attendees,
+		})
+	}
+}

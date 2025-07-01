@@ -345,11 +345,12 @@ const app = Vue.createApp({
             <div id="chat-section">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
             </div>
-            <G_GroupEventDetailsModal
-                v-if="showEventDetailsModal"
-                :event="selectedEvent"
-                @close="closeEventDetailsModal"
-            />
+            <div v-if="showEventDetailsModal" style="display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3000; background: rgba(0,0,0,0.15);">
+                <G_GroupEventDetailsModal
+                    :event="selectedEvent"
+                    @close="closeEventDetailsModal"
+                />
+            </div>
             <G_GroupEventsModal
                 v-if="showGroupEventsModal"
                 :upcomingEvents="upcomingEvents"

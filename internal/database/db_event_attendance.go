@@ -27,3 +27,25 @@ func SetUserEventAttendance(db *sql.DB, eventID, userID int, status string) erro
 		ON CONFLICT(event_id, user_id) DO UPDATE SET status = excluded.status`, eventID, userID, status)
 	return err
 }
+
+// ListEventAttendees returns a list of usernames who are 'going' to the event
+func ListEventAttendees(db *sql.DB, eventID int) ([]string, error) {
+	rows, err := db.Query(`
+		SELECT u.username FROM event_attendance ea
+		JOIN users u ON ea.user_id = u.id
+		WHERE ea.event_id = ? AND ea.status = 'going'
+	`, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var attendees []string
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			return nil, err
+		}
+		attendees = append(attendees, username)
+	}
+	return attendees, nil
+}
