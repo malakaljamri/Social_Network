@@ -218,9 +218,9 @@ A user must be able to see the notifications in every page of the project. New n
 A user should be notified if he/she:
 
 - has a private profile and some other user sends him/her a following request
-- receives a group invitation, so he can refuse or accept the request
-- is the creator of a group and another user requests to join the group, so he can refuse or accept the request
-- is member of a group and an event is created
+- # receives a group invitation, so he can refuse or accept the request
+- # is the creator of a group and another user requests to join the group, so he can refuse or accept the request
+- # is member of a group and an event is created
 
 Every other notification created by you that isn't on the list is welcomed too.
 
