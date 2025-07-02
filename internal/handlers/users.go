@@ -164,11 +164,22 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Checking follow status for currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
 
 		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
+		profile.IsFollowing = false // Always set the field, default to false
 		if err == nil {
 			profile.IsFollowing = isFollowing
 			log.Printf("IsFollowing set to: %v", isFollowing)
 		} else {
 			log.Printf("ERROR: Failed to check IsFollowing: %v", err)
+		}
+
+		// Check if profile user follows current user
+		isFollower, err := database.IsFollowing(targetUserID, currentUserID)
+		profile.IsFollower = false // Always set the field, default to false
+		if err == nil {
+			profile.IsFollower = isFollower
+			log.Printf("IsFollower set to: %v", isFollower)
+		} else {
+			log.Printf("ERROR: Failed to check IsFollower: %v", err)
 		}
 
 		// Check if there is a pending follow request

@@ -6,7 +6,8 @@ type UserProfile struct {
 	FollowersCount int    `json:"followers_count"`
 	FollowingCount int    `json:"following_count"`
 	PostsCount     int    `json:"posts_count"`
-	IsFollowing    bool   `json:"is_following,omitempty"`
+	IsFollowing    bool   `json:"is_following"`
+	IsFollower     bool   `json:"is_follower"`
 	IsPending      bool   `json:"is_pending,omitempty"`
 	Followers      []User `json:"followers"`
 	Following      []User `json:"following"`

@@ -104,6 +104,24 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		}
 
 		// Save the message to the database
+		// ENFORCE PRIVATE MESSAGE RULE
+		canSend := false
+		if chatMessage.SenderID != chatMessage.ReceiverID {
+			isFollowing1, err1 := database.IsFollowing(chatMessage.SenderID, chatMessage.ReceiverID)
+			isFollowing2, err2 := database.IsFollowing(chatMessage.ReceiverID, chatMessage.SenderID)
+			if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
+				canSend = true
+			}
+		}
+		if !canSend {
+			errorMsg := websocket.Message{
+				Type:    "error",
+				Content: "You can only message users you follow or who follow you",
+				UserID:  client.UserID,
+			}
+			client.Send <- messageToJSON(errorMsg)
+			return
+		}
 		if err := database.SaveChatMessage(&chatMessage); err != nil {
 			log.Printf("Error saving chat message: %v", err)
 			errorMsg := websocket.Message{
@@ -114,7 +132,7 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			client.Send <- messageToJSON(errorMsg)
 			return
 		}
-
+		// END: ENFORCE PRIVATE MESSAGE RULE
 		// Broadcast the message
 		msg := websocket.Message{
 			Type:    "chat",
