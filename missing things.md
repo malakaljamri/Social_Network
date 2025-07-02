@@ -1,12 +1,3 @@
-# 1- the user cant send a private msg to users unless they follow him or he follow thim or both follow each other
-
---------------------
-
-# 2- the uploading photo in posts is not work for me 
-![alt text](image-2.png)
-
----------------------
-
 # 3- groups chat should work fine 
 
 --------------------------
@@ -34,3 +25,16 @@ A user must be able to see the notifications in every page of the project.
 ---------------
 
 # 6- some css need to enhance for the UX 
+
+---------------
+---------------
+
+Solved:
+
+# 1- the user cant send a private msg to users unless they follow him or he follow thim or both follow each other
+
+--------------------
+
+# 2- the uploading photo in posts is not working
+
+---------------------
