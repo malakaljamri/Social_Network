@@ -11,9 +11,7 @@
 
 --------------------------
 
-# 4- user profile 
-
-user shoul edit his profile 
+# 4- user profile --> user should edit his password and change it  
 
 ------------------
 
