@@ -1,17 +1,16 @@
-# 1- the user cant send a private msg to users unless they follow him or he follow thim or both follow each other
+# 3- Groups (event)
 
---------------------
+ in the event the users see 2 Options (at least):
 
-# 2- the uploading photo in posts is not work for me 
-![alt text](image-2.png)
+Going
 
----------------------
+Not going
 
-# 3- groups chat should work fine 
+maybe we could but (maybe)
 
---------------------------
+After creating the event every user can choose one of the options for the event.
 
-# 4- user profile --> user should edit his password and change it  
+# + - the creatour of the Groups should invite others to the group and they should accept and reject the invitition
 
 ------------------
 
@@ -32,3 +31,5 @@ A user must be able to see the notifications in every page of the project.
 ---------------
 
 # 6- some css need to enhance for the UX 
+
+
