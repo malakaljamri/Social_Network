@@ -254,3 +254,10 @@ func UpdateUserPrivacy(userID int, isPrivate bool) error {
 	_, err := ExecuteQuery(query, isPrivate, userID)
 	return err
 }
+
+// UpdateUserPassword updates the password for a user by user ID
+func UpdateUserPassword(userID int, hashedPassword string) error {
+	query := `UPDATE users SET password = ? WHERE id = ?`
+	_, err := ExecuteQuery(query, hashedPassword, userID)
+	return err
+}

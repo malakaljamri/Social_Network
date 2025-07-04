@@ -1,4 +1,5 @@
 // ProfileView Component
+
 const ProfileView = {
     template: `
         <div class="profile-view layout-grid">
@@ -72,6 +73,12 @@ const ProfileView = {
                                      @profile-updated="onProfileUpdated">
                     </p-profile-edit-form>
 
+                    <!-- Password Change Form -->
+                    <button v-if="isOwnProfile" @click="showChangePassword = !showChangePassword" class="btn btn-warning change-password-btn" style="margin-left:10px;">
+                        {{ showChangePassword ? 'Cancel Password Change' : 'Change Password' }}
+                    </button>
+                    <p-change-password v-if="showChangePassword && isOwnProfile" @success="onPasswordChangeSuccess" @cancel="showChangePassword = false"></p-change-password>
+                    
                     <!-- Follow Requests -->
                     <p-follow-request-list v-if="isOwnProfile"
                                        @request-handled="onRequestHandled">
@@ -166,7 +173,8 @@ const ProfileView = {
             followers: [],
             following: [],
             followStatusMessage: '',
-            openChats: []
+            openChats: [],
+            showChangePassword: false
         };
     },
     computed: {
@@ -402,6 +410,9 @@ const ProfileView = {
         },
         getChatZIndex(userId) {
             return this.openChats.length - this.openChats.indexOf(this.openChats.find(user => user.ID === userId));
+        },
+        onPasswordChangeSuccess() {
+            this.showChangePassword = false;
         }
     },
     mounted() {
@@ -425,7 +436,8 @@ const ProfileView = {
         }
     },
     components: {
-        'users-list': window.UsersList
+        'users-list': window.UsersList,
+        'p-change-password': window.P_ChangePassword
     },
 };
 // No mount here, will be registered globally.

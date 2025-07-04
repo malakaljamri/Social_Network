@@ -776,3 +776,63 @@ func GetPendingFollowRequestsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(requests)
 }
+
+// ChangePasswordHandler allows a logged-in user to change their password
+func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.WriteJSONError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil || userID <= 0 {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized: not logged in")
+		return
+	}
+
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.NewPassword != req.ConfirmPassword {
+		utils.WriteJSONError(w, http.StatusBadRequest, "New password and confirmation do not match")
+		return
+	}
+	if len(req.NewPassword) < 6 {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Password must be at least 6 characters")
+		return
+	}
+
+	user, err := database.GetUserByID(userID)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	err = utils.ComparePassword(user.Password, req.CurrentPassword)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusUnauthorized, "Current password is incorrect")
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error hashing new password")
+		return
+	}
+
+	err = database.UpdateUserPassword(userID, hashedPassword)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to update password")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Password changed successfully"})
+}
