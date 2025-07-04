@@ -177,3 +177,53 @@
   0%, 50% { opacity: 0; }
   25% { opacity: 1; }
 }
+
+/* WhatsApp-like chat bubbles for group chat */
+.chat-message-bubble {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 14px;
+  max-width: 85%;
+}
+.chat-message-bubble.self {
+  flex-direction: row-reverse;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.chat-message-bubble.other {
+  margin-right: auto;
+  justify-content: flex-start;
+}
+.chat-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  background: #fff;
+}
+.bubble-content {
+  background: #e1ffc7;
+  border-radius: 18px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+  min-width: 80px;
+  max-width: 350px;
+  word-break: break-word;
+  position: relative;
+}
+.chat-message-bubble.self .bubble-content {
+  background: #dcf8c6;
+}
+.chat-meta {
+  font-size: 0.85em;
+  color: #888;
+  margin-bottom: 2px;
+  display: block;
+}
+.chat-text {
+  font-size: 1.05em;
+  color: #222;
+  margin-top: 2px;
+}

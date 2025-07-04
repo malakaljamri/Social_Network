@@ -54,6 +54,7 @@ type GroupChatMessage struct {
 	GroupID        int       `json:"group_id"`
 	SenderID       int       `json:"sender_id"`
 	SenderUsername string    `json:"sender_username"`
+	SenderAvatar   string    `json:"sender_avatar"`
 	Content        string    `json:"content"`
 	Timestamp      time.Time `json:"timestamp"`
 }

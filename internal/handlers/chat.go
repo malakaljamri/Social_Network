@@ -194,6 +194,7 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			GroupID:        groupChatContent.GroupID,
 			SenderID:       client.UserID,
 			SenderUsername: user.Username,
+			SenderAvatar:   user.Avatar,
 			Content:        groupChatContent.Content,
 			Timestamp:      time.Now(),
 		}
