@@ -23,21 +23,40 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		var group database.Group
-		err = json.NewDecoder(r.Body).Decode(&group)
+		// Parse the request body
+		var requestData struct {
+			Name            string `json:"name"`
+			Description     string `json:"description"`
+			PrivacySetting  string `json:"privacy_setting"`
+			SelectedUserIDs []int  `json:"selected_user_ids"`
+		}
+
+		err = json.NewDecoder(r.Body).Decode(&requestData)
 		if err != nil {
 			log.Printf("❌ Failed to decode request body: %v", err)
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
 
-		log.Printf("Received group creation request: %+v (privacy_setting: %s)", group, group.PrivacySetting)
-
-		group.CreatorID = userID
+		log.Printf("Received group creation request: %+v (privacy_setting: %s)", requestData, requestData.PrivacySetting)
 
 		// Set default privacy setting if not provided
-		if group.PrivacySetting == "" {
-			group.PrivacySetting = "public"
+		if requestData.PrivacySetting == "" {
+			requestData.PrivacySetting = "public"
+		}
+
+		// Validate custom privacy requires selected users
+		if requestData.PrivacySetting == "custom" && len(requestData.SelectedUserIDs) == 0 {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Custom privacy requires at least one selected user")
+			return
+		}
+
+		// Create group object
+		group := database.Group{
+			Name:           requestData.Name,
+			Description:    requestData.Description,
+			PrivacySetting: requestData.PrivacySetting,
+			CreatorID:      userID,
 		}
 
 		log.Printf("📦 Creating group: %+v", group)
@@ -58,6 +77,16 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 				log.Printf("⚠️ Failed to add creator followers to private group: %v", err)
 			} else {
 				log.Println("✅ Added creator followers to private group")
+			}
+		}
+
+		// If group is custom, add selected users
+		if group.PrivacySetting == "custom" && len(requestData.SelectedUserIDs) > 0 {
+			err = database.AddSelectedUsersToCustomGroup(db, group.ID, requestData.SelectedUserIDs)
+			if err != nil {
+				log.Printf("⚠️ Failed to add selected users to custom group: %v", err)
+			} else {
+				log.Printf("✅ Added %d selected users to custom group", len(requestData.SelectedUserIDs))
 			}
 		}
 

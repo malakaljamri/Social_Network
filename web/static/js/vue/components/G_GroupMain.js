@@ -116,15 +116,15 @@ const GroupMain = {
                         
                         <!-- Show action buttons only if user has access -->
                         <div v-if="groupAccess">
-                            <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                                <i class="fas fa-plus-circle"></i> Create Group Post
-                            </button>
-                            <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                                <i class="fas fa-calendar-alt"></i> Group Events
-                            </button>
-                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
-                                <i class="fas fa-comments"></i> Group Chat
-                            </button>
+                        <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                            <i class="fas fa-plus-circle"></i> Create Group Post
+                        </button>
+                        <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                            <i class="fas fa-calendar-alt"></i> Group Events
+                        </button>
+                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-comments"></i> Group Chat
+                        </button>
                         </div>
                         
                         <!-- Show join button if user doesn't have access and hasn't requested to join -->
@@ -195,16 +195,16 @@ const GroupMain = {
                 <div v-else>
                     <!-- Show posts only if user has access -->
                     <div v-if="groupAccess">
-                        <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
-                        <div v-for="post in groupPosts" :key="post.ID" class="post-card">
-                            <div class="post-header">
-                                <h3>{{ post.Title }}</h3>
-                                <div class="post-meta">
-                                    <span class="post-author">Posted by {{ post.Author }}</span>
-                                    <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                                </div>
+                    <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
+                    <div v-for="post in groupPosts" :key="post.ID" class="post-card">
+                        <div class="post-header">
+                            <h3>{{ post.Title }}</h3>
+                            <div class="post-meta">
+                                <span class="post-author">Posted by {{ post.Author }}</span>
+                                <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
                             </div>
-                            <div class="post-content">{{ post.Content }}</div>
+                        </div>
+                        <div class="post-content">{{ post.Content }}</div>
                         </div>
                     </div>
                     <!-- Show message if user doesn't have access -->

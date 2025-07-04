@@ -86,6 +86,10 @@ func CheckUserGroupAccess(db *sql.DB, userID, groupID int) (bool, error) {
 					SELECT 1 FROM followers 
 					WHERE follower_id = ? AND followed_id = g.creator_id AND status = 'accepted'
 				) THEN 1
+				WHEN COALESCE(g.privacy_setting, 'private') = 'custom' AND EXISTS (
+					SELECT 1 FROM group_members 
+					WHERE group_id = ? AND user_id = ? AND status = 'accepted'
+				) THEN 1
 				WHEN EXISTS (
 					SELECT 1 FROM group_members 
 					WHERE group_id = ? AND user_id = ? AND status = 'accepted'
@@ -97,7 +101,7 @@ func CheckUserGroupAccess(db *sql.DB, userID, groupID int) (bool, error) {
 	`
 
 	var hasAccess int
-	err := db.QueryRow(query, userID, userID, groupID, userID, groupID).Scan(&hasAccess)
+	err := db.QueryRow(query, userID, userID, groupID, userID, groupID, userID, groupID).Scan(&hasAccess)
 	if err != nil {
 		return false, err
 	}
@@ -146,4 +150,25 @@ func AddCreatorFollowersToPrivateGroup(db *sql.DB, groupID, creatorID int) error
 
 	_, err := db.Exec(query, groupID, creatorID)
 	return err
+}
+
+// AddSelectedUsersToCustomGroup adds selected users to a custom privacy group
+func AddSelectedUsersToCustomGroup(db *sql.DB, groupID int, userIDs []int) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	query := `
+		INSERT OR IGNORE INTO group_members (group_id, user_id, status)
+		VALUES (?, ?, 'accepted')
+	`
+
+	for _, userID := range userIDs {
+		_, err := db.Exec(query, groupID, userID)
+		if err != nil {
+			return fmt.Errorf("failed to add user %d to group: %v", userID, err)
+		}
+	}
+
+	return nil
 }

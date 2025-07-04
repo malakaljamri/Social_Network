@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS groups (
     description TEXT NOT NULL,
     creator_id INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    privacy_setting TEXT CHECK (privacy_setting IN ('public', 'private')) DEFAULT 'public',
+    privacy_setting TEXT CHECK (privacy_setting IN ('public', 'private', 'custom')) DEFAULT 'public',
     FOREIGN KEY (creator_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS group_members (

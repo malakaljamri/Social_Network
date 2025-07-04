@@ -61,7 +61,8 @@ const app = Vue.createApp({
             showEventDetailsModal: false,
             showGroupEventsModal: false,
             upcomingEvents: [],
-            pastEvents: []
+            pastEvents: [],
+            _userInterval: null
         };
     },
     watch: {
@@ -391,6 +392,16 @@ const app = Vue.createApp({
         },
         closeGroupEventsModal() {
             this.showGroupEventsModal = false;
+        },
+        async fetchUsers() {
+            try {
+                const response = await fetch('/api/users', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch users');
+                this.users = await response.json();
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                this.users = [];
+            }
         }
     },
     mounted() {
@@ -459,6 +470,12 @@ const app = Vue.createApp({
         window.addEventListener('open-chat', (e) => {
             this.openChat(e.detail);
         });
+
+        this.fetchUsers();
+        this._userInterval = setInterval(this.fetchUsers, 30000);
+    },
+    beforeUnmount() {
+        clearInterval(this._userInterval);
     },
     provide() {
         return {
@@ -501,7 +518,9 @@ const app = Vue.createApp({
                 @created="onGroupPostCreated"
             ></m-group-create-post>
             <m-group-create
-                v-if="showCreateGroupModal"
+                :show="showCreateGroupModal"
+                :users="users"
+                :current-user="currentUser.value"
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
             ></m-group-create>

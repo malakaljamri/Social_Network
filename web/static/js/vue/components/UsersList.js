@@ -1,5 +1,11 @@
 // UsersList Component
 const UsersList = {
+    props: {
+        users: {
+            type: Array,
+            default: () => []
+        }
+    },
     template: `
         <div class="users-list card">
             <h3>Users</h3>
@@ -24,14 +30,6 @@ const UsersList = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            users: [],
-            searchResults: [],
-            searching: false,
-            refreshInterval: null
-        }
-    },
     computed: {
         displayedUsers() {
             return this.searchResults.length > 0 ? this.searchResults : this.users;
@@ -48,19 +46,14 @@ const UsersList = {
             });
         }
     },
+    data() {
+        return {
+            searchResults: [],
+            searching: false,
+            refreshInterval: null
+        }
+    },
     methods: {
-        async fetchUsers() {
-            try {
-                const response = await fetch('/api/users', {
-                    credentials: 'include'
-                });
-                if (!response.ok) throw new Error('Failed to fetch users');
-                this.users = await response.json();
-            } catch (error) {
-                console.error('Error fetching users:', error);
-                this.users = [];
-            }
-        },
         handleUserStatusChange(event) {
             const { userId, status, username } = event.detail;
             const userIndex = this.users.findIndex(u => u.ID === userId);
@@ -105,17 +98,6 @@ const UsersList = {
             this.$root.currentView = 'profile';
             this.$root.viewUserProfile(userId);
         }
-    },
-    mounted() {
-        this.fetchUsers();
-        window.addEventListener('user-status-change', this.handleUserStatusChange);
-        this.refreshInterval = setInterval(this.fetchUsers, 30000);
-    },
-    beforeUnmount() {
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
-        window.removeEventListener('user-status-change', this.handleUserStatusChange);
     },
     components: {
         'user-search': window.UserSearch
