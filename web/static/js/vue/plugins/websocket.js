@@ -113,6 +113,16 @@ const WebSocketPlugin = {
                 case 'error':
                     console.error("Server error:", message.content);
                     break;
+                case 'group_created':
+                    handleGroupCreated(message.content);
+                    break;
+                case 'group_member_added':
+                case 'group_member_removed':
+                    handleGroupMembershipChange(message.content);
+                    break;
+                case 'group_message':
+                    handleGroupMessage(message.content);
+                    break;
                 default:
                     console.warn('Unknown message type:', message);
             }
@@ -315,6 +325,27 @@ const WebSocketPlugin = {
                 content: JSON.stringify({ group_id: groupId, content: message })
             };
             socket.send(JSON.stringify(data));
+        }
+
+        // Handle group creation (batched to avoid spam)
+        function handleGroupCreated(data) {
+            console.log('New group created:', data.content);
+            // Dispatch event to refresh groups list
+            window.dispatchEvent(new CustomEvent('group-created', { detail: data.content }));
+        }
+
+        // Handle group membership changes
+        function handleGroupMembershipChange(data) {
+            console.log('Group membership changed:', data.content);
+            // Dispatch event to update group access for affected users
+            window.dispatchEvent(new CustomEvent('group-membership-changed', { detail: data.content }));
+        }
+
+        // Handle group messages
+        function handleGroupMessage(data) {
+            console.log('Group message received:', data.content);
+            // Dispatch event to update group chat
+            window.dispatchEvent(new CustomEvent('group-message', { detail: data.content }));
         }
 
         // Initialize WebSocket connection

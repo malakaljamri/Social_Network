@@ -36,14 +36,16 @@ const CreateGroupModal = {
             this.form.loading = true;
             this.form.error = '';
             try {
-                const response = await fetch('/api/groups/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                const payload = {
                     name: this.form.name,
                     description: this.form.description,
                     privacy_setting: this.form.privacy
-                }),
+                };
+                console.log('Submitting group:', payload); // Debug log
+                const response = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
                     credentials: 'include'
                 });
                 if (!response.ok) {

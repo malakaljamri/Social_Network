@@ -91,6 +91,9 @@ const app = Vue.createApp({
 
         async handleLogout() {
             try {
+                // Clear all data immediately on logout click
+                this.clearAllData();
+                
                 // Close websocket before logging out
                 this.websocket.close();
 
@@ -105,6 +108,33 @@ const app = Vue.createApp({
             } catch (error) {
                 console.error('Logout error:', error);
             }
+        },
+
+        // Clear all cached data and reset component state
+        clearAllData() {
+            // Clear main app data
+            this.posts = [];
+            this.groups = [];
+            this.openChats = [];
+            this.selectedEvent = null;
+            this.showEventDetailsModal = false;
+            this.showGroupEventsModal = false;
+            this.upcomingEvents = [];
+            this.pastEvents = [];
+            
+            // Clear chat windows
+            this.chatWindows.clear();
+            this.minimizedChats.clear();
+            
+            // Reset modals
+            this.showRegisterModal = false;
+            this.showCreatePostModal = false;
+            this.showCreateGroupModal = false;
+            this.showCreateGroupPostModal = false;
+            this.selectedGroupIdForModal = null;
+            
+            // Dispatch custom event to clear child component data
+            window.dispatchEvent(new CustomEvent('clear-all-data'));
         },
 
         // Chat window management
@@ -537,9 +567,6 @@ app.component('feed-main', FeedMain);
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });
 app.component('group-chat', GroupChat);
-app.component('g-group-list', G_GroupList);
-app.component('g-group-main', G_GroupMain);
-app.component('g-group-chat', G_GroupChat);
 
 // Mount the app
 app.mount('#app'); 

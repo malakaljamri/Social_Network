@@ -14,9 +14,17 @@ const GroupsView = {
         async fetchGroups() {
             try {
                 const response = await this.$root.apiFetch('/api/groups');
+                if (response.status === 401) {
+                    window.dispatchEvent(new CustomEvent('session-expired'));
+                    return;
+                }
                 const data = await response.json();
                 this.groups = data || [];
             } catch (e) {
+                if (e.message === 'Unauthorized') {
+                    window.dispatchEvent(new CustomEvent('session-expired'));
+                    return;
+                }
                 this.groups = [];
             }
         },
@@ -85,11 +93,47 @@ const GroupsView = {
         },
         handleEventClick(event) {
             this.$emit('event-click', event);
+        },
+        clearAllData() {
+            this.groups = [];
+            this.selectedGroupId = null;
+            this.selectedGroup = null;
+            this.groupPosts = [];
+            this.groupEvents = [];
+            this.categories = [];
+        },
+        handleSessionExpired() {
+            this.clearAllData();
+            this.$root.goToLogin();
+        },
+        handleGroupCreated(event) {
+            // Refresh groups list when a new group is created
+            this.fetchGroups();
+        },
+        handleGroupMembershipChanged(event) {
+            // Refresh groups list to update privacy indicators
+            this.fetchGroups();
         }
     },
     mounted() {
         this.fetchGroups();
         this.fetchCategories();
+        
+        // Listen for data clearing events
+        window.addEventListener('clear-all-data', this.clearAllData);
+        
+        // Listen for session expiry
+        window.addEventListener('session-expired', this.handleSessionExpired);
+        
+        // Listen for WebSocket group events
+        window.addEventListener('group-created', this.handleGroupCreated);
+        window.addEventListener('group-membership-changed', this.handleGroupMembershipChanged);
+    },
+    beforeUnmount() {
+        window.removeEventListener('clear-all-data', this.clearAllData);
+        window.removeEventListener('session-expired', this.handleSessionExpired);
+        window.removeEventListener('group-created', this.handleGroupCreated);
+        window.removeEventListener('group-membership-changed', this.handleGroupMembershipChanged);
     },
     template: `
         <div class="layout-grid groups-layout">

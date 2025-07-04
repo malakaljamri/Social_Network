@@ -17,6 +17,14 @@ const GroupList = {
     },
     mounted() {
         this.fetchAllGroupAccess();
+        
+        // Listen for data clearing events
+        window.addEventListener('clear-all-data', this.clearAllData);
+        window.addEventListener('session-expired', this.handleSessionExpired);
+    },
+    beforeUnmount() {
+        window.removeEventListener('clear-all-data', this.clearAllData);
+        window.removeEventListener('session-expired', this.handleSessionExpired);
     },
     watch: {
         groups: {
@@ -33,6 +41,14 @@ const GroupList = {
         }
     },
     methods: {
+        clearAllData() {
+            this.groupAccess = new Map();
+            this.groupMembership = new Map();
+            this.searchQuery = '';
+        },
+        handleSessionExpired() {
+            this.clearAllData();
+        },
         async fetchAllGroupAccess() {
             if (!this.currentUser || !this.currentUser.isLoggedIn || !this.groups.length) {
                 this.groupAccess = new Map();
@@ -47,6 +63,10 @@ const GroupList = {
                     body: JSON.stringify({ group_ids: groupIds }),
                     credentials: 'include'
                 });
+                if (response.status === 401) {
+                    window.dispatchEvent(new CustomEvent('session-expired'));
+                    return;
+                }
                 if (response.ok) {
                     const data = await response.json();
                     const accessMap = new Map();

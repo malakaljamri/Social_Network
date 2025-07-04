@@ -10,6 +10,7 @@ import (
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
+	"time"
 )
 
 func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
@@ -29,6 +30,8 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
+
+		log.Printf("Received group creation request: %+v (privacy_setting: %s)", group, group.PrivacySetting)
 
 		group.CreatorID = userID
 
@@ -67,7 +70,7 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 
 		// Broadcast new group to all clients
 		message := websocket.Message{
-			Type: "new_group",
+			Type: "group_created",
 			Content: map[string]interface{}{
 				"id":              group.ID,
 				"name":            group.Name,
@@ -166,6 +169,9 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Broadcast group membership change
+		BroadcastGroupMembershipChange(request.GroupID, userID, "added")
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
@@ -202,5 +208,38 @@ func BatchGroupAccessHandler(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
+	}
+}
+
+// BroadcastGroupMembershipChange broadcasts when group membership changes
+func BroadcastGroupMembershipChange(groupID int, userID int, action string) {
+	message := websocket.Message{
+		Type: "group_member_" + action,
+		Content: map[string]interface{}{
+			"group_id": groupID,
+			"user_id":  userID,
+			"action":   action,
+		},
+	}
+	jsonMessage, err := json.Marshal(message)
+	if err == nil {
+		websocket.MainHub.Broadcast <- jsonMessage
+	}
+}
+
+// BroadcastGroupMessage broadcasts when a message is sent in group chat
+func BroadcastGroupMessage(groupID int, senderID int, content string) {
+	message := websocket.Message{
+		Type: "group_message",
+		Content: map[string]interface{}{
+			"group_id":  groupID,
+			"sender_id": senderID,
+			"content":   content,
+			"timestamp": time.Now().Format(time.RFC3339),
+		},
+	}
+	jsonMessage, err := json.Marshal(message)
+	if err == nil {
+		websocket.MainHub.Broadcast <- jsonMessage
 	}
 }
