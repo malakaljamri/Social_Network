@@ -178,11 +178,24 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			client.Send <- messageToJSON(errorMsg)
 			return
 		}
+		// Fetch sender's username
+		user, err := database.GetUserByID(client.UserID)
+		if err != nil {
+			log.Printf("Error fetching sender username: %v", err)
+			errorMsg := websocket.Message{
+				Type:    "error",
+				Content: "Failed to fetch sender username",
+				UserID:  client.UserID,
+			}
+			client.Send <- messageToJSON(errorMsg)
+			return
+		}
 		groupChatMessage := models.GroupChatMessage{
-			GroupID:   groupChatContent.GroupID,
-			SenderID:  client.UserID,
-			Content:   groupChatContent.Content,
-			Timestamp: time.Now(),
+			GroupID:        groupChatContent.GroupID,
+			SenderID:       client.UserID,
+			SenderUsername: user.Username,
+			Content:        groupChatContent.Content,
+			Timestamp:      time.Now(),
 		}
 		if err := database.SaveGroupChatMessage(&groupChatMessage); err != nil {
 			log.Printf("Error saving group chat message: %v", err)

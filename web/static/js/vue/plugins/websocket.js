@@ -312,7 +312,7 @@ const WebSocketPlugin = {
             if (!wsState.connected) return;
             const data = {
                 type: 'group_chat',
-                content: JSON.stringify({ group_id: groupId, content: message })
+                content: { group_id: groupId, content: message }
             };
             socket.send(JSON.stringify(data));
         }
