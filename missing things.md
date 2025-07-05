@@ -1,13 +1,3 @@
-# 3- groups chat should work fine 
-
---------------------------
-
-# 4- user profile 
-
-user shoul edit his profile 
-
-------------------
-
 # 5-Notfication part  
 A user must be able to see the notifications in every page of the project.
  New notifications  different from new private messages and should be displayed in a different way!
@@ -33,8 +23,11 @@ Solved:
 
 # 1- the user cant send a private msg to users unless they follow him or he follow thim or both follow each other
 
---------------------
-
 # 2- the uploading photo in posts is not working
 
----------------------
+# 3- groups chat should work fine 
+
+# 4- user profile 
+
+user shoul edit his profile 
+

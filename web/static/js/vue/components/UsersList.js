@@ -15,9 +15,8 @@ const UsersList = {
                             @click.stop="goToProfile(user.ID)"
                         >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong @click="openChat(user.ID)" style="cursor:pointer;">{{ user.Username }}</strong>
+                        <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
-                        <span style="color: #888; font-size: 0.9em;">{{ user.Email }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
@@ -104,6 +103,13 @@ const UsersList = {
         goToProfile(userId) {
             this.$root.currentView = 'profile';
             this.$root.viewUserProfile(userId);
+        },
+        getUserTooltip(user) {
+            let tooltip = `Email: ${user.Email}`;
+            if (user.Nickname) {
+                tooltip += `\nNickname: ${user.Nickname}`;
+            }
+            return tooltip;
         }
     },
     mounted() {
