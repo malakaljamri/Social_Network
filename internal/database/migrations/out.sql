@@ -1,0 +1,951 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, image TEXT, privacy TEXT CHECK (privacy IN ('public', 'almost_private', 'private')) DEFAULT 'public', group_id INTEGER REFERENCES groups(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+);
+CREATE TABLE post_categories (
+    post_id INTEGER,
+    category_id INTEGER,
+    PRIMARY KEY (post_id, category_id),
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+CREATE TABLE likes_dislikes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    post_id INTEGER,
+    comment_id INTEGER,
+    is_like BOOLEAN,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (comment_id) REFERENCES comments(id)
+);
+CREATE TABLE sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    token TEXT UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE TABLE chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER,
+            "Receiver_id" INTEGER,
+            content TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY ("Receiver_id") REFERENCES users(id)
+        );
+INSERT INTO chat_messages VALUES(757,6,49,'hello','2025-02-16 17:03:38.511488923+03:00');
+INSERT INTO chat_messages VALUES(758,6,49,'sup','2025-02-16 17:05:14.13006407+03:00');
+INSERT INTO chat_messages VALUES(759,6,49,'1','2025-02-16 17:05:33.288606937+03:00');
+INSERT INTO chat_messages VALUES(760,6,49,'2','2025-02-16 17:05:33.648096973+03:00');
+INSERT INTO chat_messages VALUES(761,6,49,'2','2025-02-16 17:05:33.952748101+03:00');
+INSERT INTO chat_messages VALUES(762,6,49,'3','2025-02-16 17:05:34.328658162+03:00');
+INSERT INTO chat_messages VALUES(763,6,49,'4','2025-02-16 17:05:34.649526911+03:00');
+INSERT INTO chat_messages VALUES(764,6,49,'54','2025-02-16 17:05:35.730471676+03:00');
+INSERT INTO chat_messages VALUES(765,6,49,'56','2025-02-16 17:05:37.115216352+03:00');
+INSERT INTO chat_messages VALUES(766,6,49,'7','2025-02-16 17:05:37.665228914+03:00');
+INSERT INTO chat_messages VALUES(767,6,49,'8','2025-02-16 17:05:38.152556826+03:00');
+INSERT INTO chat_messages VALUES(768,6,49,'9','2025-02-16 17:05:38.688682014+03:00');
+INSERT INTO chat_messages VALUES(769,6,49,'10','2025-02-16 17:05:41.800394197+03:00');
+INSERT INTO chat_messages VALUES(770,6,49,'11','2025-02-16 17:05:42.664365504+03:00');
+INSERT INTO chat_messages VALUES(771,6,49,'12','2025-02-16 17:05:43.513729569+03:00');
+INSERT INTO chat_messages VALUES(772,6,49,'13','2025-02-16 17:05:45.425343846+03:00');
+INSERT INTO chat_messages VALUES(773,6,49,'14','2025-02-16 17:06:12.873280407+03:00');
+INSERT INTO chat_messages VALUES(774,6,49,'15','2025-02-16 17:06:13.440972837+03:00');
+INSERT INTO chat_messages VALUES(775,6,49,'16','2025-02-16 17:06:14.641155311+03:00');
+INSERT INTO chat_messages VALUES(776,6,49,'17','2025-02-16 17:06:15.360853548+03:00');
+INSERT INTO chat_messages VALUES(777,6,49,'18','2025-02-16 17:06:15.977099251+03:00');
+INSERT INTO chat_messages VALUES(778,6,49,'19','2025-02-16 17:06:16.545073946+03:00');
+INSERT INTO chat_messages VALUES(779,6,49,'20','2025-02-16 17:06:17.497077553+03:00');
+INSERT INTO chat_messages VALUES(780,6,49,'21','2025-02-16 17:06:18.936659455+03:00');
+INSERT INTO chat_messages VALUES(781,6,49,'22','2025-02-16 17:06:20.120827921+03:00');
+INSERT INTO chat_messages VALUES(782,6,49,'23','2025-02-16 17:06:20.704809438+03:00');
+INSERT INTO chat_messages VALUES(783,6,49,'24','2025-02-16 17:06:21.313598952+03:00');
+INSERT INTO chat_messages VALUES(784,6,49,'25','2025-02-16 17:06:21.982279066+03:00');
+INSERT INTO chat_messages VALUES(785,6,49,'26','2025-02-16 17:06:22.865610553+03:00');
+INSERT INTO chat_messages VALUES(786,6,49,'27','2025-02-16 17:06:23.43266919+03:00');
+INSERT INTO chat_messages VALUES(787,6,49,'28','2025-02-16 17:06:24.04132779+03:00');
+INSERT INTO chat_messages VALUES(788,6,49,'29','2025-02-16 17:06:24.64863824+03:00');
+INSERT INTO chat_messages VALUES(789,48,49,'hello','2025-02-16 17:25:18.684740084+03:00');
+INSERT INTO chat_messages VALUES(790,6,48,'hello','2025-02-16 17:35:31.290834908+03:00');
+INSERT INTO chat_messages VALUES(791,48,6,'how are you','2025-02-16 17:35:38.54682192+03:00');
+INSERT INTO chat_messages VALUES(792,6,48,'asdgas','2025-02-16 17:35:57.353220871+03:00');
+INSERT INTO chat_messages VALUES(793,6,48,'new message','2025-02-16 17:37:33.044363457+03:00');
+INSERT INTO chat_messages VALUES(794,6,48,'asdfgadsghasdfloghaldfogk','2025-02-16 17:39:58.789411893+03:00');
+INSERT INTO chat_messages VALUES(795,6,48,'asdfasd','2025-02-16 17:40:35.124087858+03:00');
+INSERT INTO chat_messages VALUES(796,48,6,'dfgfdg','2025-02-16 17:40:37.044250726+03:00');
+INSERT INTO chat_messages VALUES(797,6,12,'sfgfggfgsf','2025-02-17 17:01:11.209416361+03:00');
+INSERT INTO chat_messages VALUES(798,12,6,'sfgsfgsfgfsgg','2025-02-17 17:01:16.529485945+03:00');
+INSERT INTO chat_messages VALUES(799,6,12,'bnfhnfnfhn','2025-02-19 15:55:49.654446955+03:00');
+INSERT INTO chat_messages VALUES(800,12,6,'ghgfhhghgh','2025-02-19 15:55:54.318378491+03:00');
+INSERT INTO chat_messages VALUES(801,48,6,'123123123123123123123123123','2025-02-19 16:13:27.249957236+03:00');
+INSERT INTO chat_messages VALUES(802,50,51,'hii','2025-04-06 20:06:19.949488+03:00');
+INSERT INTO chat_messages VALUES(803,51,50,'how are uu','2025-04-06 20:06:27.319917+03:00');
+INSERT INTO chat_messages VALUES(804,50,51,'fineee','2025-04-06 20:06:32.497836+03:00');
+INSERT INTO chat_messages VALUES(805,50,8,'ss','2025-04-13 17:06:24.412192+03:00');
+INSERT INTO chat_messages VALUES(806,50,51,'ss','2025-04-13 19:54:44.585275+03:00');
+INSERT INTO chat_messages VALUES(807,52,8,'Hello','2025-05-19 16:45:16.226207967+03:00');
+INSERT INTO chat_messages VALUES(808,52,8,'Wassup bro','2025-05-19 16:50:35.489470789+03:00');
+INSERT INTO chat_messages VALUES(809,52,8,'d','2025-05-19 16:54:10.358177796+03:00');
+INSERT INTO chat_messages VALUES(810,52,53,'222','2025-06-02 15:56:46.813407422+03:00');
+INSERT INTO chat_messages VALUES(811,52,6,'yo','2025-06-02 17:24:59.863386+03:00');
+INSERT INTO chat_messages VALUES(812,52,4,'yo','2025-06-02 17:25:07.940056413+03:00');
+INSERT INTO chat_messages VALUES(813,54,52,'222','2025-06-05 17:21:47.787059754+03:00');
+INSERT INTO chat_messages VALUES(814,54,52,'ddd','2025-06-05 17:22:18.741061876+03:00');
+INSERT INTO chat_messages VALUES(815,54,52,'yoyoyo','2025-06-05 17:23:03.282754653+03:00');
+INSERT INTO chat_messages VALUES(816,54,52,'dqewdqwedqweqweqweqweqweqweqwe','2025-06-05 17:23:16.855823377+03:00');
+INSERT INTO chat_messages VALUES(817,54,52,'eqweqweqweqweqweqweqweqw','2025-06-05 17:23:20.528637283+03:00');
+INSERT INTO chat_messages VALUES(818,54,52,'aaaaaaa','2025-06-05 17:23:39.167196936+03:00');
+INSERT INTO chat_messages VALUES(819,54,52,'aaaaaa','2025-06-05 17:23:43.104346323+03:00');
+INSERT INTO chat_messages VALUES(820,1,9,'ss','2025-07-02 17:39:23.593321+03:00');
+INSERT INTO chat_messages VALUES(821,1,9,'ss','2025-07-02 17:39:25.235978+03:00');
+INSERT INTO chat_messages VALUES(822,1,57,'hi','2025-07-02 18:29:25.842939+03:00');
+INSERT INTO chat_messages VALUES(823,1,57,'how are u','2025-07-02 18:45:53.346326+03:00');
+INSERT INTO chat_messages VALUES(824,1,57,'ss','2025-07-02 18:46:36.027392+03:00');
+INSERT INTO chat_messages VALUES(825,57,23,'ss','2025-07-02 18:47:51.961691+03:00');
+INSERT INTO chat_messages VALUES(826,1,5,'xx','2025-07-03 01:58:47.138457+03:00');
+INSERT INTO chat_messages VALUES(827,1,8,'Hi','2025-07-03 02:46:07.0731354+03:00');
+CREATE TABLE IF NOT EXISTS "users" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    birthDate DATE,
+    gender TEXT,
+    first_name TEXT,
+    last_name TEXT
+, avatar TEXT, nickname TEXT, about_me TEXT, is_private BOOLEAN DEFAULT FALSE);
+INSERT INTO users VALUES(1,'j','john_doe@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1989-11-16','Male','Jasim','Aldallal','https://formito.com/img/template/website-questionnaire.jpg','j','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(2,'jane_smith','jane_smith@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2004-11-16','Male','example','example','https://formito.com/img/template/waitlist-registration.jpg','jane_smith','I have a keen interest in photography and art.',1);
+INSERT INTO users VALUES(3,'m','mike_johnson@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2002-11-16','Male','example','example','https://formito.com/img/template/subscribe.jpg','m','Cooking and trying out new recipes is my hobby.',0);
+INSERT INTO users VALUES(4,'emily_brown','emily_brown@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1984-11-16','Female','example','example','https://formito.com/img/template/waitlist-registration.jpg','emily_brown','Cooking and trying out new recipes is my hobby.',1);
+INSERT INTO users VALUES(5,'chris_wilson','chris_wilson@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1983-11-16','Female','example','example','https://formito.com/img/template/website-questionnaire.jpg','chris_wilson','I love exploring new places and meeting new people.',0);
+INSERT INTO users VALUES(6,'example1','example1@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2000-11-16','Male','example','example','https://formito.com/img/template/write-testimonial.jpg','example1','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(8,'Ali','Ali1@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1996-11-16','Male','example','example','https://formito.com/img/template/subscribe.jpg','Ali','Technology and innovation are my passions.',0);
+INSERT INTO users VALUES(9,'example123','example123@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2000-11-16','Male','example','example','https://formito.com/img/template/tour-booking.jpg','example123','Cooking and trying out new recipes is my hobby.',0);
+INSERT INTO users VALUES(11,'example1234','example1234@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1987-11-16','Male','example','example','https://formito.com/img/template/website-questionnaire.jpg','example1234','Music is my escape, and I enjoy playing instruments.',0);
+INSERT INTO users VALUES(12,'user1','user1@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1999-11-16','Male','John','Doe','https://formito.com/img/template/subscribe.jpg','user1','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(13,'user2','user2@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1994-11-16','Female','Jane','Smith','https://formito.com/img/template/subscribe.jpg','user2','I am a movie enthusiast and love watching classics.',0);
+INSERT INTO users VALUES(14,'user3','user3@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2002-11-16','Male','Mike','Johnson','https://formito.com/img/template/subscribe.jpg','user3','I am a movie enthusiast and love watching classics.',1);
+INSERT INTO users VALUES(15,'user4','user4@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1996-11-16','Female','Emily','Brown','https://formito.com/img/template/tour-booking.jpg','user4','I enjoy reading books and writing in my free time.',1);
+INSERT INTO users VALUES(16,'user5','user5@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1989-11-16','Male','David','Wilson','https://formito.com/img/template/website-questionnaire.jpg','user5','Technology and innovation are my passions.',1);
+INSERT INTO users VALUES(17,'user6','user6@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1997-11-16','Female','Sarah','Taylor','https://formito.com/img/template/tour-booking.jpg','user6','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(18,'user7','user7@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1993-11-16','Male','Chris','Anderson','https://formito.com/img/template/website-questionnaire.jpg','user7','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(19,'user8','user8@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1995-11-16','Female','Lisa','Thomas','https://formito.com/img/template/subscribe.jpg','user8','Music is my escape, and I enjoy playing instruments.',1);
+INSERT INTO users VALUES(20,'user9','user9@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1991-11-16','Male','Mark','Jackson','https://formito.com/img/template/write-testimonial.jpg','user9','Fitness and healthy living are important to me.',1);
+INSERT INTO users VALUES(21,'user10','user10@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1998-11-16','Female','Amy','White','https://formito.com/img/template/waitlist-registration.jpg','user10','Music is my escape, and I enjoy playing instruments.',1);
+INSERT INTO users VALUES(22,'user11','user11@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2000-11-16','Male','Daniel','Harris','https://formito.com/img/template/waitlist-registration.jpg','user11','Music is my escape, and I enjoy playing instruments.',1);
+INSERT INTO users VALUES(23,'user12','user12@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1992-11-16','Female','Emma','Martin','https://formito.com/img/template/subscribe.jpg','user12','I have a keen interest in photography and art.',0);
+INSERT INTO users VALUES(24,'user13','user13@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1996-11-16','Male','Andrew','Thompson','https://formito.com/img/template/website-questionnaire.jpg','user13','Cooking and trying out new recipes is my hobby.',0);
+INSERT INTO users VALUES(25,'user14','user14@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1994-11-16','Female','Olivia','Garcia','https://formito.com/img/template/write-testimonial.jpg','user14','I love exploring new places and meeting new people.',1);
+INSERT INTO users VALUES(26,'user15','user15@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1997-11-16','Male','James','Martinez','https://formito.com/img/template/website-questionnaire.jpg','user15','Music is my escape, and I enjoy playing instruments.',1);
+INSERT INTO users VALUES(27,'user16','user16@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1995-11-16','Female','Sophia','Robinson','https://formito.com/img/template/subscribe.jpg','user16','Music is my escape, and I enjoy playing instruments.',1);
+INSERT INTO users VALUES(28,'user17','user17@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1993-11-16','Male','William','Clark','https://formito.com/img/template/waitlist-registration.jpg','user17','I have a keen interest in photography and art.',0);
+INSERT INTO users VALUES(29,'user18','user18@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1998-11-16','Female','Ava','Rodriguez','https://formito.com/img/template/website-questionnaire.jpg','user18','I am a big fan of outdoor adventures and hiking.',0);
+INSERT INTO users VALUES(30,'user19','user19@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1990-11-16','Male','Joseph','Lewis','https://formito.com/img/template/waitlist-registration.jpg','user19','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(31,'user20','user20@example.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1996-11-16','Female','Mia','Lee','https://formito.com/img/template/write-testimonial.jpg','user20','Fitness and healthy living are important to me.',1);
+INSERT INTO users VALUES(48,'hkadhem','hasan@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1992-12-31','Male','hasan','kadhem','https://formito.com/img/template/tour-booking.jpg','hkadhem','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(49,'hasan2','hasan2@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1992-12-31','Male','hasan','kadhem','https://formito.com/img/template/subscribe.jpg','hasan2','Learning new skills and self-improvement drive me.',0);
+INSERT INTO users VALUES(50,'malak','malak@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2003-12-31','Female','malak','aljamri',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(51,'noor','noor@gmail.com','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2005-12-31','Male','noor','ali',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(52,'aaa','a@a.a','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2001-12-31','Male','aaa','aaa',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(53,'bbb','b@b.b','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','2013-12-31','Male','bbb','bbb',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(54,'zzz','z@z.z','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1992-12-31','Male','zzz','zzz',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(55,'sss','s@s.s','$2a$12$EV8EG/eNjgTVZYpqqdvR/uLgoBY5UAj8Bpgat7Pw41xH/WEea2mU2','1982-12-31','Male','33333333','33333333',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(56,'333','3@3.3','$2a$10$pQQEL7xUdPyalwxBpgRV.u7woqBtZu5gnepMrM2j5bkJ0dN4QK4Sa','2014-12-31','Male','333','333',NULL,NULL,NULL,0);
+INSERT INTO users VALUES(57,'maram','maram@gmail.com','$2a$10$spWG81EVLGRpL26z/ns8AetA63CTlyN6wFSGpjuIg2vDWqmakezIe','2003-11-7','Female','maram','abbas','userID57/avatar/maram.jpg',NULL,'',1);
+CREATE TABLE followers (
+  id INTEGER PRIMARY KEY,
+  follower_id INTEGER,
+  followed_id INTEGER,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+  FOREIGN KEY (follower_id) REFERENCES users(id),
+  FOREIGN KEY (followed_id) REFERENCES users(id),
+  UNIQUE (follower_id, followed_id)
+);
+INSERT INTO followers VALUES(1,1,2,'pending');
+INSERT INTO followers VALUES(2,1,3,'accepted');
+INSERT INTO followers VALUES(3,1,4,'accepted');
+INSERT INTO followers VALUES(4,1,5,'accepted');
+INSERT INTO followers VALUES(5,1,6,'pending');
+INSERT INTO followers VALUES(6,1,8,'pending');
+INSERT INTO followers VALUES(7,1,9,'declined');
+INSERT INTO followers VALUES(8,1,11,'pending');
+INSERT INTO followers VALUES(9,1,12,'declined');
+INSERT INTO followers VALUES(10,1,13,'declined');
+INSERT INTO followers VALUES(11,1,14,'declined');
+INSERT INTO followers VALUES(12,1,15,'pending');
+INSERT INTO followers VALUES(13,1,16,'declined');
+INSERT INTO followers VALUES(14,1,17,'accepted');
+INSERT INTO followers VALUES(15,1,18,'accepted');
+INSERT INTO followers VALUES(16,1,19,'pending');
+INSERT INTO followers VALUES(17,1,20,'pending');
+INSERT INTO followers VALUES(18,1,21,'declined');
+INSERT INTO followers VALUES(19,1,22,'declined');
+INSERT INTO followers VALUES(20,1,23,'declined');
+INSERT INTO followers VALUES(21,1,24,'pending');
+INSERT INTO followers VALUES(22,1,25,'declined');
+INSERT INTO followers VALUES(23,1,26,'declined');
+INSERT INTO followers VALUES(24,1,27,'accepted');
+INSERT INTO followers VALUES(25,1,28,'declined');
+INSERT INTO followers VALUES(26,1,29,'pending');
+INSERT INTO followers VALUES(27,1,30,'accepted');
+INSERT INTO followers VALUES(28,1,31,'pending');
+INSERT INTO followers VALUES(29,1,48,'pending');
+INSERT INTO followers VALUES(30,1,49,'accepted');
+INSERT INTO followers VALUES(31,5,1,'declined');
+INSERT INTO followers VALUES(32,5,2,'pending');
+INSERT INTO followers VALUES(33,5,3,'accepted');
+INSERT INTO followers VALUES(34,5,4,'pending');
+INSERT INTO followers VALUES(35,5,6,'declined');
+INSERT INTO followers VALUES(36,5,8,'accepted');
+INSERT INTO followers VALUES(37,5,9,'pending');
+INSERT INTO followers VALUES(38,5,11,'declined');
+INSERT INTO followers VALUES(39,5,12,'pending');
+INSERT INTO followers VALUES(40,5,13,'accepted');
+INSERT INTO followers VALUES(41,5,14,'pending');
+INSERT INTO followers VALUES(42,5,15,'pending');
+INSERT INTO followers VALUES(43,5,16,'accepted');
+INSERT INTO followers VALUES(44,5,17,'pending');
+INSERT INTO followers VALUES(45,5,18,'accepted');
+INSERT INTO followers VALUES(46,5,19,'declined');
+INSERT INTO followers VALUES(47,5,20,'declined');
+INSERT INTO followers VALUES(48,5,21,'pending');
+INSERT INTO followers VALUES(49,5,22,'pending');
+INSERT INTO followers VALUES(50,5,23,'pending');
+INSERT INTO followers VALUES(51,5,24,'accepted');
+INSERT INTO followers VALUES(52,5,25,'pending');
+INSERT INTO followers VALUES(53,5,26,'accepted');
+INSERT INTO followers VALUES(54,5,27,'pending');
+INSERT INTO followers VALUES(55,5,28,'pending');
+INSERT INTO followers VALUES(56,5,29,'pending');
+INSERT INTO followers VALUES(57,5,30,'accepted');
+INSERT INTO followers VALUES(58,5,31,'accepted');
+INSERT INTO followers VALUES(59,5,48,'pending');
+INSERT INTO followers VALUES(60,5,49,'accepted');
+INSERT INTO followers VALUES(61,8,1,'accepted');
+INSERT INTO followers VALUES(62,8,2,'declined');
+INSERT INTO followers VALUES(63,8,3,'pending');
+INSERT INTO followers VALUES(64,8,4,'declined');
+INSERT INTO followers VALUES(65,8,5,'accepted');
+INSERT INTO followers VALUES(66,8,6,'accepted');
+INSERT INTO followers VALUES(67,8,9,'declined');
+INSERT INTO followers VALUES(68,8,11,'declined');
+INSERT INTO followers VALUES(69,8,12,'declined');
+INSERT INTO followers VALUES(70,8,13,'accepted');
+INSERT INTO followers VALUES(71,8,14,'accepted');
+INSERT INTO followers VALUES(72,8,15,'accepted');
+INSERT INTO followers VALUES(73,8,16,'accepted');
+INSERT INTO followers VALUES(74,8,17,'pending');
+INSERT INTO followers VALUES(75,8,18,'accepted');
+INSERT INTO followers VALUES(76,8,19,'accepted');
+INSERT INTO followers VALUES(77,8,20,'declined');
+INSERT INTO followers VALUES(78,8,21,'accepted');
+INSERT INTO followers VALUES(79,8,22,'pending');
+INSERT INTO followers VALUES(80,8,23,'pending');
+INSERT INTO followers VALUES(81,8,24,'accepted');
+INSERT INTO followers VALUES(82,8,25,'pending');
+INSERT INTO followers VALUES(83,8,26,'accepted');
+INSERT INTO followers VALUES(84,8,27,'declined');
+INSERT INTO followers VALUES(85,8,28,'accepted');
+INSERT INTO followers VALUES(86,8,29,'pending');
+INSERT INTO followers VALUES(87,8,30,'declined');
+INSERT INTO followers VALUES(88,8,31,'declined');
+INSERT INTO followers VALUES(89,8,48,'pending');
+INSERT INTO followers VALUES(90,8,49,'accepted');
+INSERT INTO followers VALUES(91,11,1,'pending');
+INSERT INTO followers VALUES(92,11,2,'declined');
+INSERT INTO followers VALUES(93,11,3,'declined');
+INSERT INTO followers VALUES(94,11,4,'declined');
+INSERT INTO followers VALUES(95,11,5,'pending');
+INSERT INTO followers VALUES(96,11,6,'pending');
+INSERT INTO followers VALUES(97,11,8,'pending');
+INSERT INTO followers VALUES(98,11,9,'accepted');
+INSERT INTO followers VALUES(99,11,12,'accepted');
+INSERT INTO followers VALUES(100,11,13,'pending');
+INSERT INTO followers VALUES(101,11,14,'declined');
+INSERT INTO followers VALUES(102,11,15,'pending');
+INSERT INTO followers VALUES(103,11,16,'accepted');
+INSERT INTO followers VALUES(104,11,17,'declined');
+INSERT INTO followers VALUES(105,11,18,'pending');
+INSERT INTO followers VALUES(106,11,19,'declined');
+INSERT INTO followers VALUES(107,11,20,'declined');
+INSERT INTO followers VALUES(108,11,21,'declined');
+INSERT INTO followers VALUES(109,11,22,'pending');
+INSERT INTO followers VALUES(110,11,23,'pending');
+INSERT INTO followers VALUES(111,11,24,'pending');
+INSERT INTO followers VALUES(112,11,25,'declined');
+INSERT INTO followers VALUES(113,11,26,'pending');
+INSERT INTO followers VALUES(114,11,27,'accepted');
+INSERT INTO followers VALUES(115,11,28,'accepted');
+INSERT INTO followers VALUES(116,11,29,'pending');
+INSERT INTO followers VALUES(117,11,30,'pending');
+INSERT INTO followers VALUES(118,11,31,'pending');
+INSERT INTO followers VALUES(119,11,48,'pending');
+INSERT INTO followers VALUES(120,11,49,'pending');
+INSERT INTO followers VALUES(121,13,1,'declined');
+INSERT INTO followers VALUES(122,13,2,'declined');
+INSERT INTO followers VALUES(123,13,3,'pending');
+INSERT INTO followers VALUES(124,13,4,'accepted');
+INSERT INTO followers VALUES(125,13,5,'accepted');
+INSERT INTO followers VALUES(126,13,6,'declined');
+INSERT INTO followers VALUES(127,13,8,'accepted');
+INSERT INTO followers VALUES(128,13,9,'declined');
+INSERT INTO followers VALUES(129,13,11,'accepted');
+INSERT INTO followers VALUES(130,13,12,'declined');
+INSERT INTO followers VALUES(131,13,14,'pending');
+INSERT INTO followers VALUES(132,13,15,'accepted');
+INSERT INTO followers VALUES(133,13,16,'declined');
+INSERT INTO followers VALUES(134,13,17,'declined');
+INSERT INTO followers VALUES(135,13,18,'pending');
+INSERT INTO followers VALUES(136,13,19,'pending');
+INSERT INTO followers VALUES(137,13,20,'pending');
+INSERT INTO followers VALUES(138,13,21,'pending');
+INSERT INTO followers VALUES(139,13,22,'accepted');
+INSERT INTO followers VALUES(140,13,23,'declined');
+INSERT INTO followers VALUES(141,13,24,'accepted');
+INSERT INTO followers VALUES(142,13,25,'pending');
+INSERT INTO followers VALUES(143,13,26,'declined');
+INSERT INTO followers VALUES(144,13,27,'declined');
+INSERT INTO followers VALUES(145,13,28,'pending');
+INSERT INTO followers VALUES(146,13,29,'declined');
+INSERT INTO followers VALUES(147,13,30,'pending');
+INSERT INTO followers VALUES(148,13,31,'pending');
+INSERT INTO followers VALUES(149,13,48,'pending');
+INSERT INTO followers VALUES(150,13,49,'pending');
+INSERT INTO followers VALUES(151,14,1,'pending');
+INSERT INTO followers VALUES(152,14,2,'accepted');
+INSERT INTO followers VALUES(153,14,3,'declined');
+INSERT INTO followers VALUES(154,14,4,'accepted');
+INSERT INTO followers VALUES(155,14,5,'pending');
+INSERT INTO followers VALUES(156,14,6,'declined');
+INSERT INTO followers VALUES(157,14,8,'accepted');
+INSERT INTO followers VALUES(158,14,9,'accepted');
+INSERT INTO followers VALUES(159,14,11,'declined');
+INSERT INTO followers VALUES(160,14,12,'pending');
+INSERT INTO followers VALUES(161,14,13,'pending');
+INSERT INTO followers VALUES(162,14,15,'accepted');
+INSERT INTO followers VALUES(163,14,16,'declined');
+INSERT INTO followers VALUES(164,14,17,'declined');
+INSERT INTO followers VALUES(165,14,18,'pending');
+INSERT INTO followers VALUES(166,14,19,'accepted');
+INSERT INTO followers VALUES(167,14,20,'declined');
+INSERT INTO followers VALUES(168,14,21,'accepted');
+INSERT INTO followers VALUES(169,14,22,'accepted');
+INSERT INTO followers VALUES(170,14,23,'declined');
+INSERT INTO followers VALUES(171,14,24,'accepted');
+INSERT INTO followers VALUES(172,14,25,'accepted');
+INSERT INTO followers VALUES(173,14,26,'accepted');
+INSERT INTO followers VALUES(174,14,27,'accepted');
+INSERT INTO followers VALUES(175,14,28,'accepted');
+INSERT INTO followers VALUES(176,14,29,'accepted');
+INSERT INTO followers VALUES(177,14,30,'accepted');
+INSERT INTO followers VALUES(178,14,31,'declined');
+INSERT INTO followers VALUES(179,14,48,'pending');
+INSERT INTO followers VALUES(180,14,49,'pending');
+INSERT INTO followers VALUES(181,15,1,'pending');
+INSERT INTO followers VALUES(182,15,2,'accepted');
+INSERT INTO followers VALUES(183,15,3,'pending');
+INSERT INTO followers VALUES(184,15,4,'declined');
+INSERT INTO followers VALUES(185,15,5,'declined');
+INSERT INTO followers VALUES(186,15,6,'accepted');
+INSERT INTO followers VALUES(187,15,8,'declined');
+INSERT INTO followers VALUES(188,15,9,'declined');
+INSERT INTO followers VALUES(189,15,11,'pending');
+INSERT INTO followers VALUES(190,15,12,'declined');
+INSERT INTO followers VALUES(191,15,13,'declined');
+INSERT INTO followers VALUES(192,15,14,'pending');
+INSERT INTO followers VALUES(193,15,16,'declined');
+INSERT INTO followers VALUES(194,15,17,'accepted');
+INSERT INTO followers VALUES(195,15,18,'declined');
+INSERT INTO followers VALUES(196,15,19,'accepted');
+INSERT INTO followers VALUES(197,15,20,'accepted');
+INSERT INTO followers VALUES(198,15,21,'declined');
+INSERT INTO followers VALUES(199,15,22,'declined');
+INSERT INTO followers VALUES(200,15,23,'declined');
+INSERT INTO followers VALUES(201,15,24,'pending');
+INSERT INTO followers VALUES(202,15,25,'accepted');
+INSERT INTO followers VALUES(203,15,26,'declined');
+INSERT INTO followers VALUES(204,15,27,'pending');
+INSERT INTO followers VALUES(205,15,28,'accepted');
+INSERT INTO followers VALUES(206,15,29,'pending');
+INSERT INTO followers VALUES(207,15,30,'accepted');
+INSERT INTO followers VALUES(208,15,31,'declined');
+INSERT INTO followers VALUES(209,15,48,'pending');
+INSERT INTO followers VALUES(210,15,49,'declined');
+INSERT INTO followers VALUES(211,16,1,'declined');
+INSERT INTO followers VALUES(212,16,2,'pending');
+INSERT INTO followers VALUES(213,16,3,'pending');
+INSERT INTO followers VALUES(214,16,4,'accepted');
+INSERT INTO followers VALUES(215,16,5,'declined');
+INSERT INTO followers VALUES(216,16,6,'declined');
+INSERT INTO followers VALUES(217,16,8,'accepted');
+INSERT INTO followers VALUES(218,16,9,'accepted');
+INSERT INTO followers VALUES(219,16,11,'declined');
+INSERT INTO followers VALUES(220,16,12,'accepted');
+INSERT INTO followers VALUES(221,16,13,'pending');
+INSERT INTO followers VALUES(222,16,14,'declined');
+INSERT INTO followers VALUES(223,16,15,'declined');
+INSERT INTO followers VALUES(224,16,17,'pending');
+INSERT INTO followers VALUES(225,16,18,'declined');
+INSERT INTO followers VALUES(226,16,19,'declined');
+INSERT INTO followers VALUES(227,16,20,'accepted');
+INSERT INTO followers VALUES(228,16,21,'declined');
+INSERT INTO followers VALUES(229,16,22,'declined');
+INSERT INTO followers VALUES(230,16,23,'accepted');
+INSERT INTO followers VALUES(231,16,24,'declined');
+INSERT INTO followers VALUES(232,16,25,'declined');
+INSERT INTO followers VALUES(233,16,26,'accepted');
+INSERT INTO followers VALUES(234,16,27,'pending');
+INSERT INTO followers VALUES(235,16,28,'pending');
+INSERT INTO followers VALUES(236,16,29,'declined');
+INSERT INTO followers VALUES(237,16,30,'pending');
+INSERT INTO followers VALUES(238,16,31,'declined');
+INSERT INTO followers VALUES(239,16,48,'accepted');
+INSERT INTO followers VALUES(240,16,49,'pending');
+INSERT INTO followers VALUES(241,21,1,'pending');
+INSERT INTO followers VALUES(242,21,2,'declined');
+INSERT INTO followers VALUES(243,21,3,'pending');
+INSERT INTO followers VALUES(244,21,4,'pending');
+INSERT INTO followers VALUES(245,21,5,'accepted');
+INSERT INTO followers VALUES(246,21,6,'accepted');
+INSERT INTO followers VALUES(247,21,8,'accepted');
+INSERT INTO followers VALUES(248,21,9,'accepted');
+INSERT INTO followers VALUES(249,21,11,'accepted');
+INSERT INTO followers VALUES(250,21,12,'pending');
+INSERT INTO followers VALUES(251,21,13,'declined');
+INSERT INTO followers VALUES(252,21,14,'accepted');
+INSERT INTO followers VALUES(253,21,15,'accepted');
+INSERT INTO followers VALUES(254,21,16,'declined');
+INSERT INTO followers VALUES(255,21,17,'declined');
+INSERT INTO followers VALUES(256,21,18,'declined');
+INSERT INTO followers VALUES(257,21,19,'accepted');
+INSERT INTO followers VALUES(258,21,20,'pending');
+INSERT INTO followers VALUES(259,21,22,'declined');
+INSERT INTO followers VALUES(260,21,23,'declined');
+INSERT INTO followers VALUES(261,21,24,'pending');
+INSERT INTO followers VALUES(262,21,25,'declined');
+INSERT INTO followers VALUES(263,21,26,'pending');
+INSERT INTO followers VALUES(264,21,27,'accepted');
+INSERT INTO followers VALUES(265,21,28,'accepted');
+INSERT INTO followers VALUES(266,21,29,'pending');
+INSERT INTO followers VALUES(267,21,30,'accepted');
+INSERT INTO followers VALUES(268,21,31,'accepted');
+INSERT INTO followers VALUES(269,21,48,'accepted');
+INSERT INTO followers VALUES(270,21,49,'declined');
+INSERT INTO followers VALUES(271,23,1,'accepted');
+INSERT INTO followers VALUES(272,23,2,'declined');
+INSERT INTO followers VALUES(273,23,3,'declined');
+INSERT INTO followers VALUES(274,23,4,'declined');
+INSERT INTO followers VALUES(275,23,5,'pending');
+INSERT INTO followers VALUES(276,23,6,'declined');
+INSERT INTO followers VALUES(277,23,8,'accepted');
+INSERT INTO followers VALUES(278,23,9,'pending');
+INSERT INTO followers VALUES(279,23,11,'pending');
+INSERT INTO followers VALUES(280,23,12,'accepted');
+INSERT INTO followers VALUES(281,23,13,'declined');
+INSERT INTO followers VALUES(282,23,14,'accepted');
+INSERT INTO followers VALUES(283,23,15,'pending');
+INSERT INTO followers VALUES(284,23,16,'declined');
+INSERT INTO followers VALUES(285,23,17,'pending');
+INSERT INTO followers VALUES(286,23,18,'declined');
+INSERT INTO followers VALUES(287,23,19,'accepted');
+INSERT INTO followers VALUES(288,23,20,'accepted');
+INSERT INTO followers VALUES(289,23,21,'declined');
+INSERT INTO followers VALUES(290,23,22,'pending');
+INSERT INTO followers VALUES(291,23,24,'pending');
+INSERT INTO followers VALUES(292,23,25,'pending');
+INSERT INTO followers VALUES(293,23,26,'accepted');
+INSERT INTO followers VALUES(294,23,27,'pending');
+INSERT INTO followers VALUES(295,23,28,'declined');
+INSERT INTO followers VALUES(296,23,29,'accepted');
+INSERT INTO followers VALUES(297,23,30,'declined');
+INSERT INTO followers VALUES(298,23,31,'accepted');
+INSERT INTO followers VALUES(299,23,48,'pending');
+INSERT INTO followers VALUES(300,23,49,'declined');
+INSERT INTO followers VALUES(301,24,1,'accepted');
+INSERT INTO followers VALUES(302,24,2,'pending');
+INSERT INTO followers VALUES(303,24,3,'declined');
+INSERT INTO followers VALUES(304,24,4,'accepted');
+INSERT INTO followers VALUES(305,24,5,'accepted');
+INSERT INTO followers VALUES(306,24,6,'declined');
+INSERT INTO followers VALUES(307,24,8,'accepted');
+INSERT INTO followers VALUES(308,24,9,'declined');
+INSERT INTO followers VALUES(309,24,11,'declined');
+INSERT INTO followers VALUES(310,24,12,'accepted');
+INSERT INTO followers VALUES(311,24,13,'accepted');
+INSERT INTO followers VALUES(312,24,14,'pending');
+INSERT INTO followers VALUES(313,24,15,'pending');
+INSERT INTO followers VALUES(314,24,16,'accepted');
+INSERT INTO followers VALUES(315,24,17,'accepted');
+INSERT INTO followers VALUES(316,24,18,'accepted');
+INSERT INTO followers VALUES(317,24,19,'accepted');
+INSERT INTO followers VALUES(318,24,20,'pending');
+INSERT INTO followers VALUES(319,24,21,'pending');
+INSERT INTO followers VALUES(320,24,22,'accepted');
+INSERT INTO followers VALUES(321,24,23,'pending');
+INSERT INTO followers VALUES(322,24,25,'declined');
+INSERT INTO followers VALUES(323,24,26,'pending');
+INSERT INTO followers VALUES(324,24,27,'pending');
+INSERT INTO followers VALUES(325,24,28,'accepted');
+INSERT INTO followers VALUES(326,24,29,'pending');
+INSERT INTO followers VALUES(327,24,30,'declined');
+INSERT INTO followers VALUES(328,24,31,'declined');
+INSERT INTO followers VALUES(329,24,48,'accepted');
+INSERT INTO followers VALUES(330,24,49,'pending');
+INSERT INTO followers VALUES(331,25,1,'accepted');
+INSERT INTO followers VALUES(332,25,2,'pending');
+INSERT INTO followers VALUES(333,25,3,'pending');
+INSERT INTO followers VALUES(334,25,4,'declined');
+INSERT INTO followers VALUES(335,25,5,'accepted');
+INSERT INTO followers VALUES(336,25,6,'declined');
+INSERT INTO followers VALUES(337,25,8,'declined');
+INSERT INTO followers VALUES(338,25,9,'accepted');
+INSERT INTO followers VALUES(339,25,11,'declined');
+INSERT INTO followers VALUES(340,25,12,'accepted');
+INSERT INTO followers VALUES(341,25,13,'pending');
+INSERT INTO followers VALUES(342,25,14,'pending');
+INSERT INTO followers VALUES(343,25,15,'pending');
+INSERT INTO followers VALUES(344,25,16,'pending');
+INSERT INTO followers VALUES(345,25,17,'accepted');
+INSERT INTO followers VALUES(346,25,18,'declined');
+INSERT INTO followers VALUES(347,25,19,'declined');
+INSERT INTO followers VALUES(348,25,20,'declined');
+INSERT INTO followers VALUES(349,25,21,'declined');
+INSERT INTO followers VALUES(350,25,22,'pending');
+INSERT INTO followers VALUES(351,25,23,'declined');
+INSERT INTO followers VALUES(352,25,24,'pending');
+INSERT INTO followers VALUES(353,25,26,'pending');
+INSERT INTO followers VALUES(354,25,27,'pending');
+INSERT INTO followers VALUES(355,25,28,'pending');
+INSERT INTO followers VALUES(356,25,29,'accepted');
+INSERT INTO followers VALUES(357,25,30,'accepted');
+INSERT INTO followers VALUES(358,25,31,'accepted');
+INSERT INTO followers VALUES(359,25,48,'accepted');
+INSERT INTO followers VALUES(360,25,49,'accepted');
+INSERT INTO followers VALUES(361,28,1,'declined');
+INSERT INTO followers VALUES(362,28,2,'declined');
+INSERT INTO followers VALUES(363,28,3,'accepted');
+INSERT INTO followers VALUES(364,28,4,'declined');
+INSERT INTO followers VALUES(365,28,5,'accepted');
+INSERT INTO followers VALUES(366,28,6,'accepted');
+INSERT INTO followers VALUES(367,28,8,'pending');
+INSERT INTO followers VALUES(368,28,9,'declined');
+INSERT INTO followers VALUES(369,28,11,'accepted');
+INSERT INTO followers VALUES(370,28,12,'pending');
+INSERT INTO followers VALUES(371,28,13,'accepted');
+INSERT INTO followers VALUES(372,28,14,'pending');
+INSERT INTO followers VALUES(373,28,15,'pending');
+INSERT INTO followers VALUES(374,28,16,'pending');
+INSERT INTO followers VALUES(375,28,17,'pending');
+INSERT INTO followers VALUES(376,28,18,'declined');
+INSERT INTO followers VALUES(377,28,19,'declined');
+INSERT INTO followers VALUES(378,28,20,'accepted');
+INSERT INTO followers VALUES(379,28,21,'declined');
+INSERT INTO followers VALUES(380,28,22,'declined');
+INSERT INTO followers VALUES(381,28,23,'accepted');
+INSERT INTO followers VALUES(382,28,24,'accepted');
+INSERT INTO followers VALUES(383,28,25,'pending');
+INSERT INTO followers VALUES(384,28,26,'pending');
+INSERT INTO followers VALUES(385,28,27,'declined');
+INSERT INTO followers VALUES(386,28,29,'pending');
+INSERT INTO followers VALUES(387,28,30,'pending');
+INSERT INTO followers VALUES(388,28,31,'accepted');
+INSERT INTO followers VALUES(389,28,48,'declined');
+INSERT INTO followers VALUES(390,28,49,'accepted');
+INSERT INTO followers VALUES(391,30,1,'accepted');
+INSERT INTO followers VALUES(392,30,2,'declined');
+INSERT INTO followers VALUES(393,30,3,'pending');
+INSERT INTO followers VALUES(394,30,4,'declined');
+INSERT INTO followers VALUES(395,30,5,'accepted');
+INSERT INTO followers VALUES(396,30,6,'pending');
+INSERT INTO followers VALUES(397,30,8,'declined');
+INSERT INTO followers VALUES(398,30,9,'declined');
+INSERT INTO followers VALUES(399,30,11,'declined');
+INSERT INTO followers VALUES(400,30,12,'declined');
+INSERT INTO followers VALUES(401,30,13,'pending');
+INSERT INTO followers VALUES(402,30,14,'accepted');
+INSERT INTO followers VALUES(403,30,15,'declined');
+INSERT INTO followers VALUES(404,30,16,'declined');
+INSERT INTO followers VALUES(405,30,17,'pending');
+INSERT INTO followers VALUES(406,30,18,'declined');
+INSERT INTO followers VALUES(407,30,19,'declined');
+INSERT INTO followers VALUES(408,30,20,'accepted');
+INSERT INTO followers VALUES(409,30,21,'declined');
+INSERT INTO followers VALUES(410,30,22,'pending');
+INSERT INTO followers VALUES(411,30,23,'accepted');
+INSERT INTO followers VALUES(412,30,24,'accepted');
+INSERT INTO followers VALUES(413,30,25,'accepted');
+INSERT INTO followers VALUES(414,30,26,'pending');
+INSERT INTO followers VALUES(415,30,27,'accepted');
+INSERT INTO followers VALUES(416,30,28,'accepted');
+INSERT INTO followers VALUES(417,30,29,'pending');
+INSERT INTO followers VALUES(418,30,31,'declined');
+INSERT INTO followers VALUES(419,30,48,'declined');
+INSERT INTO followers VALUES(420,30,49,'pending');
+INSERT INTO followers VALUES(421,49,1,'accepted');
+INSERT INTO followers VALUES(422,49,2,'accepted');
+INSERT INTO followers VALUES(423,49,3,'pending');
+INSERT INTO followers VALUES(424,49,4,'pending');
+INSERT INTO followers VALUES(425,49,5,'pending');
+INSERT INTO followers VALUES(426,49,6,'pending');
+INSERT INTO followers VALUES(427,49,8,'accepted');
+INSERT INTO followers VALUES(428,49,9,'declined');
+INSERT INTO followers VALUES(429,49,11,'declined');
+INSERT INTO followers VALUES(430,49,12,'declined');
+INSERT INTO followers VALUES(431,49,13,'accepted');
+INSERT INTO followers VALUES(432,49,14,'pending');
+INSERT INTO followers VALUES(433,49,15,'accepted');
+INSERT INTO followers VALUES(434,49,16,'pending');
+INSERT INTO followers VALUES(435,49,17,'accepted');
+INSERT INTO followers VALUES(436,49,18,'accepted');
+INSERT INTO followers VALUES(437,49,19,'pending');
+INSERT INTO followers VALUES(438,49,20,'pending');
+INSERT INTO followers VALUES(439,49,21,'pending');
+INSERT INTO followers VALUES(440,49,22,'pending');
+INSERT INTO followers VALUES(441,49,23,'pending');
+INSERT INTO followers VALUES(442,49,24,'accepted');
+INSERT INTO followers VALUES(443,49,25,'declined');
+INSERT INTO followers VALUES(444,49,26,'declined');
+INSERT INTO followers VALUES(445,49,27,'accepted');
+INSERT INTO followers VALUES(446,49,28,'declined');
+INSERT INTO followers VALUES(447,49,29,'declined');
+INSERT INTO followers VALUES(448,49,30,'pending');
+INSERT INTO followers VALUES(449,49,31,'declined');
+INSERT INTO followers VALUES(450,49,48,'declined');
+CREATE TABLE groups (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL,
+  creator_id INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP, privacy_setting TEXT CHECK (privacy_setting IN ('public', 'private')) DEFAULT 'public',
+  FOREIGN KEY (creator_id) REFERENCES users(id)
+);
+INSERT INTO "groups" VALUES(1,'Tech Enthusiasts','A group for discussing the latest in technology.',1,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(2,'Book Lovers','Share and discuss your favorite books.',2,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(3,'Fitness Freaks','A group for fitness tips and motivation.',3,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(4,'Movie Buffs','Discuss the latest movies and classics.',4,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(5,'Travel Addicts','Share travel experiences and tips.',5,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(6,'Foodies','A group for food lovers to share recipes and reviews.',6,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(7,'Music Maniacs','Discuss your favorite music and artists.',12,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(8,'Photography Pros','A group for sharing photography tips and photos.',8,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(9,'Gaming Geeks','Discuss the latest games and gaming trends.',9,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(10,'Entrepreneurs','A group for sharing business ideas and networking.',13,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(11,'Art Aficionados','A group for discussing and sharing art.',11,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(12,'Nature Lovers','A group for sharing experiences and tips about nature.',14,'2025-05-05 07:46:21','public');
+INSERT INTO "groups" VALUES(13,'zzzzzzzzzzzzzzzz','zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',52,'2025-06-02 15:18:17','public');
+INSERT INTO "groups" VALUES(14,'22222222222222222222','222222222222222222222',52,'2025-06-05 14:18:32','public');
+INSERT INTO "groups" VALUES(15,'private1','1111111111111111111111111111111111',52,'2025-07-01 14:43:30','private');
+CREATE TABLE group_members (
+  group_id INTEGER,
+  user_id INTEGER,
+  status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+  PRIMARY KEY (group_id, user_id),
+  FOREIGN KEY (group_id) REFERENCES groups(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+INSERT INTO group_members VALUES(1,2,'accepted');
+INSERT INTO group_members VALUES(1,3,'pending');
+INSERT INTO group_members VALUES(2,4,'accepted');
+INSERT INTO group_members VALUES(2,5,'declined');
+INSERT INTO group_members VALUES(3,6,'accepted');
+INSERT INTO group_members VALUES(4,12,'pending');
+INSERT INTO group_members VALUES(4,11,'pending');
+INSERT INTO group_members VALUES(5,8,'accepted');
+INSERT INTO group_members VALUES(5,13,'accepted');
+INSERT INTO group_members VALUES(1,1,'accepted');
+INSERT INTO group_members VALUES(1,6,'accepted');
+INSERT INTO group_members VALUES(15,1,'pending');
+CREATE TABLE group_messages (
+  id INTEGER PRIMARY KEY,
+  group_id INTEGER,
+  sender_id INTEGER,
+  content TEXT NOT NULL,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (group_id) REFERENCES groups(id),
+  FOREIGN KEY (sender_id) REFERENCES users(id)
+);
+INSERT INTO group_messages VALUES(1,1,2,'Hello everyone in group 1!','2025-05-05 14:01:23');
+INSERT INTO group_messages VALUES(2,2,4,'Group 2 is awesome!','2025-05-05 14:05:12');
+INSERT INTO group_messages VALUES(3,3,6,'What are we discussing in group 3?','2025-05-05 14:10:45');
+INSERT INTO group_messages VALUES(4,5,8,'Group 5 is the best!','2025-05-05 14:15:30');
+INSERT INTO group_messages VALUES(5,5,13,'I agree, group 5 is amazing!','2025-05-05 14:20:11');
+INSERT INTO group_messages VALUES(6,1,1,'Welcome to group 1!','2025-05-05 14:25:50');
+INSERT INTO group_messages VALUES(7,1,6,'Thanks for adding me to group 1!','2025-05-05 14:30:05');
+INSERT INTO group_messages VALUES(8,1,2,'Does anyone have updates for group 1?','2025-05-05 14:35:40');
+INSERT INTO group_messages VALUES(9,2,4,'Let’s plan something for group 2.','2025-05-05 14:40:25');
+INSERT INTO group_messages VALUES(10,3,6,'Group 3 needs more members!','2025-05-05 14:45:15');
+INSERT INTO group_messages VALUES(11,5,8,'What’s the next event for group 5?','2025-05-05 14:50:00');
+INSERT INTO group_messages VALUES(12,5,13,'I’ll help organize the event for group 5.','2025-05-05 14:55:35');
+INSERT INTO group_messages VALUES(13,1,1,'Group 1 is growing fast!','2025-05-05 14:59:59');
+INSERT INTO group_messages VALUES(14,1,6,'I’m excited to be part of group 1.','2025-05-05 14:03:12');
+INSERT INTO group_messages VALUES(15,1,2,'Let’s schedule a meeting for group 1.','2025-05-05 14:07:45');
+INSERT INTO group_messages VALUES(16,2,4,'Group 2 is planning a meetup.','2025-05-05 14:12:30');
+INSERT INTO group_messages VALUES(17,3,6,'Let’s brainstorm ideas for group 3.','2025-05-05 14:17:20');
+INSERT INTO group_messages VALUES(18,5,8,'Group 5 is planning a charity event.','2025-05-05 14:22:10');
+INSERT INTO group_messages VALUES(19,5,13,'I’ll contribute to the charity event for group 5.','2025-05-05 14:27:55');
+INSERT INTO group_messages VALUES(20,1,1,'Group 1 is hosting a webinar.','2025-05-05 14:32:40');
+INSERT INTO group_messages VALUES(21,1,6,'I’ll join the webinar for group 1.','2025-05-05 14:37:25');
+INSERT INTO group_messages VALUES(22,1,2,'Does anyone have questions about group 1?','2025-05-05 14:42:15');
+INSERT INTO group_messages VALUES(23,2,4,'Group 2 is organizing a workshop.','2025-05-05 14:47:00');
+INSERT INTO group_messages VALUES(24,3,6,'Group 3 is looking for volunteers.','2025-05-05 14:51:45');
+INSERT INTO group_messages VALUES(25,5,8,'Group 5 is planning a picnic.','2025-05-05 14:56:30');
+INSERT INTO group_messages VALUES(26,5,13,'I’ll bring snacks for the picnic in group 5.','2025-05-05 14:02:10');
+INSERT INTO group_messages VALUES(27,1,1,'Group 1 is discussing new ideas.','2025-05-05 14:06:55');
+INSERT INTO group_messages VALUES(28,1,6,'I have a suggestion for group 1.','2025-05-05 14:11:40');
+INSERT INTO group_messages VALUES(29,1,2,'Let’s vote on the suggestions for group 1.','2025-05-05 14:16:25');
+INSERT INTO group_messages VALUES(30,2,4,'Group 2 is planning a trip.','2025-05-05 14:21:10');
+INSERT INTO group_messages VALUES(31,3,6,'Group 3 is hosting a debate.','2025-05-05 14:25:55');
+INSERT INTO group_messages VALUES(32,5,8,'Group 5 is organizing a fundraiser.','2025-05-05 14:30:40');
+INSERT INTO group_messages VALUES(33,5,13,'I’ll help promote the fundraiser for group 5.','2025-05-05 14:35:25');
+INSERT INTO group_messages VALUES(34,1,1,'Group 1 is planning a hackathon.','2025-05-05 14:40:10');
+INSERT INTO group_messages VALUES(35,1,6,'I’ll participate in the hackathon for group 1.','2025-05-05 14:44:55');
+INSERT INTO group_messages VALUES(36,1,2,'Does anyone have ideas for the hackathon in group 1?','2025-05-05 14:49:40');
+INSERT INTO group_messages VALUES(37,2,4,'Group 2 is hosting a movie night.','2025-05-05 14:54:25');
+INSERT INTO group_messages VALUES(38,3,6,'Group 3 is organizing a book club.','2025-05-05 14:59:10');
+INSERT INTO group_messages VALUES(39,5,8,'Group 5 is planning a sports event.','2025-05-05 14:03:55');
+INSERT INTO group_messages VALUES(40,5,13,'I’ll join the sports event for group 5.','2025-05-05 14:08:40');
+INSERT INTO group_messages VALUES(41,1,1,'Group 1 is discussing future plans.','2025-05-05 14:13:25');
+INSERT INTO group_messages VALUES(42,1,6,'I have a question about group 1’s plans.','2025-05-05 14:18:10');
+INSERT INTO group_messages VALUES(43,1,2,'Let’s finalize the plans for group 1.','2025-05-05 14:22:55');
+INSERT INTO group_messages VALUES(44,2,4,'Group 2 is hosting a coding challenge.','2025-05-05 14:27:40');
+INSERT INTO group_messages VALUES(45,3,6,'Group 3 is organizing a photography contest.','2025-05-05 14:32:25');
+INSERT INTO group_messages VALUES(46,5,8,'Group 5 is planning a music festival.','2025-05-05 14:37:10');
+INSERT INTO group_messages VALUES(47,5,13,'I’ll perform at the music festival for group 5.','2025-05-05 14:41:55');
+INSERT INTO group_messages VALUES(48,1,1,'Group 1 is hosting a Q&A session.','2025-05-05 14:46:40');
+INSERT INTO group_messages VALUES(49,1,6,'I’ll attend the Q&A session for group 1.','2025-05-05 14:51:25');
+INSERT INTO group_messages VALUES(50,1,1,'54564','2025-07-04 05:03:35.4932061+03:00');
+INSERT INTO group_messages VALUES(51,1,1,'3323','2025-07-04 05:03:37.5739339+03:00');
+INSERT INTO group_messages VALUES(52,1,52,'541541','2025-07-04 05:04:20.4406007+03:00');
+INSERT INTO group_messages VALUES(53,1,1,'a','2025-07-04 05:09:09.2130328+03:00');
+INSERT INTO group_messages VALUES(54,1,1,'y4e5y','2025-07-04 05:09:18.8209503+03:00');
+INSERT INTO group_messages VALUES(55,1,52,'wwwwww','2025-07-04 05:15:25.6970215+03:00');
+INSERT INTO group_messages VALUES(56,1,1,'ssssss','2025-07-04 05:15:29.9138987+03:00');
+INSERT INTO group_messages VALUES(57,3,1,'hi','2025-07-05 01:11:24.252903+03:00');
+INSERT INTO group_messages VALUES(58,3,1,'how are u','2025-07-05 01:11:29.447214+03:00');
+CREATE TABLE events (
+  id INTEGER PRIMARY KEY,
+  group_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  event_date DATETIME NOT NULL,
+  created_by INTEGER NOT NULL,
+  FOREIGN KEY (group_id) REFERENCES groups(id),
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+INSERT INTO events VALUES(1,1,'yoyoyoyoyoyo','yoyoyoyoyoyoyoyoy','2025-06-05 00:00:00',52);
+INSERT INTO events VALUES(2,1,'3333333333333333333333','33333333333333333333','2025-06-11 00:00:00',52);
+INSERT INTO events VALUES(3,1,'34234234234234','234234234234234234','2025-07-01 00:00:00',52);
+INSERT INTO events VALUES(4,1,'4444444','44444444444','2025-07-09 00:00:00',52);
+CREATE TABLE event_attendance (
+  event_id INTEGER,
+  user_id INTEGER,
+  status TEXT CHECK (status IN ('going', 'not going')) DEFAULT 'going',
+  PRIMARY KEY (event_id, user_id),
+  FOREIGN KEY (event_id) REFERENCES events(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+INSERT INTO event_attendance VALUES(3,52,'going');
+INSERT INTO event_attendance VALUES(3,53,'not going');
+INSERT INTO event_attendance VALUES(4,53,'going');
+INSERT INTO event_attendance VALUES(4,52,'going');
+CREATE TABLE notifications (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER,
+  type TEXT NOT NULL,
+  reference_id INTEGER,
+  is_read BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+CREATE TABLE post_viewers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    viewer_id INTEGER NOT NULL,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (viewer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+INSERT INTO post_viewers VALUES(1,45,2);
+INSERT INTO post_viewers VALUES(2,47,23);
+INSERT INTO post_viewers VALUES(3,89,9);
+INSERT INTO post_viewers VALUES(4,34,16);
+INSERT INTO post_viewers VALUES(5,106,8);
+INSERT INTO post_viewers VALUES(6,6,27);
+INSERT INTO post_viewers VALUES(7,19,24);
+INSERT INTO post_viewers VALUES(8,2,50);
+INSERT INTO post_viewers VALUES(9,23,30);
+INSERT INTO post_viewers VALUES(10,100,50);
+INSERT INTO post_viewers VALUES(11,40,50);
+INSERT INTO post_viewers VALUES(12,34,50);
+INSERT INTO post_viewers VALUES(13,93,5);
+INSERT INTO post_viewers VALUES(14,7,23);
+INSERT INTO post_viewers VALUES(15,11,23);
+INSERT INTO post_viewers VALUES(16,8,8);
+INSERT INTO post_viewers VALUES(17,17,26);
+INSERT INTO post_viewers VALUES(18,14,13);
+INSERT INTO post_viewers VALUES(19,61,50);
+INSERT INTO post_viewers VALUES(20,15,2);
+INSERT INTO post_viewers VALUES(21,106,21);
+INSERT INTO post_viewers VALUES(22,108,49);
+INSERT INTO post_viewers VALUES(23,30,8);
+INSERT INTO post_viewers VALUES(24,2,9);
+INSERT INTO post_viewers VALUES(25,6,21);
+INSERT INTO post_viewers VALUES(26,34,24);
+INSERT INTO post_viewers VALUES(27,35,14);
+INSERT INTO post_viewers VALUES(28,95,2);
+INSERT INTO post_viewers VALUES(29,108,9);
+INSERT INTO post_viewers VALUES(30,41,8);
+INSERT INTO post_viewers VALUES(31,61,8);
+INSERT INTO post_viewers VALUES(32,24,14);
+INSERT INTO post_viewers VALUES(33,88,19);
+INSERT INTO post_viewers VALUES(34,75,15);
+INSERT INTO post_viewers VALUES(35,26,29);
+INSERT INTO post_viewers VALUES(36,48,27);
+INSERT INTO post_viewers VALUES(37,61,15);
+INSERT INTO post_viewers VALUES(38,28,9);
+INSERT INTO post_viewers VALUES(39,94,13);
+INSERT INTO post_viewers VALUES(40,26,13);
+INSERT INTO post_viewers VALUES(41,88,27);
+INSERT INTO post_viewers VALUES(42,50,12);
+INSERT INTO post_viewers VALUES(43,48,8);
+INSERT INTO post_viewers VALUES(44,61,27);
+INSERT INTO post_viewers VALUES(45,94,23);
+INSERT INTO post_viewers VALUES(46,100,18);
+INSERT INTO post_viewers VALUES(47,47,14);
+INSERT INTO post_viewers VALUES(48,51,18);
+INSERT INTO post_viewers VALUES(49,30,13);
+INSERT INTO post_viewers VALUES(50,17,27);
+INSERT INTO post_viewers VALUES(51,27,51);
+INSERT INTO post_viewers VALUES(52,35,20);
+INSERT INTO post_viewers VALUES(53,106,24);
+INSERT INTO post_viewers VALUES(54,30,2);
+INSERT INTO post_viewers VALUES(55,69,21);
+INSERT INTO post_viewers VALUES(56,41,51);
+INSERT INTO post_viewers VALUES(57,59,4);
+INSERT INTO post_viewers VALUES(58,65,6);
+INSERT INTO post_viewers VALUES(59,12,16);
+INSERT INTO post_viewers VALUES(60,30,51);
+INSERT INTO post_viewers VALUES(61,50,21);
+INSERT INTO post_viewers VALUES(62,69,17);
+INSERT INTO post_viewers VALUES(63,115,21);
+INSERT INTO post_viewers VALUES(64,45,29);
+INSERT INTO post_viewers VALUES(65,28,13);
+INSERT INTO post_viewers VALUES(66,107,29);
+INSERT INTO post_viewers VALUES(67,77,12);
+INSERT INTO post_viewers VALUES(68,88,6);
+INSERT INTO post_viewers VALUES(69,37,15);
+INSERT INTO post_viewers VALUES(70,30,48);
+INSERT INTO post_viewers VALUES(71,19,17);
+INSERT INTO post_viewers VALUES(72,14,27);
+INSERT INTO post_viewers VALUES(73,50,30);
+INSERT INTO post_viewers VALUES(74,75,3);
+INSERT INTO post_viewers VALUES(75,45,50);
+INSERT INTO post_viewers VALUES(76,108,28);
+INSERT INTO post_viewers VALUES(77,15,22);
+INSERT INTO post_viewers VALUES(78,94,16);
+INSERT INTO post_viewers VALUES(79,45,49);
+INSERT INTO post_viewers VALUES(80,83,13);
+INSERT INTO post_viewers VALUES(81,77,51);
+INSERT INTO post_viewers VALUES(82,8,30);
+INSERT INTO post_viewers VALUES(83,51,8);
+INSERT INTO post_viewers VALUES(84,7,30);
+INSERT INTO post_viewers VALUES(85,94,22);
+INSERT INTO post_viewers VALUES(86,2,22);
+INSERT INTO post_viewers VALUES(87,22,24);
+INSERT INTO post_viewers VALUES(88,59,31);
+INSERT INTO post_viewers VALUES(89,14,25);
+INSERT INTO post_viewers VALUES(90,77,9);
+INSERT INTO post_viewers VALUES(91,36,18);
+INSERT INTO post_viewers VALUES(92,74,18);
+INSERT INTO post_viewers VALUES(93,88,14);
+INSERT INTO post_viewers VALUES(94,108,13);
+INSERT INTO post_viewers VALUES(95,35,31);
+INSERT INTO post_viewers VALUES(96,75,51);
+INSERT INTO post_viewers VALUES(97,69,49);
+INSERT INTO post_viewers VALUES(98,4,14);
+INSERT INTO post_viewers VALUES(99,94,1);
+INSERT INTO post_viewers VALUES(100,15,16);
+CREATE TABLE IF NOT EXISTS "comments" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER,
+    user_id INTEGER,
+    content TEXT NOT NULL,
+    image TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+INSERT INTO comments VALUES(1,1,2,'Great post! I''m particularly interested in how AI will impact healthcare. Any thoughts on that?','https://picsum.photos/200','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(2,1,3,'I''m a bit concerned about the potential job displacement due to AI. How do you think we should address this?','','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(3,2,4,'I''ve hiked part of the Appalachian Trail and it was amazing! Has anyone here done the Pacific Crest Trail?','https://loremflickr.com/320/240','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(4,3,5,'Inception is one of my all-time favorites! The ending still leaves me pondering every time I watch it.','https://placebear.com/300/200','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(5,4,1,'Thanks for sharing these recipes! I''ve been trying to incorporate more plant-based meals into my diet.','','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(6,5,3,'As someone who''s been working remotely for a year now, I can attest to both the benefits and challenges. Great analysis!','https://picsum.photos/200','2024-07-29 16:51:10');
+INSERT INTO comments VALUES(7,5,6,'dasf','','2024-08-18 18:12:10');
+INSERT INTO comments VALUES(8,5,6,'dasf','https://loremflickr.com/320/240','2024-08-18 18:12:40');
+INSERT INTO comments VALUES(9,106,6,'aaa','https://placebear.com/300/200','2024-10-12 02:15:15');
+INSERT INTO comments VALUES(10,105,6,'comment 20241217','','2024-12-17 05:02:41');
+INSERT INTO comments VALUES(13,105,6,'comment 20241217 <script>dd</script>','https://loremflickr.com/320/240','2024-12-17 05:16:41');
+INSERT INTO comments VALUES(14,105,6,'er','https://placebear.com/300/200','2025-01-19 22:00:53');
+INSERT INTO comments VALUES(15,106,6,'gfsgfsgfsgd','','2025-01-30 16:17:11');
+INSERT INTO comments VALUES(16,106,6,'dfsgsfgsfg','https://picsum.photos/200','2025-01-30 16:17:33');
+INSERT INTO comments VALUES(17,106,6,'dfsdfd','','2025-01-30 16:18:32');
+INSERT INTO comments VALUES(18,105,6,'dfdsfsd','https://loremflickr.com/320/240','2025-01-30 16:32:02');
+INSERT INTO comments VALUES(19,106,6,'dfsdf','https://placebear.com/300/200','2025-01-30 17:01:09');
+INSERT INTO comments VALUES(20,106,6,'dsfdsfsdafadsgfadf','','2025-01-30 17:01:21');
+INSERT INTO comments VALUES(21,106,6,'dafdf','https://picsum.photos/200','2025-01-30 17:01:32');
+INSERT INTO comments VALUES(22,106,6,'fsdfsdf','','2025-01-30 17:02:21');
+INSERT INTO comments VALUES(23,106,6,'fsdfsdf','https://loremflickr.com/320/240','2025-01-30 17:02:22');
+INSERT INTO comments VALUES(24,106,6,'dfsdfs','https://placebear.com/300/200','2025-01-30 17:03:39');
+INSERT INTO comments VALUES(25,105,6,'fgdghdgh','','2025-01-30 17:29:11');
+INSERT INTO comments VALUES(26,103,6,'fdfsdzfs','https://picsum.photos/200','2025-01-30 17:36:24');
+INSERT INTO comments VALUES(27,104,6,'dafadfad','','2025-01-30 18:32:47');
+INSERT INTO comments VALUES(28,105,6,'ssdd','https://loremflickr.com/320/240','2025-02-03 16:35:59');
+INSERT INTO comments VALUES(29,106,3,'ok','https://placebear.com/300/200','2025-02-08 21:04:37');
+INSERT INTO comments VALUES(30,107,6,'djfhksdfhk','','2025-02-11 16:25:35');
+INSERT INTO comments VALUES(31,107,6,'sddsd','https://picsum.photos/200','2025-02-11 17:52:19');
+INSERT INTO comments VALUES(32,107,6,'gfgfgf','','2025-02-11 19:14:28');
+INSERT INTO comments VALUES(33,107,6,'fgdfgdfg','https://loremflickr.com/320/240','2025-02-11 19:14:37');
+INSERT INTO comments VALUES(34,107,6,'dsadffd','https://placebear.com/300/200','2025-02-11 19:14:46');
+INSERT INTO comments VALUES(42,115,49,'test comment','','2025-02-16 14:02:10');
+INSERT INTO comments VALUES(43,116,48,'dghgdhh','https://loremflickr.com/320/240','2025-02-16 14:42:28');
+INSERT INTO comments VALUES(44,59,50,'ss','https://placebear.com/300/200','2025-03-26 19:42:04');
+INSERT INTO comments VALUES(45,116,50,'nn','','2025-03-28 14:48:17');
+INSERT INTO comments VALUES(46,107,6,'sdfsdfsd','','2025-05-02 15:11:36');
+INSERT INTO comments VALUES(47,118,6,'7777777','/uploads/userID6/4.19_EXPL_Campus-Snow.jpg','2025-05-03 08:46:25');
+INSERT INTO comments VALUES(48,118,6,'5555555','/uploads/userID6/6d173e77b8214d33a20ca64d24a6e4d9-goods.jpeg','2025-05-03 08:47:03');
+INSERT INTO comments VALUES(49,132,1,'11111111111111',NULL,'2025-06-07 17:32:18');
+INSERT INTO sqlite_sequence VALUES('categories',6);
+INSERT INTO sqlite_sequence VALUES('posts',135);
+INSERT INTO sqlite_sequence VALUES('likes_dislikes',331);
+INSERT INTO sqlite_sequence VALUES('sessions',836);
+INSERT INTO sqlite_sequence VALUES('chat_messages',827);
+INSERT INTO sqlite_sequence VALUES('users',57);
+INSERT INTO sqlite_sequence VALUES('post_viewers',100);
+INSERT INTO sqlite_sequence VALUES('comments',49);
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_posts_created_at ON posts(created_at);
+CREATE INDEX idx_post_categories_post_id ON post_categories(post_id);
+CREATE INDEX idx_post_categories_category_id ON post_categories(category_id);
+CREATE INDEX idx_likes_dislikes_user_id ON likes_dislikes(user_id);
+CREATE INDEX idx_likes_dislikes_post_id ON likes_dislikes(post_id);
+CREATE INDEX idx_likes_dislikes_comment_id ON likes_dislikes(comment_id);
+CREATE INDEX idx_sessions_token ON sessions(token);
+CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX idx_chat_messages_sender_receiver ON chat_messages(sender_id, "Receiver_id");
+CREATE UNIQUE INDEX idx_post_viewers_post_id_viewer_id 
+ON post_viewers(post_id, viewer_id);
+CREATE INDEX idx_comments_post_id ON comments(post_id);
+CREATE INDEX idx_comments_user_id ON comments(user_id);
+COMMIT;
