@@ -8,12 +8,12 @@ const GroupChat = {
             <div class="chat-messages" ref="messagesContainer" style="height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 12px; border-radius: 8px; padding: 8px;">
                 <div v-if="loading" class="loading-indicator">Loading...</div>
                 <div v-else-if="messages.length === 0" class="no-messages">No messages yet. Start chatting!</div>
-                <div v-for="msg in messages" :key="msg.timestamp + msg.content" class="chat-message">
-                    <span>[{{ formatTimestamp(msg.timestamp) }}]</span><br>
-                    <span :class="{'self-message': msg.sender_id === currentUserId}">
-                        {{ msg.sender_id === currentUserId ? 'You' : msg.sender_username || 'User ' + msg.sender_id }}:
-                    </span>
-                    {{ msg.content }}
+                <div v-for="msg in messages" :key="msg.timestamp + msg.content" :class="['chat-message-bubble', msg.sender_id === currentUserId ? 'self' : 'other']">
+                    <img :src="msg.sender_avatar || '/static/images/default-avatar.png'" class="chat-avatar" alt="avatar" />
+                    <div class="bubble-content">
+                        <span class="chat-meta"><b>{{ msg.sender_id === currentUserId ? 'You' : msg.sender_username || ('User ' + msg.sender_id) }}</b> [{{ formatTimestamp(msg.timestamp) }}]</span>
+                        <div class="chat-text">{{ msg.content }}</div>
+                    </div>
                 </div>
             </div>
             <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox" style="width: 80%; margin-right: 8px;">
@@ -51,7 +51,13 @@ const GroupChat = {
         },
         formatTimestamp(ts) {
             if (!ts) return '';
-            return new Date(ts).toLocaleString();
+            const date = new Date(ts);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = date.toLocaleString('en-US', { month: 'short' });
+            const year = String(date.getFullYear()).slice(-2);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}-${month}-${year} ${hours}:${minutes}`;
         },
         scrollToBottom() {
             const c = this.$refs.messagesContainer;

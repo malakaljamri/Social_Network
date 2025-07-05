@@ -20,8 +20,13 @@ const ChatWindow = {
                 </div>
                 <div v-if="typing" class="typing-indicator">{{ user.Username }} is typing<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
             </div>
-            <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
-            <button @click="sendMessage">Send</button>
+            <div v-if="!canMessage" style="color: red; text-align: center; margin: 10px 0;">
+                You can only message users you follow or who follow you
+            </div>
+            <template v-else>
+                <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
+                <button @click="sendMessage">Send</button>
+            </template>
         </div>
     `,
     data() {
@@ -31,6 +36,7 @@ const ChatWindow = {
             loading: true,
             typing: false,
             typingTimeout: null,
+            canMessage: true,
         };
     },
     computed: {
@@ -50,6 +56,29 @@ const ChatWindow = {
             }
             this.loading = false;
             this.$nextTick(this.scrollToBottom);
+        },
+        async fetchFollowStatus() {
+            // Fetch if current user follows chat user and if chat user follows current user
+            let canMessage = false;
+            try {
+                const res1 = await fetch(`/api/user/profile?id=${this.user.ID}`);
+                const data1 = await res1.json();
+                // is_following: does current user follow chat user?
+                // is_follower: does chat user follow current user?
+                if (data1.is_following || data1.is_follower) {
+                    canMessage = true;
+                }
+            } catch {}
+            try {
+                const res2 = await fetch(`/api/user/profile?id=${this.currentUserValue.id}`);
+                const data2 = await res2.json();
+                // is_follower: does current user follow chat user? (from chat user's perspective)
+                // is_following: does chat user follow current user? (from chat user's perspective)
+                if (data2.is_following || data2.is_follower) {
+                    canMessage = true;
+                }
+            } catch {}
+            this.canMessage = canMessage;
         },
         sendMessage() {
             if (!this.input.trim()) return;
@@ -90,6 +119,7 @@ const ChatWindow = {
     },
     mounted() {
         this.fetchHistory();
+        this.fetchFollowStatus();
         // Listen for incoming messages and typing events
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
             const msg = e.detail;

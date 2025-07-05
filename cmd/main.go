@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var migrate = false;
+var migrate = false
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -77,6 +77,7 @@ func main() {
 	mux.HandleFunc("/api/user/follow", handlers.FollowUser)
 	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
+	mux.HandleFunc("/api/user/change_password", handlers.ChangePasswordHandler)
 
 	// New profile-related endpoints
 	mux.HandleFunc("/api/profile/image", handlers.UpdateProfileImage)
