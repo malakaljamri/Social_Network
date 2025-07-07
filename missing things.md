@@ -14,6 +14,8 @@ A user must be able to see the notifications in every page of the project.
 
 ---------------
 
+linear-gradient(135deg, var(--primary-color), var(--accent-color));   or linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+
 # 6- some css need to enhance for the UX 
 
 ---------------

@@ -15,12 +15,21 @@ const UsersList = {
                             @click.stop="goToProfile(user.ID)"
                         >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
+                        <strong @click="openChat(user.ID)" 
+                               style="cursor:pointer;" 
+                               @mouseenter="showTooltip($event, user)" 
+                               @mouseleave="hideTooltip">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
                         <span v-if="unreadCounts[user.ID] > 0" class="unread-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
+            </div>
+            <!-- Custom Tooltip -->
+            <div v-if="tooltip.show" 
+                 class="custom-tooltip" 
+                 :style="tooltip.style">
+                {{ tooltip.content }}
             </div>
         </div>
     `,
@@ -30,7 +39,12 @@ const UsersList = {
             searchResults: [],
             searching: false,
             refreshInterval: null,
-            unreadCounts: {} // Track unread counts by user ID
+            unreadCounts: {} // Track unread counts by user ID,
+            tooltip: {
+                show: false,
+                content: '',
+                style: {}
+            }
         }
     },
     computed: {
@@ -116,6 +130,20 @@ const UsersList = {
                 tooltip += `\nNickname: ${user.Nickname}`;
             }
             return tooltip;
+        },
+        showTooltip(event, user) {
+            const rect = event.target.getBoundingClientRect();
+            this.tooltip.content = this.getUserTooltip(user);
+            this.tooltip.style = {
+                position: 'fixed',
+                top: (rect.bottom + 5) + 'px',
+                left: rect.left + 'px',
+                zIndex: '1000'
+            };
+            this.tooltip.show = true;
+        },
+        hideTooltip() {
+            this.tooltip.show = false;
         }
     },
     mounted() {
