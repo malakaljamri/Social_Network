@@ -21,7 +21,7 @@ const HomeView = {
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section chat-window-fixed">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
+                <chat-window v-for="user in $root.openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>
     `,
@@ -41,7 +41,6 @@ const HomeView = {
             pageSize: 10,
             totalPages: 1,
             totalResults: 0,
-            openChats: [],
             chatTimestamps: {}, // Store timestamps for each chat window
             imageErrors: new Set() // Track failed image loads
         };
@@ -162,9 +161,8 @@ const HomeView = {
             return new Date(dateStr).toLocaleString();
         },
         openChat(user) {
-            if (!this.openChats.some(u => u.ID === user.ID)) {
-                this.openChats.push(user);
-            }
+            // Use the centralized chat management from the main app
+            this.$root.openChat(user);
             // Update timestamp for this chat window
             this.chatTimestamps[user.ID] = Date.now();
         },
@@ -174,7 +172,8 @@ const HomeView = {
             return parseInt(timestamp.toString().slice(-6)); // Get last 6 digits of timestamp
         },
         closeChat(userId) {
-            this.openChats = this.openChats.filter(u => u.ID !== userId);
+            // Use the centralized chat management from the main app
+            this.$root.closeChat(userId);
             delete this.chatTimestamps[userId];
         }
     },

@@ -54,9 +54,7 @@ const app = Vue.createApp({
             posts: [],
             openChats: [],
             selectedProfileUserId: null,
-            posts: [], // for updating after post creation
             groups: [], // for updating after group creation
-            openChats: [], // <-- moved from HomeView
             selectedEvent: null,
             showEventDetailsModal: false,
             showGroupEventsModal: false,
@@ -493,7 +491,7 @@ const app = Vue.createApp({
                     :key="user.ID"
                     :user="user"
                     :currentUser="currentUser.value"
-                    @close="openChats = []"
+                    :onClose="() => closeChat(user.ID)"
                 ></chat-window>
             </div>
         </div>
