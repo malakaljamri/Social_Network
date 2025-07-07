@@ -1,6 +1,6 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     title TEXT NOT NULL,
@@ -8,18 +8,18 @@ CREATE TABLE posts (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, image TEXT, privacy TEXT CHECK (privacy IN ('public', 'almost_private', 'private')) DEFAULT 'public', group_id INTEGER REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
 );
-CREATE TABLE post_categories (
+CREATE TABLE IF NOT EXISTS post_categories (
     post_id INTEGER,
     category_id INTEGER,
     PRIMARY KEY (post_id, category_id),
     FOREIGN KEY (post_id) REFERENCES posts(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
-CREATE TABLE likes_dislikes (
+CREATE TABLE IF NOT EXISTS likes_dislikes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     post_id INTEGER,
@@ -29,7 +29,7 @@ CREATE TABLE likes_dislikes (
     FOREIGN KEY (post_id) REFERENCES posts(id),
     FOREIGN KEY (comment_id) REFERENCES comments(id)
 );
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     token TEXT UNIQUE NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS "users" (
     first_name TEXT,
     last_name TEXT
 , avatar TEXT, nickname TEXT, about_me TEXT, is_private BOOLEAN DEFAULT FALSE);
-CREATE TABLE followers (
+CREATE TABLE IF NOT EXISTS followers (
   id INTEGER PRIMARY KEY,
   follower_id INTEGER,
   followed_id INTEGER,
@@ -68,7 +68,7 @@ CREATE TABLE followers (
   FOREIGN KEY (followed_id) REFERENCES users(id),
   UNIQUE (follower_id, followed_id)
 );
-CREATE TABLE groups (
+CREATE TABLE IF NOT EXISTS groups (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   description TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS group_members (
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE TABLE group_messages (
+CREATE TABLE IF NOT EXISTS group_messages (
   id INTEGER PRIMARY KEY,
   group_id INTEGER,
   sender_id INTEGER,
@@ -94,7 +94,7 @@ CREATE TABLE group_messages (
   FOREIGN KEY (group_id) REFERENCES groups(id),
   FOREIGN KEY (sender_id) REFERENCES users(id)
 );
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY,
   group_id INTEGER NOT NULL,
   title TEXT NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE events (
   FOREIGN KEY (group_id) REFERENCES groups(id),
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
-CREATE TABLE event_attendance (
+CREATE TABLE IF NOT EXISTS event_attendance (
   event_id INTEGER,
   user_id INTEGER,
   status TEXT CHECK (status IN ('going', 'not going')) DEFAULT 'going',
@@ -112,7 +112,7 @@ CREATE TABLE event_attendance (
   FOREIGN KEY (event_id) REFERENCES events(id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY,
   user_id INTEGER,
   type TEXT NOT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE notifications (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE TABLE post_viewers (
+CREATE TABLE IF NOT EXISTS post_viewers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id INTEGER NOT NULL,
     viewer_id INTEGER NOT NULL,
@@ -138,18 +138,18 @@ CREATE TABLE IF NOT EXISTS "comments" (
     FOREIGN KEY (post_id) REFERENCES posts(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-CREATE INDEX idx_posts_user_id ON posts(user_id);
-CREATE INDEX idx_posts_created_at ON posts(created_at);
-CREATE INDEX idx_post_categories_post_id ON post_categories(post_id);
-CREATE INDEX idx_post_categories_category_id ON post_categories(category_id);
-CREATE INDEX idx_likes_dislikes_user_id ON likes_dislikes(user_id);
-CREATE INDEX idx_likes_dislikes_post_id ON likes_dislikes(post_id);
-CREATE INDEX idx_likes_dislikes_comment_id ON likes_dislikes(comment_id);
-CREATE INDEX idx_sessions_token ON sessions(token);
-CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
-CREATE INDEX idx_chat_messages_sender_receiver ON chat_messages(sender_id, "Receiver_id");
-CREATE UNIQUE INDEX idx_post_viewers_post_id_viewer_id 
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
+CREATE INDEX IF NOT EXISTS idx_post_categories_post_id ON post_categories(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_categories_category_id ON post_categories(category_id);
+CREATE INDEX IF NOT EXISTS idx_likes_dislikes_user_id ON likes_dislikes(user_id);
+CREATE INDEX IF NOT EXISTS idx_likes_dislikes_post_id ON likes_dislikes(post_id);
+CREATE INDEX IF NOT EXISTS idx_likes_dislikes_comment_id ON likes_dislikes(comment_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_receiver ON chat_messages(sender_id, "Receiver_id");
+CREATE UNIQUE INDEX IF NOT EXISTS idx_post_viewers_post_id_viewer_id 
 ON post_viewers(post_id, viewer_id);
-CREATE INDEX idx_comments_post_id ON comments(post_id);
-CREATE INDEX idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 COMMIT;
