@@ -17,6 +17,7 @@ const UsersList = {
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
                         <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
+                        <span v-if="unreadCounts[user.ID] > 0" class="unread-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
@@ -28,7 +29,8 @@ const UsersList = {
             users: [],
             searchResults: [],
             searching: false,
-            refreshInterval: null
+            refreshInterval: null,
+            unreadCounts: {} // Track unread counts by user ID
         }
     },
     computed: {
@@ -71,6 +73,10 @@ const UsersList = {
             if (status === 'online') {
                 this.users[userIndex].LastMessageTime = new Date().toISOString();
             }
+        },
+        handleUnreadCountUpdate(event) {
+            const { userId, count } = event.detail;
+            this.$set(this.unreadCounts, userId, count);
         },
         openChat(userOrId) {
             let user = null;
@@ -115,6 +121,7 @@ const UsersList = {
     mounted() {
         this.fetchUsers();
         window.addEventListener('user-status-change', this.handleUserStatusChange);
+        window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
         this.refreshInterval = setInterval(this.fetchUsers, 30000);
     },
     beforeUnmount() {
@@ -122,6 +129,7 @@ const UsersList = {
             clearInterval(this.refreshInterval);
         }
         window.removeEventListener('user-status-change', this.handleUserStatusChange);
+        window.removeEventListener('unread-count-update', this.handleUnreadCountUpdate);
     },
     components: {
         'user-search': window.UserSearch

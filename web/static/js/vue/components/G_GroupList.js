@@ -5,7 +5,8 @@ const GroupList = {
         return {
             searchQuery: '',
             groupAccess: new Map(), // Store access status for each group
-            groupMembership: new Map() // Store membership status for each group
+            groupMembership: new Map(), // Store membership status for each group
+            unreadCounts: {} // Track unread counts by group ID
         };
     },
     computed: {
@@ -17,6 +18,7 @@ const GroupList = {
     },
     mounted() {
         this.fetchAllGroupAccess();
+        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     watch: {
         groups: {
@@ -82,7 +84,14 @@ const GroupList = {
                 }
             }
             return ''; // Public group, no indicator needed
+        },
+        handleUnreadCountUpdate(event) {
+            const { groupId, count } = event.detail;
+            this.$set(this.unreadCounts, groupId, count);
         }
+    },
+    beforeUnmount() {
+        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     template: `
         <div class="group-list-container">
@@ -95,9 +104,10 @@ const GroupList = {
                     @click="selectGroup(group.ID)">
                     <span>{{ group.Name }}</span>
                     <span v-if="getPrivacyIndicator(group)" class="privacy-indicator">{{ getPrivacyIndicator(group) }}</span>
+                    <span v-if="unreadCounts[group.ID] > 0" class="unread-badge">{{ unreadCounts[group.ID] }}</span>
                 </div>
             </div>
         </div>
     `
 };
-window.G_GroupList = GroupList; 
+window.G_GroupList = GroupList;

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     "Receiver_id" INTEGER,
     content TEXT NOT NULL,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_read INTEGER DEFAULT 0, -- 0 = unread, 1 = read
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY ("Receiver_id") REFERENCES users(id)
 );
@@ -109,6 +110,7 @@ CREATE TABLE IF NOT EXISTS group_members (
     group_id INTEGER,
     user_id INTEGER,
     status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+    last_group_chat_open_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (group_id, user_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id)

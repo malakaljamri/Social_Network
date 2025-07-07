@@ -6,9 +6,9 @@ import (
 )
 
 func SaveChatMessage(message *models.ChatMessage) error {
-	query := `INSERT INTO chat_messages (sender_id, Receiver_id, content, timestamp) 
-              VALUES (?, ?, ?, ?)`
-	_, err := db.Exec(query, message.SenderID, message.ReceiverID, message.Content, message.Timestamp)
+	query := `INSERT INTO chat_messages (sender_id, Receiver_id, content, timestamp, is_read) 
+              VALUES (?, ?, ?, ?, ?)`
+	_, err := db.Exec(query, message.SenderID, message.ReceiverID, message.Content, message.Timestamp, 0)
 	return err
 }
 
@@ -70,4 +70,22 @@ func GetGroupChatHistory(groupID int, limit int, offset int) ([]*models.GroupCha
 		messages = append(messages, msg)
 	}
 	return messages, nil
+}
+
+// Mark all messages as read for a user in a chat
+func MarkMessagesAsRead(userID, otherUserID int) error {
+	query := `UPDATE chat_messages SET is_read = 1 WHERE Receiver_id = ? AND sender_id = ? AND is_read = 0`
+	_, err := db.Exec(query, userID, otherUserID)
+	return err
+}
+
+// CountUnreadMessages returns the count of unread private messages for userID from otherUserID
+func CountUnreadMessages(userID, otherUserID int) int {
+	query := `SELECT COUNT(*) FROM chat_messages WHERE Receiver_id = ? AND sender_id = ? AND is_read = 0`
+	var count int
+	err := db.QueryRow(query, userID, otherUserID).Scan(&count)
+	if err != nil {
+		return 0
+	}
+	return count
 }

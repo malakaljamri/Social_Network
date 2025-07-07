@@ -147,3 +147,43 @@ func AddCreatorFollowersToPrivateGroup(db *sql.DB, groupID, creatorID int) error
 	_, err := db.Exec(query, groupID, creatorID)
 	return err
 }
+
+// UpdateLastGroupChatOpenTime updates the last_group_chat_open_time for a user in a group
+func UpdateLastGroupChatOpenTime(groupID, userID int) error {
+	query := `UPDATE group_members SET last_group_chat_open_time = CURRENT_TIMESTAMP WHERE group_id = ? AND user_id = ?`
+	_, err := db.Exec(query, groupID, userID)
+	return err
+}
+
+// CountUnreadGroupMessages returns the count of unread group messages for userID in groupID
+func CountUnreadGroupMessages(groupID, userID int) int {
+	var lastOpenTime string
+	err := db.QueryRow(`SELECT last_group_chat_open_time FROM group_members WHERE group_id = ? AND user_id = ?`, groupID, userID).Scan(&lastOpenTime)
+	if err != nil || lastOpenTime == "" {
+		lastOpenTime = "1970-01-01 00:00:00"
+	}
+	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND timestamp > ?`
+	var count int
+	err = db.QueryRow(query, groupID, lastOpenTime).Scan(&count)
+	if err != nil {
+		return 0
+	}
+	return count
+}
+
+// GetGroupMemberIDs returns a list of user IDs for all members of a group
+func GetGroupMemberIDs(groupID int) []int {
+	rows, err := db.Query(`SELECT user_id FROM group_members WHERE group_id = ? AND status = 'accepted'`, groupID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
