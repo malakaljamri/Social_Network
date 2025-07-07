@@ -12,8 +12,8 @@
   margin-bottom: 20px;
   padding: 20px;
   border-radius: var(--border-radius);
-  background-color: #f8f9fa;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: var(--card-color);
+  box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
 .profile-avatar {
@@ -119,12 +119,12 @@
 
 .profile-info {
   flex: 1;
-  color: #333333; /* Ensure all text in profile info is dark */
+  color: white; /* Ensure all text in profile info is dark */
 }
 
 /* Profile header title */
 .profile-info h2 {
-  color: #222222 !important;
+  color: whitesmoke;
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 15px;
@@ -144,38 +144,38 @@
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 5px;
-  color: #222222 !important;
+  color: white;
 }
 
 .profile-email {
-  color: #555555 !important;
+  color: white;
   margin-bottom: 10px;
 }
 
 /* Profile information paragraphs */
 .profile-info p {
-  color: #333333 !important;
+  color: whitesmoke;
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
 .profile-info p strong {
-  color: #222222 !important;
+  color: white;
   font-weight: 600;
 }
 
 /* Privacy status styling */
 .privacy-status {
-  color: #333333 !important;
+  color: white;
   margin-bottom: 10px;
 }
 
 .privacy-status span {
-  color: #333333 !important;
+  color: white;
 }
 
 .privacy-status strong {
-  color: #222222 !important;
+  color: white;
 }
 
 .profile-stats {
@@ -192,11 +192,11 @@
 .stat-value {
   font-weight: bold;
   font-size: 18px;
-  color: #222222 !important;
+  color: white;
 }
 
 .stat-label {
-  color: #555555 !important;
+  color: whitesmoke;
   font-size: 14px;
 }
 

@@ -1,6 +1,6 @@
 # 3- Groups (event)
 
- in the event the users see 2 Options (at least):
+in the event the users see 2 Options (at least):
 
 Going
 
