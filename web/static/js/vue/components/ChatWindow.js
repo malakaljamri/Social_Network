@@ -3,20 +3,20 @@ const ChatWindow = {
     props: ['user', 'currentUser', 'onClose'], //( props = properties in vue (parent and passes data to child component , expects to receive )
     inject: ['websocket'],  //inject is araay of strings , component except to recive
     template: `
-        <div class="chat-window card">
-            <div class="chat-header">
+        <div class="modal-content chat-window-fixed" @click.stop style="max-width: 400px;">
+            <div class="chat-header-bar" style="width: 100%;">
                 Chat with {{ user.Username }}
-                <span class="close-span" @click="onClose">X</span>
+                <span class="close-span" @click="onClose" style="float:right;cursor:pointer;">X</span>
             </div>
-            <div class="chat-messages" ref="messagesContainer">
+            <div class="chat-messages" ref="messagesContainer" style="width: 100%; height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 12px; border-radius: 8px; padding: 8px;">
                 <div v-if="loading" class="loading-indicator">Loading...</div>
                 <div v-else-if="messages.length === 0" class="no-messages">Start Chatting!</div>
-                <div v-for="msg in messages" :key="msg.id || msg.timestamp + msg.content" class="chat-message">
-                    <span>[{{ formatTimestamp(msg.timestamp) }}]</span><br>
-                    <span :class="{'self-message': msg.sender_id === currentUserValue.id}">
-                        {{ msg.sender_id === currentUserValue.id ? currentUserValue.username : user.Username }}:
-                    </span>
-                    {{ msg.content }}
+                <div v-for="msg in messages" :key="msg.id || msg.timestamp + msg.content" :class="['chat-message-bubble', msg.sender_id === currentUserValue.id ? 'self' : 'other']">
+                    <img :src="msg.sender_id === currentUserValue.id ? (currentUserValue.avatar || '/static/images/default-avatar.png') : (user.Avatar || '/static/images/default-avatar.png')" class="chat-avatar" alt="avatar" />
+                    <div class="bubble-content">
+                        <span class="chat-meta"><b>{{ msg.sender_id === currentUserValue.id ? 'You' : user.Username }}</b> [{{ formatTimestamp(msg.timestamp) }}]</span>
+                        <div class="chat-text">{{ msg.content }}</div>
+                    </div>
                 </div>
                 <div v-if="typing" class="typing-indicator">{{ user.Username }} is typing<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
             </div>
@@ -24,7 +24,7 @@ const ChatWindow = {
                 You can only message users you follow or who follow you
             </div>
             <template v-else>
-                <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
+                <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox" style="width: 80%; margin-right: 8px;">
                 <button @click="sendMessage">Send</button>
             </template>
         </div>

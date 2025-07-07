@@ -66,6 +66,7 @@ const GroupList = {
             }
         },
         selectGroup(groupId) {
+            this.unreadCounts[groupId] = 0;
             this.$emit('group-selected', groupId);
         },
         showCreateGroupModal() {
@@ -87,7 +88,7 @@ const GroupList = {
         },
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
-            this.$set(this.unreadCounts, groupId, count);
+            this.unreadCounts[groupId] = count;
         }
     },
     beforeUnmount() {
@@ -100,11 +101,11 @@ const GroupList = {
             <input type="text" placeholder="Search groups..." class="group-search" v-model="searchQuery">
             <div class="group-list">
                 <div v-for="group in filteredGroups" :key="group.ID"
-                    :class="['group-list-item', { 'active': selectedGroupId === group.ID }]"
+                    :class="['group-list-item', { 'active': selectedGroupId === group.ID }, 'group-item-flex']"
                     @click="selectGroup(group.ID)">
                     <span>{{ group.Name }}</span>
                     <span v-if="getPrivacyIndicator(group)" class="privacy-indicator">{{ getPrivacyIndicator(group) }}</span>
-                    <span v-if="unreadCounts[group.ID] > 0" class="unread-badge">{{ unreadCounts[group.ID] }}</span>
+                    <span v-if="unreadCounts[group.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[group.ID] }}</span>
                 </div>
             </div>
         </div>

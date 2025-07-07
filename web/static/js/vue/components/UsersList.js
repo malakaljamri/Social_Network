@@ -1,12 +1,12 @@
 // UsersList Component
 const UsersList = {
     template: `
-        <div class="users-list card">
+        <div class="users-list card" style="padding: 10px;">
             <h3>Users</h3>
             <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
                 <div v-if="displayedUsers && displayedUsers.length">
-                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }">
+                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item user-item-flex" :class="{ 'online-user': user.Online }">
                         <img
                             :src="getAvatarUrl(user.Avatar)"
                             class="avatar-small profile-link-avatar"
@@ -17,7 +17,7 @@ const UsersList = {
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
                         <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
-                        <span v-if="unreadCounts[user.ID] > 0" class="unread-badge">{{ unreadCounts[user.ID] }}</span>
+                        <span v-if="unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
@@ -76,17 +76,15 @@ const UsersList = {
         },
         handleUnreadCountUpdate(event) {
             const { userId, count } = event.detail;
-            this.$set(this.unreadCounts, userId, count);
+            this.unreadCounts[userId] = count;
         },
         openChat(userOrId) {
             let user = null;
             if (typeof userOrId === 'object') {
                 user = userOrId;
-                // Normalize ID property for chat compatibility
                 if (!user.ID && user.id) {
                     user.ID = user.id;
                 }
-                // Normalize Username property for chat compatibility
                 if (!user.Username && user.username) {
                     user.Username = user.username;
                 }
@@ -94,6 +92,7 @@ const UsersList = {
                 user = this.displayedUsers.find(u => u.ID === userOrId || u.id === userOrId);
             }
             if (user) {
+                this.unreadCounts[user.ID] = 0;
                 this.$emit('open-chat', user);
             }
         },
