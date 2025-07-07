@@ -39,13 +39,29 @@ const UsersList = {
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
+                // // 1. Username (A-Z)
+                // const nameA = (a.Username || '').toLowerCase();
+                // const nameB = (b.Username || '').toLowerCase();
+                // if (nameA !== nameB) {
+                //     return nameA.localeCompare(nameB);
+                // }
+                // // 2. LastMessageTime (most recent first)
+                // if (a.LastMessageTime && b.LastMessageTime) {
+                //     const timeA = new Date(a.LastMessageTime);
+                //     const timeB = new Date(b.LastMessageTime);
+                //     if (timeA.getTime() !== timeB.getTime()) {
+                //         return timeB - timeA;
+                //     }
+                // } else if (a.LastMessageTime && !b.LastMessageTime) {
+                //     return -1;
+                // } else if (!a.LastMessageTime && b.LastMessageTime) {
+                //     return 1;
+                // }
+                // 3. Online at top
                 if (a.Online !== b.Online) {
                     return a.Online ? -1 : 1;
                 }
-                if (a.LastMessageTime && b.LastMessageTime) {
-                    return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
-                }
-                return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
+                return 0;
             });
         }
     },

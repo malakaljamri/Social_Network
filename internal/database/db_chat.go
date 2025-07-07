@@ -16,7 +16,7 @@ func GetChatHistory(userID1, userID2 int, limit int, offset int) ([]*models.Chat
 	query := `SELECT sender_id, Receiver_id, content, timestamp 
               FROM chat_messages 
               WHERE (sender_id = ? AND Receiver_id = ?) OR (sender_id = ? AND Receiver_id = ?)
-              ORDER BY timestamp
+              ORDER BY id DESC
               LIMIT ? OFFSET ?`
 
 	rows, err := db.Query(query, userID1, userID2, userID2, userID1, limit, offset)
