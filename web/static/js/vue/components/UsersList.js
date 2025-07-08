@@ -2,11 +2,14 @@
 const UsersList = {
     template: `
         <div class="users-list card">
-            <h3>Users</h3>
+            <h3 class="users-list-header" style="display: flex; align-items: center; justify-content: space-between;">
+                Users
+                <span v-if="totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>
+            </h3>
             <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
                 <div v-if="displayedUsers && displayedUsers.length">
-                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item" :class="{ 'online-user': user.Online }">
+                    <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item user-item-flex" :class="{ 'online-user': user.Online }">
                         <img
                             :src="getAvatarUrl(user.Avatar)"
                             class="avatar-small profile-link-avatar"
@@ -15,20 +18,12 @@ const UsersList = {
                             @click.stop="goToProfile(user.ID)"
                         >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong @click="openChat(user.ID)" 
-                               style="cursor:pointer;" 
-                               @mouseenter="showTooltip($event, user)" 
-                               @mouseleave="hideTooltip">{{ user.Username }}</strong>
+                        <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
+                        <span v-if="unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
-            </div>
-            <!-- Custom Tooltip -->
-            <div v-if="tooltip.show" 
-                 class="custom-tooltip" 
-                 :style="tooltip.style">
-                {{ tooltip.content }}
             </div>
         </div>
     `,
@@ -38,11 +33,7 @@ const UsersList = {
             searchResults: [],
             searching: false,
             refreshInterval: null,
-            tooltip: {
-                show: false,
-                content: '',
-                style: {}
-            }
+            unreadCounts: {} // Track unread counts by user ID
         }
     },
     computed: {
@@ -59,6 +50,9 @@ const UsersList = {
                 }
                 return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
             });
+        },
+        totalUnreadCount() {
+            return Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
         }
     },
     methods: {
@@ -86,15 +80,17 @@ const UsersList = {
                 this.users[userIndex].LastMessageTime = new Date().toISOString();
             }
         },
+        handleUnreadCountUpdate(event) {
+            const { userId, count } = event.detail;
+            this.unreadCounts[userId] = count;
+        },
         openChat(userOrId) {
             let user = null;
             if (typeof userOrId === 'object') {
                 user = userOrId;
-                // Normalize ID property for chat compatibility
                 if (!user.ID && user.id) {
                     user.ID = user.id;
                 }
-                // Normalize Username property for chat compatibility
                 if (!user.Username && user.username) {
                     user.Username = user.username;
                 }
@@ -102,6 +98,7 @@ const UsersList = {
                 user = this.displayedUsers.find(u => u.ID === userOrId || u.id === userOrId);
             }
             if (user) {
+                this.unreadCounts[user.ID] = 0;
                 this.$emit('open-chat', user);
             }
         },
@@ -124,25 +121,12 @@ const UsersList = {
                 tooltip += `\nNickname: ${user.Nickname}`;
             }
             return tooltip;
-        },
-        showTooltip(event, user) {
-            const rect = event.target.getBoundingClientRect();
-            this.tooltip.content = this.getUserTooltip(user);
-            this.tooltip.style = {
-                position: 'fixed',
-                top: (rect.bottom + 5) + 'px',
-                left: rect.left + 'px',
-                zIndex: '1000'
-            };
-            this.tooltip.show = true;
-        },
-        hideTooltip() {
-            this.tooltip.show = false;
         }
     },
     mounted() {
         this.fetchUsers();
         window.addEventListener('user-status-change', this.handleUserStatusChange);
+        window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
         this.refreshInterval = setInterval(this.fetchUsers, 30000);
     },
     beforeUnmount() {
@@ -150,6 +134,7 @@ const UsersList = {
             clearInterval(this.refreshInterval);
         }
         window.removeEventListener('user-status-change', this.handleUserStatusChange);
+        window.removeEventListener('unread-count-update', this.handleUnreadCountUpdate);
     },
     components: {
         'user-search': window.UserSearch

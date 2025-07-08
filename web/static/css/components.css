@@ -520,3 +520,69 @@ button.pagination-button.active {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+.chat-message-bubble {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.chat-message-bubble.self {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0 8px;
+}
+
+.bubble-content {
+  background: #e1ffc7;
+  border-radius: 12px;
+  padding: 8px 12px;
+  max-width: 70%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.chat-message-bubble.other .bubble-content {
+  background: #fff;
+}
+
+.chat-meta {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.chat-text {
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.chat-window-fixed {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.chat-header-bar {
+  background: #f5f5f5;
+  color: #222;
+  font-weight: bold;
+  font-size: 1.1em;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+}

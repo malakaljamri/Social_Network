@@ -54,9 +54,7 @@ const app = Vue.createApp({
             posts: [],
             openChats: [],
             selectedProfileUserId: null,
-            posts: [], // for updating after post creation
             groups: [], // for updating after group creation
-            openChats: [], // <-- moved from HomeView
             selectedEvent: null,
             showEventDetailsModal: false,
             showGroupEventsModal: false,
@@ -261,9 +259,8 @@ const app = Vue.createApp({
             return response;
         },
         openChat(user) {
-            if (!this.openChats.some(u => u.ID === user.ID)) {
-                this.openChats.push(user);
-            }
+            // Close all other chat windows before opening a new one
+            this.openChats = [user];
         },
         async checkUserStatus() {
             try {
@@ -475,9 +472,6 @@ const app = Vue.createApp({
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
             ></m-group-create>
-            <div id="chat-section">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)"></chat-window>
-            </div>
             <div v-if="showEventDetailsModal" style="display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3000; background: rgba(0,0,0,0.15);">
                 <G_GroupEventDetailsModal
                     :event="selectedEvent"
@@ -491,6 +485,15 @@ const app = Vue.createApp({
                 @close="closeGroupEventsModal"
                 @event-click="openEventDetailsModal"
             />
+            <div v-if="openChats.length > 0" class="chat-window-fixed">
+                <chat-window
+                    v-for="user in openChats"
+                    :key="user.ID"
+                    :user="user"
+                    :currentUser="currentUser.value"
+                    :onClose="() => closeChat(user.ID)"
+                ></chat-window>
+            </div>
         </div>
     `,
     setup() {
@@ -537,9 +540,6 @@ app.component('feed-main', FeedMain);
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });
 app.component('group-chat', GroupChat);
-app.component('g-group-list', G_GroupList);
-app.component('g-group-main', G_GroupMain);
-app.component('g-group-chat', G_GroupChat);
 
 // Mount the app
 app.mount('#app'); 
