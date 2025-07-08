@@ -89,3 +89,20 @@ func CountUnreadMessages(userID, otherUserID int) int {
 	}
 	return count
 }
+
+// GetUnreadCountsForUser returns a map of sender_id to unread count for the given user
+func GetUnreadCountsForUser(userID int) (map[int]int, error) {
+	rows, err := db.Query(`SELECT sender_id, COUNT(*) FROM chat_messages WHERE Receiver_id = ? AND is_read = 0 GROUP BY sender_id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := make(map[int]int)
+	for rows.Next() {
+		var senderID, count int
+		if err := rows.Scan(&senderID, &count); err == nil {
+			counts[senderID] = count
+		}
+	}
+	return counts, nil
+}

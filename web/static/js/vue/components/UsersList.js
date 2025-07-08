@@ -4,7 +4,7 @@ const UsersList = {
         <div class="users-list card">
             <h3 class="users-list-header" style="display: flex; align-items: center; justify-content: space-between;">
                 Users
-                <span v-if="totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>
+                <span v-if="myId && totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>
             </h3>
             <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
@@ -20,7 +20,7 @@ const UsersList = {
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
                         <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
                         <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
-                        <span v-if="unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
+                        <span v-if="myId && user.ID !== myId && unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
                 <div v-else>No users found</div>
@@ -42,20 +42,20 @@ const UsersList = {
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
-                // if (a.Online !== b.Online) {
-                //     return a.Online ? -1 : 1;
-                // }
-                // if (a.LastMessageTime && b.LastMessageTime) {
-                //     return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
-                // }
-                // return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
                 if (a.Online !== b.Online) {
                     return a.Online ? -1 : 1;
                 }
+                return 0;
             });
         },
+        myId() {
+            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        },
         totalUnreadCount() {
-            return Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
+            if (!this.myId) return 0;
+            return Object.entries(this.unreadCounts)
+                .filter(([userId, count]) => parseInt(userId) !== this.myId)
+                .reduce((a, [, count]) => a + (count || 0), 0);
         }
     },
     methods: {
@@ -133,6 +133,16 @@ const UsersList = {
         window.addEventListener('user-status-change', this.handleUserStatusChange);
         window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
         this.refreshInterval = setInterval(this.fetchUsers, 30000);
+
+        // Fetch unread counts on page load
+        fetch('/api/unread-counts', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                this.unreadCounts = data || {};
+            })
+            .catch(() => {
+                this.unreadCounts = {};
+            });
     },
     beforeUnmount() {
         if (this.refreshInterval) {

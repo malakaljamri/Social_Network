@@ -348,3 +348,19 @@ func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
+
+// Handler to return unread counts for the current user
+func GetUnreadCounts(w http.ResponseWriter, r *http.Request) {
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	counts, err := database.GetUnreadCountsForUser(userID)
+	if err != nil {
+		http.Error(w, "Error fetching unread counts", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(counts)
+}
