@@ -109,7 +109,7 @@
 /* Users List Styling */
 .users-list {
   margin: 1rem;
-  padding: 1rem;
+  padding: 1rem !important;
   background: var(--card-color);
   border-radius: var(--border-radius);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -393,4 +393,6 @@
   margin-right: 0;
   position: relative;
   right: 0;
+  background: green;
+  border-radius: 50%;
 }

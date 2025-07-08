@@ -1,8 +1,11 @@
 // UsersList Component
 const UsersList = {
     template: `
-        <div class="users-list card" style="padding: 10px;">
-            <h3>Users</h3>
+        <div class="users-list card">
+            <h3 class="users-list-header" style="display: flex; align-items: center; justify-content: space-between;">
+                Users
+                <span v-if="totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>
+            </h3>
             <user-search @user-selected="openChat"></user-search>
             <div class="users-container">
                 <div v-if="displayedUsers && displayedUsers.length">
@@ -39,30 +42,17 @@ const UsersList = {
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
-                // // 1. Username (A-Z)
-                // const nameA = (a.Username || '').toLowerCase();
-                // const nameB = (b.Username || '').toLowerCase();
-                // if (nameA !== nameB) {
-                //     return nameA.localeCompare(nameB);
-                // }
-                // // 2. LastMessageTime (most recent first)
-                // if (a.LastMessageTime && b.LastMessageTime) {
-                //     const timeA = new Date(a.LastMessageTime);
-                //     const timeB = new Date(b.LastMessageTime);
-                //     if (timeA.getTime() !== timeB.getTime()) {
-                //         return timeB - timeA;
-                //     }
-                // } else if (a.LastMessageTime && !b.LastMessageTime) {
-                //     return -1;
-                // } else if (!a.LastMessageTime && b.LastMessageTime) {
-                //     return 1;
-                // }
-                // 3. Online at top
                 if (a.Online !== b.Online) {
                     return a.Online ? -1 : 1;
                 }
-                return 0;
+                if (a.LastMessageTime && b.LastMessageTime) {
+                    return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
+                }
+                return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
             });
+        },
+        totalUnreadCount() {
+            return Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
         }
     },
     methods: {
