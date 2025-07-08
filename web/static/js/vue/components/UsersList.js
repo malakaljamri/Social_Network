@@ -42,13 +42,16 @@ const UsersList = {
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
+                // if (a.Online !== b.Online) {
+                //     return a.Online ? -1 : 1;
+                // }
+                // if (a.LastMessageTime && b.LastMessageTime) {
+                //     return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
+                // }
+                // return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
                 if (a.Online !== b.Online) {
                     return a.Online ? -1 : 1;
                 }
-                if (a.LastMessageTime && b.LastMessageTime) {
-                    return new Date(b.LastMessageTime) - new Date(a.LastMessageTime);
-                }
-                return (a.Username || '').toLowerCase().localeCompare((b.Username || '').toLowerCase());
             });
         },
         totalUnreadCount() {
@@ -85,6 +88,8 @@ const UsersList = {
             this.unreadCounts[userId] = count;
         },
         openChat(userOrId) {
+            const existingClose = document.querySelector('.close-span');
+            if (existingClose) existingClose.click();
             let user = null;
             if (typeof userOrId === 'object') {
                 user = userOrId;
