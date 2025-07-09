@@ -1,14 +1,4 @@
-# 3- Groups (event)
 
-in the event the users see 2 Options (at least):
-
-Going
-
-Not going
-
-maybe we could but (maybe)
-
-After creating the event every user can choose one of the options for the event.
 
 # + - the creatour of the Groups should invite others to the group and they should accept and reject the invitition
 
