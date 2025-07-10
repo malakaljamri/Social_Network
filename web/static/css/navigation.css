@@ -189,7 +189,7 @@ nav a:focus {
   left: var(--spacing-md);
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
+  color: var(--text-muted);   
   font-size: var(--font-size-lg);
   pointer-events: none;
   z-index: 1;
