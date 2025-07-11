@@ -17,7 +17,6 @@ const GroupMain = {
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            groupEvents: [],
             unreadCounts: {} // Track unread counts by group ID
         };
     },

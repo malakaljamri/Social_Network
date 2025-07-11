@@ -102,6 +102,9 @@ const app = Vue.createApp({
                     email: null
                 };
                 this.goToLogin();
+                
+                // Refresh page to ensure clean state for new user
+                window.location.reload();
             } catch (error) {
                 console.error('Logout error:', error);
             }
