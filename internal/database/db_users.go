@@ -23,6 +23,26 @@ func CreateUser(user *models.User) error {
 	return nil
 }
 
+// GenerateUniqueUsername generates a username from first and last name and ensures it is unique in the database.
+func GenerateUniqueUsername(first, last string) string {
+	base := fmt.Sprintf("%s%s", first, last)
+	username := base
+	count := 1
+	for {
+		var exists int
+		query := "SELECT COUNT(1) FROM users WHERE username = ?"
+		err := db.QueryRow(query, username).Scan(&exists)
+		if err != nil {
+			return username // fallback
+		}
+		if exists == 0 {
+			return username
+		}
+		username = fmt.Sprintf("%s%d", base, count)
+		count++
+	}
+}
+
 func GetUserByEmailOrNickname(userIdentifier string) (models.User, error) { // X email, ✔ indentifier
 	query := `SELECT id, username, email, password FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)`
 	rows, err := FetchData(query, userIdentifier, userIdentifier)

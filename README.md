@@ -4,6 +4,9 @@
 
 ------------------
 
+# 4- username part 
+If the user has no username then generate a unique one from first and last name --> so we could see it in the profile and users list page 
+
 # 5-Notfication part  
 A user must be able to see the notifications in every page of the project.
  New notifications  different from new private messages and should be displayed in a different way!
