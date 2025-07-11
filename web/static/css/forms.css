@@ -383,7 +383,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Create Post Modal - Distinct Styling */
+/* Create Post Modal - Distinct Styling */ /* hereeeeeeeeeeeeee */ 
 .modal-content h2 {
   color: var(--primary-color);
   font-size: var(--font-size-xl);
@@ -666,7 +666,7 @@
 
 .modal-content .secondary-button:hover {
   background: var(--primary-color);
-  color: white;
+  color: rgb(175, 161, 161);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
@@ -693,7 +693,7 @@
 .modal-content input[type="file"] {
   display: none;
 }
-/* registration modalllllllllll */
+/* +++++++++++++++++++++++++++++++++++++++++++ registration modallllllllllllllllllllllllllllll */
 
 /* Enhanced Registration Modal Styles */
 .register-modal {

@@ -59,6 +59,39 @@
   box-shadow: var(--shadow-sm);
 }
 
+.attendance-box {
+  flex: 1 1 0;
+  min-width: 220px;
+  max-width: 300px;
+  background: var(--card-color);
+  color: var(--text-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.attendance-box h3 {
+  margin-top: 0;
+  color: var(--text-color);
+}
+.attendance-list-container {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  border-radius: 4px;
+  padding: 8px;
+  background: var(--card-color);
+}
+.attendance-user {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  color: var(--text-color);
+}
+.attendance-empty {
+  color: var(--text-secondary);
+}
+
 /* Modern Button System */
 .button {
   background: var(--button-primary);

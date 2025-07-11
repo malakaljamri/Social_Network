@@ -121,15 +121,15 @@ window.G_GroupEventDetailsModal = {
           <button @click="closeModal">Close</button>
         </div>
         <!-- Right: Attendance List -->
-        <div style="flex: 1 1 0; min-width: 220px; max-width: 300px; background: #fafbfc; border-radius: 8px; box-shadow: 0 0 6px #eee; padding: 18px 16px; display: flex; flex-direction: column;">
-          <h3 style="margin-top: 0;">Attendance</h3>
+        <div class="attendance-box">
+          <h3>Attendance</h3>
           <div v-if="attendeesLoading">Loading...</div>
           <div v-else>
             <p><strong>Going:</strong> {{ attendees.length }}</p>
-            <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 8px; background: #fff;">
+            <div class="attendance-list-container">
               <ul style="margin: 0; padding: 0; list-style: none;">
-                <li v-for="user in attendees" :key="user" style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">{{ user }}</li>
-                <li v-if="attendees.length === 0" style="color: #888;">No attendees yet.</li>
+                <li v-for="user in attendees" :key="user" class="attendance-user">{{ user }}</li>
+                <li v-if="attendees.length === 0" class="attendance-empty">No attendees yet.</li>
               </ul>
             </div>
           </div>
