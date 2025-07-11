@@ -187,3 +187,29 @@ func GetGroupMemberIDs(groupID int) []int {
 	}
 	return ids
 }
+
+// GetUnreadGroupCountsForUser returns a map of group_id to unread count for the given user
+func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
+	rows, err := db.Query(`SELECT group_id, last_group_chat_open_time FROM group_members WHERE user_id = ? AND status = 'accepted'`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := make(map[int]int)
+	for rows.Next() {
+		var groupID int
+		var lastOpenTime sql.NullString
+		if err := rows.Scan(&groupID, &lastOpenTime); err == nil {
+			openTime := "1970-01-01 00:00:00"
+			if lastOpenTime.Valid && lastOpenTime.String != "" {
+				openTime = lastOpenTime.String
+			}
+			var count int
+			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND timestamp > ?`, groupID, openTime).Scan(&count)
+			if err2 == nil {
+				counts[groupID] = count
+			}
+		}
+	}
+	return counts, nil
+}

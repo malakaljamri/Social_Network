@@ -120,6 +120,7 @@ func main() {
 	mux.HandleFunc("/api/users", handlers.GetAllUsers)
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 	mux.HandleFunc("/api/unread-counts", handlers.GetUnreadCounts)
+	mux.HandleFunc("/api/unread-group-counts", handlers.GetUnreadGroupCounts)
 
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads

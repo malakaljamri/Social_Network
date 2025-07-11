@@ -33,7 +33,10 @@ const NavBar = {
             </div>
             <div v-if="currentUserValue.isLoggedIn" class="nav-center" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center;">
                 <button class="button secondary-button" @click="goToHome">🏠 Home</button>
-                <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
+                <button class="button secondary-button" @click="goToGroups" style="position: relative;">
+                    👥 Groups
+                    <span v-if="myId && totalUnreadGroupCount > 0" class="unread-badge right-badge">{{ totalUnreadGroupCount }}</span>
+                </button>
             </div>
             <div v-if="currentUserValue.isLoggedIn" class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
                 <span class="user-greeting">{{ currentUserValue.username }} 👋</span>
@@ -58,13 +61,34 @@ const NavBar = {
         },
         currentUserValue() {
             return this.currentUser || { isLoggedIn: false, username: '' };
+        },
+        myId() {
+            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        },
+        totalUnreadGroupCount() {
+            if (!this.myId) return 0;
+            return Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
         }
     },
     data() {
         return {
             showDropdown: false,
-            showModal: false
+            showModal: false,
+            unreadCounts: {} // Track unread group counts
         };
+    },
+    mounted() {
+        // Fetch unread group counts on page load
+        fetch('/api/unread-group-counts', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                this.unreadCounts = data || {};
+            })
+            .catch(() => {
+                this.unreadCounts = {};
+            });
+
+        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     methods: {
         goToHome() {
@@ -101,10 +125,15 @@ const NavBar = {
         },
         closeModal() {
             this.showModal = false;
+        },
+        handleUnreadCountUpdate(event) {
+            const { groupId, count } = event.detail;
+            this.unreadCounts[groupId] = count;
         }
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick);
+        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     }
 };
 // No mount here, will be registered globally. 

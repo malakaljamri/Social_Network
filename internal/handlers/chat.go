@@ -364,3 +364,19 @@ func GetUnreadCounts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(counts)
 }
+
+// Handler to return unread group chat counts for the current user
+func GetUnreadGroupCounts(w http.ResponseWriter, r *http.Request) {
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	counts, err := database.GetUnreadGroupCountsForUser(userID)
+	if err != nil {
+		http.Error(w, "Error fetching unread group counts", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(counts)
+}
