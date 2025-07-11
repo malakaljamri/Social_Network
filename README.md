@@ -1,18 +1,11 @@
-# 3- Groups (event)
 
- in the event the users see 2 Options (at least):
-
-Going
-
-Not going
-
-maybe we could but (maybe)
-
-After creating the event every user can choose one of the options for the event.
 
 # + - the creatour of the Groups should invite others to the group and they should accept and reject the invitition
 
 ------------------
+
+# 4- username part 
+If the user has no username then generate a unique one from first and last name --> so we could see it in the profile and users list page 
 
 # 5-Notfication part  
 A user must be able to see the notifications in every page of the project.

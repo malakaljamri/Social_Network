@@ -34,6 +34,7 @@ type ChatMessage struct {
 	ReceiverID int       `json:"Receiver_id"`
 	Content    string    `json:"content"`
 	Timestamp  time.Time `json:"timestamp"`
+	IsRead     int       `json:"is_read"` // 0 = unread, 1 = read
 }
 
 type Category struct {

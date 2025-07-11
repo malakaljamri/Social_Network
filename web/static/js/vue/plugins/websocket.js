@@ -110,6 +110,12 @@ const WebSocketPlugin = {
                 case 'new_group':
                     handleNewGroup(message.content);
                     break;
+                case 'unread-count-update':
+                    window.dispatchEvent(new CustomEvent('unread-count-update', { detail: message.content }));
+                    break;
+                case 'unread-group-count-update':
+                    window.dispatchEvent(new CustomEvent('unread-group-count-update', { detail: message.content }));
+                    break;
                 case 'error':
                     console.error("Server error:", message.content);
                     break;

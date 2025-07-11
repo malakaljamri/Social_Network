@@ -20,7 +20,7 @@ const HomeView = {
                 ></feed-main>
             </div>
             <users-list class="users-list" @open-chat="openChat"></users-list>
-            <div id="chat-section">
+            <div id="chat-section chat-window-fixed">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>

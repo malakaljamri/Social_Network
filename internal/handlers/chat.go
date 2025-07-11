@@ -141,6 +141,16 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		}
 		jsonMessage, _ := json.Marshal(msg)
 		h.hub.Broadcast <- jsonMessage
+
+		// Broadcast unread count to recipient
+		unreadCount := database.CountUnreadMessages(chatMessage.ReceiverID, chatMessage.SenderID)
+		unreadMsg := websocket.Message{
+			Type:    "unread-count-update",
+			Content: map[string]interface{}{"userId": chatMessage.SenderID, "count": unreadCount},
+			UserID:  chatMessage.ReceiverID,
+		}
+		unreadJson, _ := json.Marshal(unreadMsg)
+		h.hub.Broadcast <- unreadJson
 	case "user_status":
 		// managed by the hub
 	case "typing_status":
@@ -215,6 +225,22 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		}
 		jsonMessage, _ := json.Marshal(msg)
 		h.hub.Broadcast <- jsonMessage
+
+		// Broadcast unread count to all group members except sender
+		memberIDs := database.GetGroupMemberIDs(groupChatMessage.GroupID)
+		for _, memberID := range memberIDs {
+			if memberID == client.UserID {
+				continue
+			}
+			unreadCount := database.CountUnreadGroupMessages(groupChatMessage.GroupID, memberID)
+			unreadMsg := websocket.Message{
+				Type:    "unread-group-count-update",
+				Content: map[string]interface{}{"groupId": groupChatMessage.GroupID, "count": unreadCount},
+				UserID:  memberID,
+			}
+			unreadJson, _ := json.Marshal(unreadMsg)
+			h.hub.Broadcast <- unreadJson
+		}
 	default:
 		log.Printf("Unknown message type (handleChatMessage): %s", baseMessage.Type)
 	}
@@ -250,10 +276,30 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Mark messages as read when user opens chat
+	database.MarkMessagesAsRead(userID, otherUserIDInt)
+
+	// Broadcast unread count to user
+	unreadCount := database.CountUnreadMessages(userID, otherUserIDInt)
+	unreadMsg := websocket.Message{
+		Type:    "unread-count-update",
+		Content: map[string]interface{}{"userId": otherUserIDInt, "count": unreadCount},
+		UserID:  userID,
+	}
+	unreadJson, _ := json.Marshal(unreadMsg)
+	if h, ok := w.(interface{ Hub() *websocket.Hub }); ok {
+		h.Hub().Broadcast <- unreadJson
+	}
+
 	messages, err := database.GetChatHistory(userID, otherUserIDInt, limit, offset)
 	if err != nil {
 		http.Error(w, "Error fetching chat history", http.StatusInternalServerError)
 		return
+	}
+
+	// Reverse messages to send oldest first
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -261,11 +307,11 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
-	// userID, err := database.GetUserIDFromSession(r)
-	// if err != nil {
-	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	// 	return
-	// }
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 	groupIDStr := r.URL.Query().Get("group_id")
 	if groupIDStr == "" {
 		http.Error(w, "Group ID is required", http.StatusBadRequest)
@@ -275,6 +321,19 @@ func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
+	}
+	// Update last_group_chat_open_time
+	database.UpdateLastGroupChatOpenTime(groupID, userID)
+	// Broadcast unread count to user
+	unreadCount := database.CountUnreadGroupMessages(groupID, userID)
+	unreadMsg := websocket.Message{
+		Type:    "unread-group-count-update",
+		Content: map[string]interface{}{"groupId": groupID, "count": unreadCount},
+		UserID:  userID,
+	}
+	unreadJson, _ := json.Marshal(unreadMsg)
+	if h, ok := w.(interface{ Hub() *websocket.Hub }); ok {
+		h.Hub().Broadcast <- unreadJson
 	}
 	limit := 50
 	offset := 0
@@ -288,4 +347,20 @@ func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
+}
+
+// Handler to return unread counts for the current user
+func GetUnreadCounts(w http.ResponseWriter, r *http.Request) {
+	userID, err := database.GetUserIDFromSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	counts, err := database.GetUnreadCountsForUser(userID)
+	if err != nil {
+		http.Error(w, "Error fetching unread counts", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(counts)
 }

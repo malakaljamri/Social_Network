@@ -3,8 +3,11 @@ const GroupChat = {
     props: ['groupName', 'groupId'],
     inject: ['websocket'],
     template: `
-        <div class="modal-content" @click.stop style="max-width: 400px;">
-            <h2>{{ groupName }} Chat Room</h2>
+        <div class="chat-window card group-chat" @click.stop style="max-width: 400px;">
+            <div class="chat-header">
+                {{ groupName }} Chat Room
+                <span class="close-span" @click="$emit('close')">X</span>
+            </div>
             <div class="chat-messages" ref="messagesContainer" style="height: 300px; overflow-y: auto; background: #f9f9f9; margin-bottom: 12px; border-radius: 8px; padding: 8px;">
                 <div v-if="loading" class="loading-indicator">Loading...</div>
                 <div v-else-if="messages.length === 0" class="no-messages">No messages yet. Start chatting!</div>
@@ -16,9 +19,10 @@ const GroupChat = {
                     </div>
                 </div>
             </div>
-            <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox" style="width: 80%; margin-right: 8px;">
-            <button @click="sendMessage">Send</button>
-            <button type="button" class="cancel-btn" @click="$emit('close')" style="float: right;">Close</button>
+            <div class="chat-input-container">
+                <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox">
+                <button @click="sendMessage">Send</button>
+            </div>
         </div>
     `,
     data() {

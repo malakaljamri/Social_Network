@@ -35,3 +35,33 @@ to run it use " docker-compose up "
 
 ![alt text](image.png)
 ![alt text](image-1.png)
+
+
+// If username is empty, generate a unique one from first and last name
+	if user.Username == "" {
+		user.Username = database.GenerateUniqueUsername(user.FirstName, user.LastName)
+	}
+
+
+in auth.go
+
+// GenerateUniqueUsername generates a username from first and last name and ensures it is unique in the database.
+func GenerateUniqueUsername(first, last string) string {
+	base := fmt.Sprintf("%s%s", first, last)
+	username := base
+	count := 1
+	for {
+		var exists int
+		query := "SELECT COUNT(1) FROM users WHERE username = ?"
+		err := db.QueryRow(query, username).Scan(&exists)
+		if err != nil {
+			return username // fallback
+		}
+		if exists == 0 {
+			return username
+		}
+		username = fmt.Sprintf("%s%d", base, count)
+		count++
+	}
+}.  in db_users.go
+

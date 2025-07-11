@@ -66,6 +66,12 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	user.Gender = get("gender")
 	user.AboutMe = get("aboutMe")
 	birthDateStr := get("birthDate")
+
+	// If username is empty, generate a unique one from first and last name
+	if user.Username == "" {
+		user.Username = database.GenerateUniqueUsername(user.FirstName, user.LastName)
+	}
+
 	if birthDateStr != "" {
 		var t time.Time
 		var err error
