@@ -4,6 +4,7 @@ const GroupsView = {
         return {
             groups: [],
             selectedGroupId: null,
+            showCreateGroupModal: false,
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
@@ -11,6 +12,10 @@ const GroupsView = {
         };
     },
     methods: {
+        handleGroupCreated() {
+            this.fetchGroups();
+            this.showCreateGroupModal = false;
+        },
         async fetchGroups() {
             try {
                 const response = await this.$root.apiFetch('/api/groups');
@@ -81,7 +86,7 @@ const GroupsView = {
             this.$emit('open-create-group-post-modal', groupId);
         },
         handleOpenCreateGroupModal() {
-            this.$emit('open-create-group-modal');
+            this.showCreateGroupModal = true;
         },
         handleEventClick(event) {
             this.$emit('event-click', event);
@@ -115,6 +120,11 @@ const GroupsView = {
                 ></g-group-main>
             </div>
             <users-list class="sidebar"></users-list>
+            <m-group-create
+                v-if="showCreateGroupModal"
+                @created="handleGroupCreated"
+                @close="showCreateGroupModal = false"
+            />
         </div>
     `
 };
