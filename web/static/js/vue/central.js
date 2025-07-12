@@ -519,7 +519,7 @@ const app = Vue.createApp({
             <m-group-create
                 :show="showCreateGroupModal"
                 :users="users"
-                :current-user="currentUser.value"
+                :current-user="currentUser.value || {}"
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
             ></m-group-create>

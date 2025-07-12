@@ -152,6 +152,44 @@ func AddCreatorFollowersToPrivateGroup(db *sql.DB, groupID, creatorID int) error
 	return err
 }
 
+// AddSelectedUsersToCustomGroup adds selected users to a custom privacy group
+func AddSelectedUsersToCustomGroup(db *sql.DB, groupID int, userIDs []int) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	// Start a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	// Prepare the insert statement
+	query := `INSERT OR IGNORE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %v", err)
+	}
+	defer stmt.Close()
+
+	// Insert each user
+	for _, userID := range userIDs {
+		_, err := stmt.Exec(groupID, userID)
+		if err != nil {
+			return fmt.Errorf("failed to add user %d to group: %v", userID, err)
+		}
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	return nil
+}
+
 // UpdateLastGroupChatOpenTime updates the last_group_chat_open_time for a user in a group
 func UpdateLastGroupChatOpenTime(groupID, userID int) error {
 	query := `UPDATE group_members SET last_group_chat_open_time = CURRENT_TIMESTAMP WHERE group_id = ? AND user_id = ?`

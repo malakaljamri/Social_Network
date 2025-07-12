@@ -4,6 +4,10 @@ const UsersList = {
         users: {
             type: Array,
             default: () => []
+        },
+        currentUser: {
+            type: Object,
+            default: () => ({})
         }
     },
     template: `
@@ -12,7 +16,15 @@ const UsersList = {
                 Users
                 <span v-if="myId && totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>
             </h3>
-            <user-search @user-selected="openChat"></user-search>
+            <input
+                type="text"
+                v-model="searchQuery"
+                @focus="searchBarFocused = true"
+                @blur="searchBarFocused = false"
+                placeholder="Search users by username..."
+                class="search-input"
+                style="width: 100%; margin-bottom: 10px; padding: 6px; border-radius: 4px; border: 1px solid #ccc;"
+            >
             <div class="users-container">
                 <div v-if="displayedUsers && displayedUsers.length">
                     <div v-for="user in sortedDisplayedUsers" :key="user.ID" class="user-item user-item-flex" :class="{ 'online-user': user.Online }">
@@ -35,16 +47,22 @@ const UsersList = {
     `,
     data() {
         return {
-            users: [],
             searchResults: [],
             searching: false,
             refreshInterval: null,
-            unreadCounts: {} // Track unread counts by user ID
+            unreadCounts: {},
+            searchQuery: '',
+            searchBarFocused: false
         }
     },
     computed: {
         displayedUsers() {
-            return this.searchResults.length > 0 ? this.searchResults : this.users;
+            // If search bar is not focused or searchQuery is empty, show all users sorted
+            if (!this.searchBarFocused || !this.searchQuery.trim()) {
+                return this.sortedDisplayedUsersAll();
+            }
+            // Otherwise, show filtered and sorted users
+            return this.sortedDisplayedUsersFiltered();
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
@@ -64,18 +82,11 @@ const UsersList = {
                 .reduce((a, [, count]) => a + (count || 0), 0);
         }
     },
-    data() {
-        return {
-            searchResults: [],
-            searching: false,
-            refreshInterval: null
-        }
-    },
-    data() {
-        return {
-            searchResults: [],
-            searching: false,
-            refreshInterval: null
+    watch: {
+        users(newUsers) {
+            if (!this.searching) {
+                this.searchResults = [];
+            }
         }
     },
     methods: {
@@ -83,7 +94,7 @@ const UsersList = {
             const { userId, status, username } = event.detail;
             const userIndex = this.users.findIndex(u => u.ID === userId);
             if (userIndex === -1) {
-                this.fetchUsers();
+                // this.fetchUsers(); // Removed because fetchUsers is not defined
                 return;
             }
             this.users[userIndex].Online = status === 'online';
@@ -134,13 +145,33 @@ const UsersList = {
                 tooltip += `\nNickname: ${user.Nickname}`;
             }
             return tooltip;
+        },
+        sortedDisplayedUsersAll() {
+            // Sort all users (online first, then alphabetically)
+            return [...this.users].sort((a, b) => {
+                if (a.Online !== b.Online) {
+                    return a.Online ? -1 : 1;
+                }
+                return (a.Username || a.username || '').localeCompare(b.Username || b.username || '');
+            });
+        },
+        sortedDisplayedUsersFiltered() {
+            // Filter and sort users based on searchQuery
+            const filtered = this.users.filter(user =>
+                (user.Username || user.username || '').toLowerCase().includes(this.searchQuery.toLowerCase())
+            );
+            return filtered.sort((a, b) => {
+                if (a.Online !== b.Online) {
+                    return a.Online ? -1 : 1;
+                }
+                return (a.Username || a.username || '').localeCompare(b.Username || b.username || '');
+            });
         }
     },
     mounted() {
-        this.fetchUsers();
         window.addEventListener('user-status-change', this.handleUserStatusChange);
         window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
-        this.refreshInterval = setInterval(this.fetchUsers, 30000);
+        this.refreshInterval = setInterval(() => {}, 30000); // No fetchUsers, so just a placeholder
 
         // Fetch unread counts on page load
         fetch('/api/unread-counts', { credentials: 'include' })
@@ -160,7 +191,7 @@ const UsersList = {
         window.removeEventListener('unread-count-update', this.handleUnreadCountUpdate);
     },
     components: {
-        'user-search': window.UserSearch
+        // 'user-search': window.UserSearch // Removed
     }
 };
 

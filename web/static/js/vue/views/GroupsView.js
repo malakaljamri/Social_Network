@@ -163,7 +163,7 @@ const GroupsView = {
                     @event-click="handleEventClick"
                 ></g-group-main>
             </div>
-            <users-list class="sidebar"></users-list>
+            <users-list :users="$root.users" class="sidebar"></users-list>
             <m-group-create
                 v-if="showCreateGroupModal"
                 @created="handleGroupCreated"

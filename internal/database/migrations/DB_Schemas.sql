@@ -76,12 +76,6 @@ CREATE TABLE IF NOT EXISTS groups (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     privacy_setting TEXT CHECK (privacy_setting IN ('public', 'private', 'custom')) DEFAULT 'public',
     FOREIGN KEY (creator_id) REFERENCES users(id)
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL,
-  creator_id INTEGER NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP, privacy_setting TEXT CHECK (privacy_setting IN ('public', 'private')) DEFAULT 'public',
-  FOREIGN KEY (creator_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS group_members (
     group_id INTEGER,

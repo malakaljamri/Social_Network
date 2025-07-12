@@ -358,6 +358,8 @@ func GetUnreadCounts(w http.ResponseWriter, r *http.Request) {
 	}
 	counts, err := database.GetUnreadCountsForUser(userID)
 	if err != nil {
+		// Added detailed error logging
+		log.Printf("[GetUnreadCounts] Error fetching unread counts for userID %d: %v", userID, err)
 		http.Error(w, "Error fetching unread counts", http.StatusInternalServerError)
 		return
 	}
