@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type Group struct {
@@ -150,8 +151,8 @@ func AddCreatorFollowersToPrivateGroup(db *sql.DB, groupID, creatorID int) error
 
 // UpdateLastGroupChatOpenTime updates the last_group_chat_open_time for a user in a group
 func UpdateLastGroupChatOpenTime(groupID, userID int) error {
-	query := `UPDATE group_members SET last_group_chat_open_time = CURRENT_TIMESTAMP WHERE group_id = ? AND user_id = ?`
-	_, err := db.Exec(query, groupID, userID)
+	query := `UPDATE group_members SET last_group_chat_open_time = ? WHERE group_id = ? AND user_id = ?`
+	_, err := db.Exec(query, time.Now(), groupID, userID)
 	return err
 }
 
@@ -162,7 +163,8 @@ func CountUnreadGroupMessages(groupID, userID int) int {
 	if err != nil || lastOpenTime == "" {
 		lastOpenTime = "1970-01-01 00:00:00"
 	}
-	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND timestamp > ?`
+	// Use a more explicit timestamp comparison to avoid precision issues
+	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`
 	var count int
 	err = db.QueryRow(query, groupID, lastOpenTime).Scan(&count)
 	if err != nil {
@@ -205,7 +207,7 @@ func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
 				openTime = lastOpenTime.String
 			}
 			var count int
-			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND timestamp > ?`, groupID, openTime).Scan(&count)
+			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`, groupID, openTime).Scan(&count)
 			if err2 == nil {
 				counts[groupID] = count
 			}

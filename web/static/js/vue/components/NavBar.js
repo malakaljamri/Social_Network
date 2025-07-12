@@ -67,7 +67,13 @@ const NavBar = {
         },
         totalUnreadGroupCount() {
             if (!this.myId) return 0;
-            return Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
+            const total = Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
+            console.log('NavBar: Total unread group count calculation:', {
+                myId: this.myId,
+                unreadCounts: this.unreadCounts,
+                total: total
+            });
+            return total;
         }
     },
     data() {
@@ -78,17 +84,18 @@ const NavBar = {
         };
     },
     mounted() {
-        // Fetch unread group counts on page load
-        fetch('/api/unread-group-counts', { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                this.unreadCounts = data || {};
-            })
-            .catch(() => {
-                this.unreadCounts = {};
-            });
+        // Fetch unread group counts on page load only if user is logged in
+        this.fetchUnreadCountsIfLoggedIn();
 
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+    },
+    watch: {
+        currentUser: {
+            handler() {
+                this.fetchUnreadCountsIfLoggedIn();
+            },
+            deep: true
+        }
     },
     methods: {
         goToHome() {
@@ -129,6 +136,21 @@ const NavBar = {
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
+        },
+        fetchUnreadCountsIfLoggedIn() {
+            if (this.currentUserValue.isLoggedIn) {
+                console.log('NavBar: Fetching unread group counts for user:', this.currentUserValue.id);
+                fetch('/api/unread-group-counts', { credentials: 'include' })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('NavBar: Received unread group counts:', data);
+                        this.unreadCounts = data || {};
+                    })
+                    .catch((error) => {
+                        console.error('NavBar: Error fetching unread group counts:', error);
+                        this.unreadCounts = {};
+                    });
+            }
         }
     },
     beforeUnmount() {

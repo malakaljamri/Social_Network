@@ -26,15 +26,17 @@ const GroupMain = {
         }
     },
     mounted() {
-        // Fetch unread group counts on page load
-        fetch('/api/unread-group-counts', { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                this.unreadCounts = data || {};
-            })
-            .catch(() => {
-                this.unreadCounts = {};
-            });
+        // Fetch unread group counts on page load only if user is logged in
+        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+            fetch('/api/unread-group-counts', { credentials: 'include' })
+                .then(res => res.json())
+                .then(data => {
+                    this.unreadCounts = data || {};
+                })
+                .catch(() => {
+                    this.unreadCounts = {};
+                });
+        }
 
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
