@@ -135,65 +135,39 @@ const Notifications = {
         },
         
         async handleAction(notificationId, action) {
-            // Find the notification object
-            const notification = this.notifications.find(n => n.id === notificationId);
-            if (notification && notification.type === 'follow_request') {
-                // Use the same API as the profile page
-                try {
-                    const response = await fetch(`/api/profile/follow-request?follower_id=${notification.sender_id}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ action }),
-                        credentials: 'include'
-                    });
+            try {
+                console.log('Notifications: Handling action:', notificationId, action);
+                
+                // Find the notification to get its type
+                const notification = this.notifications.find(n => n.id === notificationId);
+                if (!notification) {
+                    console.error('Notification not found:', notificationId);
+                    return;
+                }
 
-                    if (!response.ok) {
-                        throw new Error(`Failed to ${action} follow request`);
-                    }
+                let success = false;
 
-                    // Remove the actionable notification from the list
-                    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                // All actionable notification types now use the unified endpoint
+                const response = await fetch('/api/notifications/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ notification_id: notificationId, action })
+                });
+                success = response.ok;
 
-                    // Optionally fetch latest notifications to show confirmation
-                    await this.fetchLatestNotifications?.();
-
+                if (success) {
+                    console.log('Notifications: Action successful');
+                    // Emit action handled event to parent (parent will update notifications list)
                     this.$emit('action-handled', { notificationId, action });
-                    this.showSuccessMessage(action === 'accept' ? 'Accepted!' : 'Declined!');
-                } catch (error) {
-                    console.error(`Error handling follow request:`, error);
-                    this.showErrorMessage(`Failed to ${action} follow request. Please try again.`);
+                } else {
+                    console.error('Notifications: Action failed');
+                    // Show error to user
+                    alert('Failed to process notification action. Please try again.');
                 }
-            } else {
-                // For other types, use /api/notifications/action
-                try {
-                    const response = await fetch('/api/notifications/action', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            notification_id: notificationId,
-                            action: action
-                        }),
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        // Remove the actionable notification from the list
-                        this.notifications = this.notifications.filter(n => n.id !== notificationId);
-                        // Optionally fetch latest notifications to show confirmation
-                        await this.fetchLatestNotifications?.();
-                        this.$emit('action-handled', { notificationId, action });
-                        this.showSuccessMessage(action === 'accept' ? 'Accepted!' : 'Declined!');
-                    } else {
-                        throw new Error('Failed to handle action');
-                    }
-                } catch (error) {
-                    console.error('Error handling notification action:', error);
-                    this.showErrorMessage('Failed to handle action. Please try again.');
-                }
+            } catch (error) {
+                console.error('Notifications: Error handling action:', error);
+                alert('Error processing notification action. Please try again.');
             }
         },
         

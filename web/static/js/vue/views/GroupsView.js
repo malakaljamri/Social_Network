@@ -134,12 +134,31 @@ const GroupsView = {
         // Listen for WebSocket group events
         window.addEventListener('group-created', this.handleGroupCreated);
         window.addEventListener('group-membership-changed', this.handleGroupMembershipChanged);
+        
+        // Listen for group creation and updates from WebSocket
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.on('group-created', (data) => {
+                console.log('GroupsView: Group created event received:', data);
+                this.fetchGroups(); // Refresh the group list
+            });
+            
+            this.$root.websocket.eventBus.on('group-updated', (data) => {
+                console.log('GroupsView: Group updated event received:', data);
+                this.fetchGroups(); // Refresh the group list
+            });
+        }
     },
     beforeUnmount() {
         window.removeEventListener('clear-all-data', this.clearAllData);
         window.removeEventListener('session-expired', this.handleSessionExpired);
         window.removeEventListener('group-created', this.handleGroupCreated);
         window.removeEventListener('group-membership-changed', this.handleGroupMembershipChanged);
+        
+        // Clean up event listeners
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.off('group-created');
+            this.$root.websocket.eventBus.off('group-updated');
+        }
     },
     template: `
         <div class="layout-grid groups-layout">

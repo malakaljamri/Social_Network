@@ -16,6 +16,27 @@ const WebSocketPlugin = {
         let socket;
         let lastErrorTime = 0;
 
+        // Global event bus for cross-component communication
+        const eventBus = {
+            listeners: {},
+            emit(event, data) {
+                if (this.listeners[event]) {
+                    this.listeners[event].forEach(callback => callback(data));
+                }
+            },
+            on(event, callback) {
+                if (!this.listeners[event]) {
+                    this.listeners[event] = [];
+                }
+                this.listeners[event].push(callback);
+            },
+            off(event, callback) {
+                if (this.listeners[event]) {
+                    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+                }
+            }
+        };
+
         // Initialize WebSocket connection
         function initWebSocket() {
             const root = app._instance?.proxy;
@@ -32,71 +53,76 @@ const WebSocketPlugin = {
 
             // Prevent multiple socket creation
             if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-                console.log('WebSocket already open or connecting, skipping initialization');
+                console.log('WebSocket already open or connecting, skipping init');
                 return;
             }
 
-            try {
-                if (socket?.readyState === WebSocket.OPEN) {
-                    console.log('Closing existing WebSocket before creating new one');
-                    socket.close();
-                }
+            console.log('Initializing WebSocket connection...');
+            const wsUrl = `ws://${window.location.host}/ws`;
+            socket = new WebSocket(wsUrl);
 
-                console.log('Initializing new WebSocket connection...');
-                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsHost = window.location.host;
-                socket = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
+            socket.onopen = function(event) {
+                console.log('WebSocket connected');
+                wsState.connected = true;
+                wsState.reconnectAttempts = 0;
                 
-                socket.onopen = async function() {
-                    console.log('WebSocket connected');
-                    wsState.connected = true;
-                    wsState.reconnectAttempts = 0;
+                // Send user status immediately after connection
+                sendUserStatus('online');
+                
+                // Fetch online users after connection
+                fetchOnlineUsers();
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WebSocket message received:', data);
                     
-                    try {
-                        if (currentUser?.isLoggedIn) {
-                            sendUserStatus('online');
-                        }
-                        // console.time("fetchOnlineUsers");
-                        await fetchOnlineUsers();
-                        // console.timeEnd("fetchOnlineUsers");
-                    } catch (error) {
-                        console.error('Error in WebSocket onopen:', error);
+                    switch (data.type) {
+                        case 'chat':
+                            handleChatMessage(data);
+                            break;
+                        case 'typing':
+                            handleTypingIndicator(data);
+                            break;
+                        case 'user_status':
+                            handleUserStatusUpdate(data);
+                            break;
+                        case 'notification_count_update':
+                            handleNotificationCountUpdate(data);
+                            break;
+                        case 'group_created':
+                            handleGroupCreated(data);
+                            break;
+                        case 'group_updated':
+                            handleGroupUpdated(data);
+                            break;
+                        case 'group_chat':
+                            handleGroupChatMessage(data);
+                            break;
+                        default:
+                            console.log('Unknown message type:', data.type);
                     }
-                };
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
 
-                socket.onclose = function(event) {
-                    console.log(`Connection closed: ${event.code} ${event.reason}`);
-                    wsState.connected = false;
-                    
-                    // Only attempt reconnection if user is still logged in and it's not a normal closure
-                    if (currentUser?.isLoggedIn && event.code !== 1000) {
-                        wsState.reconnectAttempts++;
-                        setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
-                    }
-                };
+            socket.onclose = function(event) {
+                console.log('WebSocket connection closed:', event.code, event.reason);
+                wsState.connected = false;
+                
+                if (event.code !== 1000 && wsState.reconnectAttempts < wsState.MAX_RECONNECT_ATTEMPTS) {
+                    wsState.reconnectAttempts++;
+                    console.log(`Attempting to reconnect... (${wsState.reconnectAttempts}/${wsState.MAX_RECONNECT_ATTEMPTS})`);
+                    setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
+                }
+            };
 
-                socket.onerror = function(error) {
-                    const now = Date.now();
-                    if (now - lastErrorTime > 30000) {
-                        console.warn('WebSocket error:', error);
-                        lastErrorTime = now;
-                    }
-                };
-
-                socket.onmessage = function(event) {
-                    try {
-                        const message = JSON.parse(event.data);
-                        handleWebSocketMessage(message);
-                    } catch (error) {
-                        console.error('Error handling WebSocket message:', error);
-                    }
-                };
-
-                return socket;
-            } catch (error) {
-                console.error('Error initializing WebSocket:', error);
-                return null;
-            }
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                wsState.connected = false;
+            };
         }
 
         // Handle incoming WebSocket messages
@@ -238,19 +264,13 @@ const WebSocketPlugin = {
 
         // Handle notification count updates
         function handleNotificationCountUpdate(data) {
-            const vueApp = app.config.globalProperties.$root;
-            if (vueApp && vueApp.currentUser && vueApp.currentUser.value) {
-                const currentUserId = vueApp.currentUser.value.id || vueApp.currentUser.value.ID;
-                if (data.user_id === currentUserId) {
-                    // Update notification count in NavBar component
-                    const navBar = document.querySelector('.notifications-wrapper');
-                    if (navBar && navBar.__vueParentComponent) {
-                        const navBarInstance = navBar.__vueParentComponent.ctx;
-                        if (navBarInstance && typeof navBarInstance.fetchNotificationCount === 'function') {
-                            navBarInstance.fetchNotificationCount();
-                        }
-                    }
-                }
+            console.log('Notification count update received:', data);
+            eventBus.emit('notification-count-update', data);
+            
+            // Also try to update NavBar directly if available
+            const root = app._instance?.proxy;
+            if (root && root.fetchNotificationCount) {
+                root.fetchNotificationCount();
             }
         }
 
@@ -383,6 +403,12 @@ const WebSocketPlugin = {
             window.dispatchEvent(new CustomEvent('group-message', { detail: data.content }));
         }
 
+        // Handle group updates
+        function handleGroupUpdated(data) {
+            console.log('Group updated event received:', data);
+            eventBus.emit('group-updated', data);
+        }
+
         // Initialize WebSocket connection
         // const ws = initWebSocket(); // Remove this initial call
 
@@ -417,6 +443,7 @@ const WebSocketPlugin = {
                     console.log('No WebSocket connection to close');
                 }
             },
+            eventBus: eventBus
         });
     }
 };

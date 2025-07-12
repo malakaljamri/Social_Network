@@ -183,13 +183,52 @@ const NavBar = {
         },
         
         async handleNotificationAction({ notificationId, action }) {
-            // Refresh notifications after action
-            await this.fetchNotifications();
-            await this.fetchNotificationCount();
-            
-            // If modal is open, refresh all notifications too
-            if (this.showModal) {
-                await this.fetchAllNotifications();
+            try {
+                console.log('NavBar: Handling notification action:', notificationId, action);
+                
+                // Find the notification to get its type
+                const notification = this.notifications.find(n => n.id === notificationId);
+                if (!notification) {
+                    console.error('Notification not found:', notificationId);
+                    return;
+                }
+
+                let success = false;
+                
+                if (notification.type === 'follow_request') {
+                    // Handle follow request via profile endpoint
+                    const response = await fetch(`/api/profile/follow-request?follower_id=${notification.sender_id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ action })
+                    });
+                    success = response.ok;
+                } else {
+                    // Handle other actionable notifications
+                    const response = await fetch('/api/notifications/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ notification_id: notificationId, action })
+                    });
+                    success = response.ok;
+                }
+
+                if (success) {
+                    console.log('NavBar: Notification action successful');
+                    // Remove the notification from the list
+                    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                    // Refresh notification count
+                    this.fetchNotificationCount();
+                } else {
+                    console.error('NavBar: Notification action failed');
+                    // Show error to user
+                    alert('Failed to process notification action. Please try again.');
+                }
+            } catch (error) {
+                console.error('NavBar: Error handling notification action:', error);
+                alert('Error processing notification action. Please try again.');
             }
         },
         
@@ -242,12 +281,25 @@ const NavBar = {
             }
         }
     },
-    async mounted() {
-        // Fetch initial notification count
-        await this.fetchNotificationCount();
+    mounted() {
+        this.fetchNotificationCount();
+        this.fetchNotifications();
+        
+        // Listen for notification count updates from WebSocket
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.on('notification-count-update', (data) => {
+                console.log('NavBar: Notification count update received:', data);
+                this.fetchNotificationCount();
+                this.fetchNotifications();
+            });
+        }
     },
+    
     beforeUnmount() {
-        document.removeEventListener('click', this.handleOutsideClick);
+        // Clean up event listeners
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.off('notification-count-update');
+        }
     }
 };
 // No mount here, will be registered globally. 

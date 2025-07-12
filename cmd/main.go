@@ -127,6 +127,10 @@ func main() {
 	mux.HandleFunc("/api/notifications/action", handlers.HandleNotificationActionHandler)
 	mux.HandleFunc("/api/notifications/count", handlers.GetUnreadNotificationCountHandler)
 
+	// Group notification action routes
+	// mux.HandleFunc("/api/groups/handle-invite", handlers.HandleGroupInviteAction(db))
+	// mux.HandleFunc("/api/groups/handle-join-request", handlers.HandleGroupJoinRequestAction(db))
+
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads
 	mux.HandleFunc("/web/", func(w http.ResponseWriter, r *http.Request) {

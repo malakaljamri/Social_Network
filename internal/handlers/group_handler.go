@@ -257,7 +257,7 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 				"group_id":     request.GroupID,
 				"requester_id": userID,
 			}
-			database.CreateNotification(
+			err = database.CreateNotification(
 				creatorID,       // group owner receives notification
 				userID,          // requester is sender
 				request.GroupID, // reference to the group
@@ -266,6 +266,12 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 				actionData,
 				"requested to join your group",
 			)
+
+			// Send WebSocket notification count update to group owner
+			if err == nil {
+				// Import the notification handler's function
+				sendNotificationCountUpdate(creatorID)
+			}
 		}
 
 		BroadcastGroupMembershipChange(request.GroupID, userID, "added")

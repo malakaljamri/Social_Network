@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -202,6 +203,7 @@ func GetNotificationWithSenderInfo(notificationID int) (*Notification, *models.U
 	if rows.Next() {
 		var notification Notification
 		var sender models.User
+		var avatar sql.NullString
 		err := rows.Scan(
 			&notification.ID,
 			&notification.UserID,
@@ -216,10 +218,15 @@ func GetNotificationWithSenderInfo(notificationID int) (*Notification, *models.U
 			&sender.ID,
 			&sender.Username,
 			&sender.Email,
-			&sender.Avatar,
+			&avatar,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to scan notification with sender: %v", err)
+		}
+		if avatar.Valid {
+			sender.Avatar = avatar.String
+		} else {
+			sender.Avatar = ""
 		}
 		return &notification, &sender, nil
 	}

@@ -111,20 +111,26 @@ const app = Vue.createApp({
                     Username: null,
                     email: null
                 };
-
-                // Reset notifications and any other global state
-                this.notifications = [];
-                this.notificationCount = 0;
+                
+                // Clear all other state
                 this.users = [];
-                this.followRequests = [];
+                this.groups = [];
                 this.selectedProfileUserId = null;
-                // ...add any other state you want to clear
-
+                this.currentView = 'login';
                 this.loggingOut = false;
-                this.goToLogin();
+                
+                // Clear any stored data
+                localStorage.removeItem('user');
+                sessionStorage.clear();
+                
+                // Clear cookies by setting them to expire
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
             } catch (error) {
-                this.loggingOut = false;
                 console.error('Logout error:', error);
+                this.loggingOut = false;
             }
         },
 
@@ -255,6 +261,7 @@ const app = Vue.createApp({
             };
             this.currentView = 'home';
             await this.fetchUsers(); // Ensure user list is loaded after login
+            await this.fetchGroups(); // Ensure groups are loaded after login
             if (this.websocket && typeof this.websocket.init === 'function') {
                 this.websocket.init();
             }
@@ -433,7 +440,36 @@ const app = Vue.createApp({
                 console.error('Error fetching users:', error);
                 this.users = [];
             }
-        }
+        },
+        async fetchGroups() {
+            try {
+                const response = await fetch('/api/groups', { credentials: 'include' });
+                if (response.ok) {
+                    const groups = await response.json();
+                    this.groups = groups;
+                    console.log('Groups fetched:', groups);
+                } else {
+                    console.error('Failed to fetch groups');
+                }
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+        },
+
+        async fetchNotificationCount() {
+            try {
+                const response = await fetch('/api/notifications/count', { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    // Update notification count in NavBar if available
+                    if (this.$refs.navbar && this.$refs.navbar.updateNotificationCount) {
+                        this.$refs.navbar.updateNotificationCount(data.count);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching notification count:', error);
+            }
+        },
     },
     mounted() {
         // Check if user is already logged in
