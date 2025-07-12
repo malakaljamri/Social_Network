@@ -69,7 +69,7 @@ const NavBar = {
     props: {
         state: {
             type: String,
-            required: true
+            default: ''
         },
         currentUser: {
             type: Object,

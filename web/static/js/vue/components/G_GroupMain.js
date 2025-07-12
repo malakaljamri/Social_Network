@@ -50,6 +50,11 @@ const GroupMain = {
             const d = new Date(iso);
             return isNaN(d) ? dateStr : d.toLocaleString();
         },
+        getImageUrl(imagePath) {
+            if (!imagePath) return '';
+            if (imagePath.startsWith('http')) return imagePath;
+            return `${window.location.origin}/web${imagePath.startsWith('/') ? '' : '/'}${imagePath.replace(/\\/g, '/')}`;
+        },
         async checkGroupAccess() {
             if (!this.selectedGroup || !this.currentUser || !this.currentUser.isLoggedIn) {
                 this.groupAccess = false;
@@ -204,8 +209,18 @@ const GroupMain = {
                                 <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
                             </div>
                         </div>
-                        <div class="post-content">{{ post.Content }}</div>
+                        <div class="post-content">
+                            <div v-if="post.Image" class="post-image">
+                                <img 
+                                    :src="getImageUrl(post.Image)" 
+                                    :alt="post.Title"
+                                    loading="lazy"
+                                >
+                            </div>
+                            <div class="post-text">{{ post.Content }}</div>
                         </div>
+                        <comment-section :post-id="post.ID" :current-user="currentUser"></comment-section>
+                    </div>
                     </div>
                     <!-- Show message if user doesn't have access -->
                     <div v-else>
@@ -216,7 +231,8 @@ const GroupMain = {
         </div>
     `,
     components: {
-        'g-group-events-modal': window.G_GroupEventsModal
+        'g-group-events-modal': window.G_GroupEventsModal,
+        'comment-section': window.G_CommentSection
     }
 };
 window.G_GroupMain = GroupMain; 
