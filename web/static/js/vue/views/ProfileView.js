@@ -211,48 +211,43 @@ const ProfileView = {
         async fetchProfile() {
             this.loading = true;
             console.log('=== Frontend fetchProfile started ===');
-            
             try {
                 let userId = this.userId;
                 if (!userId) {
                     userId = this.$root.currentUser.value.id;
                 }
+                if (!userId) {
+                    console.error('ProfileView: userId is undefined, cannot fetch profile');
+                    this.loading = false;
+                    this.profile = { user: {}, followers_count: 0, following_count: 0, posts_count: 0 };
+                    return;
+                }
                 console.log('Fetching profile for user ID:', userId);
-                
                 let url = `/api/user/profile?id=${userId}`;
                 if (this.filters) {
                     url += `&filters=${encodeURIComponent(JSON.stringify(this.filters))}`;
                 }
                 console.log('Profile URL:', url);
-
-                const response = await fetch(url, {
-                    credentials: 'include'
-                });
-                
+                const response = await fetch(url, { credentials: 'include' });
                 console.log('Profile response status:', response.status);
                 console.log('Profile response ok:', response.ok);
-                
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Profile fetch failed:', errorText);
                     throw new Error('Failed to fetch profile');
                 }
-                
                 this.profile = await response.json();
                 console.log('Profile data received:', this.profile);
                 console.log('Profile follow status - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
-                
                 // Fetch followers and following lists
                 console.log('Fetching followers and following lists...');
                 await this.fetchFollowers();
                 await this.fetchFollowing();
-                
                 console.log('=== Frontend fetchProfile completed successfully ===');
             } catch (error) {
                 console.error('=== Frontend fetchProfile failed ===', error);
-            } finally {
-                this.loading = false;
             }
+            this.loading = false;
         },
         async fetchCategories() {
             try {
@@ -265,11 +260,15 @@ const ProfileView = {
             }
         },
         async fetchFollowers() {
+            let userId = this.userId;
+            if (!userId) {
+                userId = this.$root.currentUser.value.id;
+            }
+            if (!userId) {
+                this.followers = [];
+                return;
+            }
             try {
-                let userId = this.userId;
-                if (!userId) {
-                    userId = this.$root.currentUser.value.id;
-                }
                 const response = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch followers');
                 this.followers = await response.json();
@@ -278,9 +277,13 @@ const ProfileView = {
             }
         },
         async fetchFollowing() {
+            let userId = this.userId;
+            if (!userId) userId = this.$root.currentUser.value.id;
+            if (!userId) {
+                this.following = [];
+                return;
+            }
             try {
-                let userId = this.userId;
-                if (!userId) userId = this.$root.currentUser.value.id;
                 const response = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch following');
                 this.following = await response.json();

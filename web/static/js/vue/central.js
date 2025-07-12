@@ -77,6 +77,9 @@ const app = Vue.createApp({
             this.currentView = 'groups';
         },
         goToProfile() {
+            // Always set selectedProfileUserId to current user's ID
+            const id = this.currentUser.value.id || this.currentUser.value.ID;
+            this.selectedProfileUserId = id;
             this.currentView = 'profile';
         },
         goToLogin() {
@@ -103,7 +106,9 @@ const app = Vue.createApp({
                 this.currentUser.value = {
                     isLoggedIn: false,
                     id: null,
+                    ID: null,
                     username: null,
+                    Username: null,
                     email: null
                 };
 
@@ -112,6 +117,7 @@ const app = Vue.createApp({
                 this.notificationCount = 0;
                 this.users = [];
                 this.followRequests = [];
+                this.selectedProfileUserId = null;
                 // ...add any other state you want to clear
 
                 this.loggingOut = false;
