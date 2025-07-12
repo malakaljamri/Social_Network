@@ -283,7 +283,7 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	// Mark messages as read when user opens chat
 	database.MarkMessagesAsRead(userID, otherUserIDInt)
 
-	// Broadcast unread count to user
+	// Always broadcast unread count to user after marking as read
 	unreadCount := database.CountUnreadMessages(userID, otherUserIDInt)
 	unreadMsg := websocket.Message{
 		Type:    "unread-count-update",
@@ -291,9 +291,7 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		UserID:  userID,
 	}
 	unreadJson, _ := json.Marshal(unreadMsg)
-	if h, ok := w.(interface{ Hub() *websocket.Hub }); ok {
-		h.Hub().Broadcast <- unreadJson
-	}
+	websocket.MainHub.Broadcast <- unreadJson
 
 	messages, err := database.GetChatHistory(userID, otherUserIDInt, limit, offset)
 	if err != nil {
