@@ -53,6 +53,11 @@ const ChatWindow = {
     },
     methods: {
         async fetchHistory(loadOlder = false) {
+            const userId = this.user.ID || this.user.id;
+            if (!userId) {
+                console.warn('ChatWindow: user ID is missing, cannot fetch history');
+                return;
+            }
             if (loadOlder) {
                 if (this.loadingOlder || this.allLoaded) return;
                 this.loadingOlder = true;
@@ -61,7 +66,7 @@ const ChatWindow = {
                 this.offset = 0;
             }
             try {
-                let url = `/api/chat-history?user_id=${this.user.ID}&offset=${this.offset}`;
+                let url = `/api/chat-history?user_id=${userId}&offset=${this.offset}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 const msgs = Array.isArray(data) ? data : [];
@@ -94,22 +99,25 @@ const ChatWindow = {
             }
         },
         async fetchFollowStatus() {
+            const userId = this.user.ID || this.user.id;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            if (!userId || !currentUserId) {
+                console.warn('ChatWindow: user ID or current user ID is missing, cannot fetch follow status');
+                this.canMessage = false;
+                return;
+            }
             // Fetch if current user follows chat user and if chat user follows current user
             let canMessage = false;
             try {
-                const res1 = await fetch(`/api/user/profile?id=${this.user.ID}`);
+                const res1 = await fetch(`/api/user/profile?id=${userId}`);
                 const data1 = await res1.json();
-                // is_following: does current user follow chat user?
-                // is_follower: does chat user follow current user?
                 if (data1.is_following || data1.is_follower) {
                     canMessage = true;
                 }
             } catch {}
             try {
-                const res2 = await fetch(`/api/user/profile?id=${this.currentUserValue.id}`);
+                const res2 = await fetch(`/api/user/profile?id=${currentUserId}`);
                 const data2 = await res2.json();
-                // is_follower: does current user follow chat user? (from chat user's perspective)
-                // is_following: does chat user follow current user? (from chat user's perspective)
                 if (data2.is_following || data2.is_follower) {
                     canMessage = true;
                 }
@@ -117,18 +125,20 @@ const ChatWindow = {
             this.canMessage = canMessage;
         },
         sendMessage() {
-            if (!this.input.trim()) return;
+            const userId = this.user.ID || this.user.id;
+            if (!this.input.trim() || !userId) return;
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendMessage(this.user.ID, this.input, 'chat');
+                this.websocket.sendMessage(userId, this.input, 'chat');
                 this.input = '';
             }
         },
         handleTyping() {
-            if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendTyping(this.user.ID, true);
+            const userId = this.user.ID || this.user.id;
+            if (this.websocket && this.websocket.state.connected && userId) {
+                this.websocket.sendTyping(userId, true);
                 clearTimeout(this.typingTimeout);
                 this.typingTimeout = setTimeout(() => {
-                    this.websocket.sendTyping(this.user.ID, false);
+                    this.websocket.sendTyping(userId, false);
                 }, 1000);
             }
         },
@@ -156,14 +166,18 @@ const ChatWindow = {
         this.fetchFollowStatus();
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
             const msg = e.detail;
-            if ((msg.sender_id === this.user.ID && msg.Receiver_id === this.currentUserValue.id) ||
-                (msg.sender_id === this.currentUserValue.id && msg.Receiver_id === this.user.ID)) {
+            const userId = this.user.ID || this.user.id;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            if ((msg.sender_id === userId && msg.Receiver_id === currentUserId) ||
+                (msg.sender_id === currentUserId && msg.Receiver_id === userId)) {
                 this.receiveMessage(msg);
             }
         });
         window.addEventListener('chat-typing', this._onChatTyping = (e) => {
             const { sender_id, Receiver_id, is_typing } = e.detail;
-            if (sender_id === this.user.ID && Receiver_id === this.currentUserValue.id) {
+            const userId = this.user.ID || this.user.id;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            if (sender_id === userId && Receiver_id === currentUserId) {
                 this.receiveTyping(is_typing);
             }
         });

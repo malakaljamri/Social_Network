@@ -31,7 +31,6 @@ const app = Vue.createApp({
             users: [],
             loading: false,
             error: null,
-            ws: null,
             messages: [],
             newMessage: '',
             groups: [],
@@ -62,15 +61,12 @@ const app = Vue.createApp({
             showGroupEventsModal: false,
             upcomingEvents: [],
             pastEvents: [],
-            _userInterval: null
+            _userInterval: null,
+            loggingOut: false,
         };
     },
     watch: {
-        'currentUser.value.isLoggedIn'(val) {
-            if (val) {
-                this.websocket.init();
-            }
-        }
+        // REMOVE the watcher on 'currentUser.value.isLoggedIn'
     },
     methods: {
         // Navigation methods
@@ -92,21 +88,36 @@ const app = Vue.createApp({
 
         async handleLogout() {
             try {
+                this.loggingOut = true;
                 // Clear all data immediately on logout click
                 this.clearAllData();
-                
+
                 // Close websocket before logging out
-                this.websocket.close();
+                if (this.$root && this.$root.websocket && typeof this.$root.websocket.close === 'function') {
+                    this.$root.websocket.close();
+                }
 
                 await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+
+                // Reset user state
                 this.currentUser.value = {
                     isLoggedIn: false,
                     id: null,
                     username: null,
                     email: null
                 };
+
+                // Reset notifications and any other global state
+                this.notifications = [];
+                this.notificationCount = 0;
+                this.users = [];
+                this.followRequests = [];
+                // ...add any other state you want to clear
+
+                this.loggingOut = false;
                 this.goToLogin();
             } catch (error) {
+                this.loggingOut = false;
                 console.error('Logout error:', error);
             }
         },
@@ -224,15 +235,23 @@ const app = Vue.createApp({
             }
         },
         async onLogin(data) {
+            if (this.loggingOut) return; // Prevent login during logout
             // Called when login-form emits 'login' with user data
+            const id = data.id || data.ID || data.userID;
+            const username = data.username || data.Username;
             this.currentUser.value = {
                 isLoggedIn: true,
-                id: data.user_id || data.id,
-                username: data.username,
-                email: data.email || ''
+                id: id,
+                ID: id,
+                username: username,
+                Username: username,
+                email: data.email
             };
-
             this.currentView = 'home';
+            await this.fetchUsers(); // Ensure user list is loaded after login
+            if (this.websocket && typeof this.websocket.init === 'function') {
+                this.websocket.init();
+            }
         },
         async onRegistered(data) {
             // Called when register-modal emits 'registered' with user data
@@ -299,13 +318,16 @@ const app = Vue.createApp({
             try {
                 const response = await fetch('/api/user', { credentials: 'include' });
                 const userData = await response.json();
-                const isLoggedIn = userData && userData.id;
-                const userId = userData.id || userData.userID;
+                const isLoggedIn = userData && (userData.id || userData.ID || userData.userID);
+                const id = userData.id || userData.ID || userData.userID;
+                const username = userData.username || userData.Username;
                 if (isLoggedIn) {
                     this.currentUser.value = {
                         isLoggedIn: true,
-                        id: userId,
-                        username: userData.username,
+                        id: id,
+                        ID: id,
+                        username: username,
+                        Username: username,
                         email: userData.email
                     };
                     this.currentView = 'home';
@@ -313,7 +335,9 @@ const app = Vue.createApp({
                     this.currentUser.value = {
                         isLoggedIn: false,
                         id: null,
+                        ID: null,
                         username: null,
+                        Username: null,
                         email: null
                     };
                     this.currentView = 'login';
@@ -323,7 +347,9 @@ const app = Vue.createApp({
                 this.currentUser.value = {
                     isLoggedIn: false,
                     id: null,
+                    ID: null,
                     username: null,
+                    Username: null,
                     email: null
                 };
                 this.currentView = 'login';

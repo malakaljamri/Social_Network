@@ -112,14 +112,27 @@ const UsersList = {
             let user = null;
             if (typeof userOrId === 'object') {
                 user = userOrId;
+                // Normalize ID and Username
                 if (!user.ID && user.id) {
                     user.ID = user.id;
+                }
+                if (!user.id && user.ID) {
+                    user.id = user.ID;
                 }
                 if (!user.Username && user.username) {
                     user.Username = user.username;
                 }
+                if (!user.username && user.Username) {
+                    user.username = user.Username;
+                }
             } else {
                 user = this.displayedUsers.find(u => u.ID === userOrId || u.id === userOrId);
+                if (user) {
+                    if (!user.ID && user.id) user.ID = user.id;
+                    if (!user.id && user.ID) user.id = user.ID;
+                    if (!user.Username && user.username) user.Username = user.username;
+                    if (!user.username && user.Username) user.username = user.Username;
+                }
             }
             if (user) {
                 this.unreadCounts[user.ID] = 0;

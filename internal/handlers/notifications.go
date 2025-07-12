@@ -153,6 +153,8 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 		err = handleFollowRequestAction(notification, request.Action, sender)
 	case "group_invitation":
 		err = handleGroupInvitationAction(notification, request.Action, sender)
+	case "group_join_request":
+		err = handleGroupJoinRequestAction(notification, request.Action, sender)
 	default:
 		utils.WriteJSONError(w, http.StatusBadRequest, "Unsupported notification type")
 		return
@@ -163,15 +165,13 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Mark notification as read
-	err = database.MarkNotificationAsRead(notification.ID, userID)
+	// Delete actionable notification after handling
+	err = database.DeleteNotification(notification.ID, userID)
 	if err != nil {
-		// Log error but don't fail the request
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to mark notification as read")
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to delete notification")
 		return
 	}
 
-	// Send WebSocket notification to update notification count
 	sendNotificationCountUpdate(userID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -217,6 +217,37 @@ func handleGroupInvitationAction(notification *database.Notification, action str
 		// Remove user from group
 		query := `DELETE FROM group_members WHERE group_id = ? AND user_id = ?`
 		_, err := database.ExecuteQuery(query, int(groupID), notification.UserID)
+		return err
+	default:
+		return errors.New("Invalid action")
+	}
+}
+
+// Add handler for group join request actions
+func handleGroupJoinRequestAction(notification *database.Notification, action string, sender *models.User) error {
+	// Parse action data to get group ID and requester ID
+	var actionData map[string]interface{}
+	if notification.ActionData != "" {
+		if err := json.Unmarshal([]byte(notification.ActionData), &actionData); err != nil {
+			return err
+		}
+	}
+	groupID, ok1 := actionData["group_id"].(float64)
+	requesterID, ok2 := actionData["requester_id"].(float64)
+	if !ok1 || !ok2 {
+		return errors.New("Invalid group join request action data")
+	}
+
+	switch action {
+	case "accept":
+		// Add user to group with accepted status
+		query := `UPDATE group_members SET status = 'accepted' WHERE group_id = ? AND user_id = ?`
+		_, err := database.ExecuteQuery(query, int(groupID), int(requesterID))
+		return err
+	case "decline":
+		// Remove user from group
+		query := `DELETE FROM group_members WHERE group_id = ? AND user_id = ?`
+		_, err := database.ExecuteQuery(query, int(groupID), int(requesterID))
 		return err
 	default:
 		return errors.New("Invalid action")

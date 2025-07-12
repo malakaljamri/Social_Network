@@ -137,15 +137,13 @@ func MarkAllNotificationsAsRead(userID int) error {
 	return nil
 }
 
-// DeleteNotification deletes a specific notification
+// DeleteNotification deletes a notification by ID and user ID
 func DeleteNotification(notificationID, userID int) error {
 	query := `DELETE FROM notifications WHERE id = ? AND user_id = ?`
-
 	_, err := ExecuteQuery(query, notificationID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete notification: %v", err)
 	}
-
 	return nil
 }
 

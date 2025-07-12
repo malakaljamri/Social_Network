@@ -30,11 +30,19 @@ const WebSocketPlugin = {
                 return;
             }
 
+            // Prevent multiple socket creation
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                console.log('WebSocket already open or connecting, skipping initialization');
+                return;
+            }
+
             try {
                 if (socket?.readyState === WebSocket.OPEN) {
+                    console.log('Closing existing WebSocket before creating new one');
                     socket.close();
                 }
 
+                console.log('Initializing new WebSocket connection...');
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsHost = window.location.host;
                 socket = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
@@ -399,7 +407,16 @@ const WebSocketPlugin = {
             sendUserStatus: sendUserStatus,
             sendGroupChatMessage: sendGroupChatMessage,
             init: initWebSocket, // Expose initWebSocket
-            close: () => socket?.close(), // Expose a close function
+            close: () => {
+                if (socket) {
+                    console.log('Closing WebSocket connection...');
+                    socket.close();
+                    socket = null;
+                    wsState.connected = false;
+                } else {
+                    console.log('No WebSocket connection to close');
+                }
+            },
         });
     }
 };

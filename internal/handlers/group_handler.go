@@ -248,7 +248,26 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Broadcast group membership change
+		// Fetch group info to get owner
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", request.GroupID).Scan(&creatorID)
+		if err == nil && creatorID != userID {
+			actionData := map[string]interface{}{
+				"action":       "group_join_response",
+				"group_id":     request.GroupID,
+				"requester_id": userID,
+			}
+			database.CreateNotification(
+				creatorID,       // group owner receives notification
+				userID,          // requester is sender
+				request.GroupID, // reference to the group
+				"group_join_request",
+				true, // action required
+				actionData,
+				"requested to join your group",
+			)
+		}
+
 		BroadcastGroupMembershipChange(request.GroupID, userID, "added")
 
 		w.Header().Set("Content-Type", "application/json")
