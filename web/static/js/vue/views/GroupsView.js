@@ -94,7 +94,8 @@ const GroupsView = {
             this.$emit('open-create-group-post-modal', groupId);
         },
         handleOpenCreateGroupModal() {
-            this.showCreateGroupModal = true;
+            // Set the root's modal flag instead of local
+            this.$root.showCreateGroupModal = true;
         },
         handleEventClick(event) {
             this.$emit('event-click', event);
@@ -164,11 +165,6 @@ const GroupsView = {
                 ></g-group-main>
             </div>
             <users-list :users="$root.users" class="sidebar"></users-list>
-            <m-group-create
-                v-if="showCreateGroupModal"
-                @created="handleGroupCreated"
-                @close="showCreateGroupModal = false"
-            />
         </div>
     `
 };
