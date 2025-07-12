@@ -77,6 +77,35 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 				log.Printf("⚠️ Failed to add creator followers to private group: %v", err)
 			} else {
 				log.Println("✅ Added creator followers to private group")
+
+				// Send notifications to all followers
+				followersQuery := `SELECT follower_id FROM followers WHERE followed_id = ? AND status = 'accepted'`
+				followerRows, err := db.Query(followersQuery, userID)
+				if err == nil {
+					defer followerRows.Close()
+					for followerRows.Next() {
+						var followerID int
+						if err := followerRows.Scan(&followerID); err == nil {
+							actionData := map[string]interface{}{
+								"action":     "group_response",
+								"group_id":   group.ID,
+								"inviter_id": userID,
+							}
+							err = database.CreateNotification(
+								followerID, // follower receives notification
+								userID,     // group creator is sender
+								group.ID,   // reference to the group
+								"group_invitation",
+								true, // action required
+								actionData,
+								"invited you to join",
+							)
+							if err != nil {
+								log.Printf("WARNING: Failed to create group invitation notification: %v", err)
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -87,6 +116,27 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 				log.Printf("⚠️ Failed to add selected users to custom group: %v", err)
 			} else {
 				log.Printf("✅ Added %d selected users to custom group", len(requestData.SelectedUserIDs))
+
+				// Send notifications to selected users
+				for _, selectedUserID := range requestData.SelectedUserIDs {
+					actionData := map[string]interface{}{
+						"action":     "group_response",
+						"group_id":   group.ID,
+						"inviter_id": userID,
+					}
+					err = database.CreateNotification(
+						selectedUserID, // selected user receives notification
+						userID,         // group creator is sender
+						group.ID,       // reference to the group
+						"group_invitation",
+						true, // action required
+						actionData,
+						"invited you to join",
+					)
+					if err != nil {
+						log.Printf("WARNING: Failed to create group invitation notification: %v", err)
+					}
+				}
 			}
 		}
 

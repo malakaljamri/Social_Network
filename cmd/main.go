@@ -121,6 +121,12 @@ func main() {
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 	mux.HandleFunc("/api/unread-counts", handlers.GetUnreadCounts)
 
+	// Notification routes
+	mux.HandleFunc("/api/notifications", handlers.GetNotificationsHandler)
+	mux.HandleFunc("/api/notifications/mark-read", handlers.MarkAsReadHandler)
+	mux.HandleFunc("/api/notifications/action", handlers.HandleNotificationActionHandler)
+	mux.HandleFunc("/api/notifications/count", handlers.GetUnreadNotificationCountHandler)
+
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads
 	mux.HandleFunc("/web/", func(w http.ResponseWriter, r *http.Request) {

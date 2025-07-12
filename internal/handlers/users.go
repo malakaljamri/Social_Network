@@ -405,6 +405,57 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("SUCCESS: Database follow operation completed")
 
+	// Create notifications based on privacy settings
+	if targetUser.IsPrivate {
+		// Send follow request notification to target user
+		actionData := map[string]interface{}{
+			"action":      "follow_response",
+			"follower_id": currentUserID,
+			"followed_id": followReq.UserID,
+		}
+		err = database.CreateNotification(
+			followReq.UserID, // target user receives notification
+			currentUserID,    // current user is sender
+			0,                // no reference ID for follow requests
+			"follow_request",
+			true, // action required
+			actionData,
+			"wants to follow you",
+		)
+		if err != nil {
+			log.Printf("WARNING: Failed to create follow request notification: %v", err)
+		}
+	} else {
+		// Public profile - send notifications to both users
+		// Notification to target user
+		err = database.CreateNotification(
+			followReq.UserID, // target user receives notification
+			currentUserID,    // current user is sender
+			0,                // no reference ID
+			"follow_established",
+			false, // no action required
+			nil,
+			"is now following you",
+		)
+		if err != nil {
+			log.Printf("WARNING: Failed to create follow notification for target: %v", err)
+		}
+
+		// Notification to current user
+		err = database.CreateNotification(
+			currentUserID, // current user receives notification
+			currentUserID, // current user is sender (self-notification)
+			0,             // no reference ID
+			"follow_established",
+			false, // no action required
+			nil,
+			"you are now following",
+		)
+		if err != nil {
+			log.Printf("WARNING: Failed to create follow notification for self: %v", err)
+		}
+	}
+
 	// Check follow status after following
 	isFollowingAfter, err := database.IsFollowing(currentUserID, followReq.UserID)
 	if err != nil {
@@ -742,6 +793,36 @@ func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	switch requestData.Action {
 	case "accept":
 		err = database.AcceptFollowRequest(followerID, currentUserID)
+		if err == nil {
+			// Send notifications to both users when follow request is accepted
+			// Notification to follower (who requested)
+			err = database.CreateNotification(
+				followerID,    // follower receives notification
+				currentUserID, // current user is sender
+				0,             // no reference ID
+				"follow_established",
+				false, // no action required
+				nil,
+				"accepted your follow request",
+			)
+			if err != nil {
+				log.Printf("WARNING: Failed to create follow acceptance notification for follower: %v", err)
+			}
+
+			// Notification to current user (who accepted)
+			err = database.CreateNotification(
+				currentUserID, // current user receives notification
+				followerID,    // follower is sender
+				0,             // no reference ID
+				"follow_established",
+				false, // no action required
+				nil,
+				"you are now following each other",
+			)
+			if err != nil {
+				log.Printf("WARNING: Failed to create follow acceptance notification for current user: %v", err)
+			}
+		}
 	case "decline":
 		err = database.DeclineFollowRequest(followerID, currentUserID)
 	default:

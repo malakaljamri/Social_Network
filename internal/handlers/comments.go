@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -114,6 +115,35 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating comment")
 		return
+	}
+
+	// Get post owner information to send notification
+	postOwnerQuery := `SELECT user_id FROM posts WHERE id = ?`
+	postOwnerRows, err := database.FetchData(postOwnerQuery, postID)
+	if err == nil {
+		defer postOwnerRows.Close()
+		if postOwnerRows.Next() {
+			var postOwnerID int
+			if err := postOwnerRows.Scan(&postOwnerID); err == nil && postOwnerID != userID {
+				// Send notification to post owner (don't notify if commenting on own post)
+				actionData := map[string]interface{}{
+					"post_id":    postID,
+					"comment_id": comment.ID,
+				}
+				err = database.CreateNotification(
+					postOwnerID, // post owner receives notification
+					userID,      // commenter is sender
+					postID,      // reference to the post
+					"new_comment",
+					false, // no action required
+					actionData,
+					"commented on your post",
+				)
+				if err != nil {
+					log.Printf("WARNING: Failed to create comment notification: %v", err)
+				}
+			}
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)

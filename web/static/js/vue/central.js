@@ -578,6 +578,7 @@ app.component('groups-view', GroupsView);
 app.component('profile-view', ProfileView);
 app.component('create-post-modal', CreatePostModal);
 app.component('comment-section', CommentSection);
+app.component('notifications', Notifications);
 app.component('m-register', M_Register);
 app.component('m-create-post', M_CreatePost);
 app.component('m-group-create', M_GroupCreate);

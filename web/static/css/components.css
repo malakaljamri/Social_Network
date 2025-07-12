@@ -497,18 +497,190 @@ button.pagination-button.active {
 
 /* Notifications */
 .floating-notification {
-  position: fixed;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
-  background: var(--card-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-md);
-  padding: var(--spacing-lg);
-  max-width: 300px;
-  z-index: var(--z-index-modal);
-  opacity: 0;
-  transform: translateX(100%);
-  transition: all 0.3s ease;
+    position: fixed;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    background: var(--card-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    max-width: 300px;
+    z-index: var(--z-index-modal);
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+/* Notification Components */
+.notifications-container {
+    width: 100%;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.notification-item {
+    background: var(--card-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    border-left: 4px solid var(--primary-color);
+    transition: var(--transition-all);
+}
+
+.notification-item.unread {
+    border-left-color: var(--accent-color);
+    background: rgba(var(--accent-color-rgb), 0.05);
+}
+
+.notification-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateX(4px);
+}
+
+.notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.notification-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+}
+
+.notification-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.notification-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.sender-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-color);
+}
+
+.sender-name .profile-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: var(--transition-colors);
+}
+
+.sender-name .profile-link:hover {
+    color: var(--primary-color-dark);
+    text-decoration: underline;
+}
+
+.notification-message {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.notification-time {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.notification-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.action-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-all);
+}
+
+.accept-btn {
+    background: var(--success-color);
+    color: white;
+}
+
+.accept-btn:hover {
+    background: var(--success-color-dark);
+    transform: translateY(-1px);
+}
+
+.decline-btn {
+    background: var(--error-color);
+    color: white;
+}
+
+.decline-btn:hover {
+    background: var(--error-color-dark);
+    transform: translateY(-1px);
+}
+
+.notification-links {
+    margin-top: var(--spacing-xs);
+}
+
+.notification-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-colors);
+}
+
+.notification-link:hover {
+    color: var(--primary-color-dark);
+    text-decoration: underline;
+}
+
+.no-notifications {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--spacing-lg);
+    font-style: italic;
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--error-color);
+    color: white;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .floating-notification.show {

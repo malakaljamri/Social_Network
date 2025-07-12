@@ -129,6 +129,9 @@ const WebSocketPlugin = {
                 case 'group_message':
                     handleGroupMessage(message.content);
                     break;
+                case 'notification_count_update':
+                    handleNotificationCountUpdate(message.content);
+                    break;
                 default:
                     console.warn('Unknown message type:', message);
             }
@@ -221,6 +224,24 @@ const WebSocketPlugin = {
                 };
                 if (!vueApp.groups.some(g => g.ID === groupObj.ID)) {
                     vueApp.groups.push(groupObj);
+                }
+            }
+        }
+
+        // Handle notification count updates
+        function handleNotificationCountUpdate(data) {
+            const vueApp = app.config.globalProperties.$root;
+            if (vueApp && vueApp.currentUser && vueApp.currentUser.value) {
+                const currentUserId = vueApp.currentUser.value.id || vueApp.currentUser.value.ID;
+                if (data.user_id === currentUserId) {
+                    // Update notification count in NavBar component
+                    const navBar = document.querySelector('.notifications-wrapper');
+                    if (navBar && navBar.__vueParentComponent) {
+                        const navBarInstance = navBar.__vueParentComponent.ctx;
+                        if (navBarInstance && typeof navBarInstance.fetchNotificationCount === 'function') {
+                            navBarInstance.fetchNotificationCount();
+                        }
+                    }
                 }
             }
         }
