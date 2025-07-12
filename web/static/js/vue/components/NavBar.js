@@ -25,6 +25,7 @@ const NavBar = {
                                 :notifications="notifications.slice(0, 5)"
                                 :show-actions="true"
                                 @action-handled="handleNotificationAction"
+                                @refresh-notifications="refreshNotifications"
                                 @view-profile="viewUserProfile"
                                 @view-post="viewPost"
                                 @view-event="viewEvent"
@@ -43,6 +44,7 @@ const NavBar = {
                                 :notifications="allNotifications"
                                 :show-actions="true"
                                 @action-handled="handleNotificationAction"
+                                @refresh-notifications="refreshNotifications"
                                 @view-profile="viewUserProfile"
                                 @view-post="viewPost"
                                 @view-event="viewEvent"
@@ -229,6 +231,14 @@ const NavBar = {
                 await this.fetchNotificationCount();
             } catch (error) {
                 console.error('Error marking notifications as read:', error);
+            }
+        },
+
+        async refreshNotifications() {
+            await this.fetchNotifications();
+            await this.fetchNotificationCount();
+            if (this.showModal) {
+                await this.fetchAllNotifications();
             }
         }
     },

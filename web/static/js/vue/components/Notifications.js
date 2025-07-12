@@ -135,31 +135,65 @@ const Notifications = {
         },
         
         async handleAction(notificationId, action) {
-            try {
-                const response = await fetch('/api/notifications/action', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        notification_id: notificationId,
-                        action: action
-                    }),
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    // Emit event to parent to refresh notifications
+            // Find the notification object
+            const notification = this.notifications.find(n => n.id === notificationId);
+            if (notification && notification.type === 'follow_request') {
+                // Use the same API as the profile page
+                try {
+                    const response = await fetch(`/api/profile/follow-request?follower_id=${notification.sender_id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ action }),
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to ${action} follow request`);
+                    }
+
+                    // Remove the actionable notification from the list
+                    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+
+                    // Optionally fetch latest notifications to show confirmation
+                    await this.fetchLatestNotifications?.();
+
                     this.$emit('action-handled', { notificationId, action });
-                    
-                    // Show success message
                     this.showSuccessMessage(action === 'accept' ? 'Accepted!' : 'Declined!');
-                } else {
-                    throw new Error('Failed to handle action');
+                } catch (error) {
+                    console.error(`Error handling follow request:`, error);
+                    this.showErrorMessage(`Failed to ${action} follow request. Please try again.`);
                 }
-            } catch (error) {
-                console.error('Error handling notification action:', error);
-                this.showErrorMessage('Failed to handle action. Please try again.');
+            } else {
+                // For other types, use /api/notifications/action
+                try {
+                    const response = await fetch('/api/notifications/action', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            notification_id: notificationId,
+                            action: action
+                        }),
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        // Remove the actionable notification from the list
+                        this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                        // Optionally fetch latest notifications to show confirmation
+                        await this.fetchLatestNotifications?.();
+                        this.$emit('action-handled', { notificationId, action });
+                        this.showSuccessMessage(action === 'accept' ? 'Accepted!' : 'Declined!');
+                    } else {
+                        throw new Error('Failed to handle action');
+                    }
+                } catch (error) {
+                    console.error('Error handling notification action:', error);
+                    this.showErrorMessage('Failed to handle action. Please try again.');
+                }
             }
         },
         
@@ -231,6 +265,12 @@ const Notifications = {
                     document.body.removeChild(errorDiv);
                 }, 300);
             }, 3000);
+        },
+        // Helper to fetch latest notifications (parent should provide this as a prop or via emit)
+        async fetchLatestNotifications() {
+            // This method should be provided by the parent component (NavBar) via prop or event
+            // For now, emit an event so the parent can refresh notifications
+            this.$emit('refresh-notifications');
         }
     },
     emits: ['action-handled', 'view-profile', 'view-post', 'view-event', 'view-group']
