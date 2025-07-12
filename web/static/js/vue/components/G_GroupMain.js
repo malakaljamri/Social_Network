@@ -16,8 +16,29 @@ const GroupMain = {
             eventError: '',
             groupAccess: false,
             groupMembership: '',
-            joinLoading: false
+            joinLoading: false,
+            unreadCounts: {} // Track unread counts by group ID
         };
+    },
+    computed: {
+        myId() {
+            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        }
+    },
+    mounted() {
+        // Fetch unread group counts on page load only if user is logged in
+        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+            fetch('/api/unread-group-counts', { credentials: 'include' })
+                .then(res => res.json())
+                .then(data => {
+                    this.unreadCounts = data || {};
+                })
+                .catch(() => {
+                    this.unreadCounts = {};
+                });
+        }
+
+        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     methods: {
         openCreateGroupPostModal() {
@@ -28,6 +49,14 @@ const GroupMain = {
         },
         openGroupChatWindow() {
             this.showGroupChatWindow = true;
+            // Reset unread count when group chat is opened
+            if (this.selectedGroup && this.selectedGroup.ID) {
+                this.unreadCounts[this.selectedGroup.ID] = 0;
+                // Dispatch event to update other components
+                window.dispatchEvent(new CustomEvent('unread-group-count-update', { 
+                    detail: { groupId: this.selectedGroup.ID, count: 0 } 
+                }));
+            }
         },
         closeCreateGroupPostModal() {
             this.showCreateGroupPostForm = false;
@@ -96,7 +125,14 @@ const GroupMain = {
             } finally {
                 this.joinLoading = false;
             }
+        },
+        handleUnreadCountUpdate(event) {
+            const { groupId, count } = event.detail;
+            this.unreadCounts[groupId] = count;
         }
+    },
+    beforeUnmount() {
+        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     watch: {
         selectedGroup: {
@@ -129,6 +165,7 @@ const GroupMain = {
                         </button>
                         <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
                             <i class="fas fa-comments"></i> Group Chat
+                                <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
                         </button>
                         </div>
                         

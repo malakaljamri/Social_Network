@@ -14,6 +14,9 @@ const GroupList = {
             if (!this.searchQuery) return this.groups;
             const query = this.searchQuery.toLowerCase();
             return this.groups.filter(group => group.Name.toLowerCase().includes(query));
+        },
+        myId() {
+            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
         }
     },
     mounted() {
@@ -27,6 +30,18 @@ const GroupList = {
         window.removeEventListener('clear-all-data', this.clearAllData);
         window.removeEventListener('session-expired', this.handleSessionExpired);
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+
+        // Fetch unread group counts on page load only if user is logged in
+        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+            fetch('/api/unread-group-counts', { credentials: 'include' })
+                .then(res => res.json())
+                .then(data => {
+                    this.unreadCounts = data || {};
+                })
+                .catch(() => {
+                    this.unreadCounts = {};
+                });
+        }
     },
     watch: {
         groups: {
@@ -86,7 +101,6 @@ const GroupList = {
             }
         },
         selectGroup(groupId) {
-            this.unreadCounts[groupId] = 0;
             this.$emit('group-selected', groupId);
         },
         showCreateGroupModal() {

@@ -7,6 +7,7 @@ import (
 	"social_network/internal/database"
 	"sync"
 	"time"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -231,15 +232,48 @@ func (h *Hub) Run() {
 				client.SetOnlineStatus(false)
 			}
 		case message := <-h.Broadcast:
-			// log.Printf("Broadcasting message to %d clients", len(h.clients))
-			for client := range h.clients {
-				select {
-				case client.Send <- message:
-					// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
-				default:
-					log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
-					close(client.Send)
-					delete(h.clients, client)
+			// Parse the message to get the target UserID
+			var msgData map[string]interface{}
+			if err := json.Unmarshal(message, &msgData); err == nil {
+				if userID, ok := msgData["user_id"].(float64); ok {
+					// Send only to the specific user
+					targetUserID := int(userID)
+					for client := range h.clients {
+						if client.UserID == targetUserID {
+							select {
+							case client.Send <- message:
+								// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+							default:
+								log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
+								close(client.Send)
+								delete(h.clients, client)
+							}
+						}
+					}
+				} else {
+					// If no specific user_id, broadcast to all (for general messages)
+					for client := range h.clients {
+						select {
+						case client.Send <- message:
+							// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+						default:
+							log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
+							close(client.Send)
+							delete(h.clients, client)
+						}
+					}
+				}
+			} else {
+				// Fallback: broadcast to all if message parsing fails
+				for client := range h.clients {
+					select {
+					case client.Send <- message:
+						// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+					default:
+						log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
+						close(client.Send)
+						delete(h.clients, client)
+					}
 				}
 			}
 		}

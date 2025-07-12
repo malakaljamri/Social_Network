@@ -186,15 +186,17 @@ const UsersList = {
         window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
         this.refreshInterval = setInterval(() => {}, 30000); // No fetchUsers, so just a placeholder
 
-        // Fetch unread counts on page load
-        fetch('/api/unread-counts', { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                this.unreadCounts = data || {};
-            })
-            .catch(() => {
-                this.unreadCounts = {};
-            });
+        // Fetch unread counts on page load only if user is logged in
+        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+            fetch('/api/unread-counts', { credentials: 'include' })
+                .then(res => res.json())
+                .then(data => {
+                    this.unreadCounts = data || {};
+                })
+                .catch(() => {
+                    this.unreadCounts = {};
+                });
+        }
     },
     beforeUnmount() {
         if (this.refreshInterval) {

@@ -67,6 +67,23 @@ const GroupChat = {
             const c = this.$refs.messagesContainer;
             if (c) c.scrollTop = c.scrollHeight;
         },
+        isScrolledToBottom() {
+            const c = this.$refs.messagesContainer;
+            if (!c) return false;
+            return Math.abs(c.scrollHeight - c.scrollTop - c.clientHeight) < 5;
+        },
+        debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        },
+        async resetUnread() {
+            if (!this.isScrolledToBottom()) return;
+            // Mark group messages as read by re-fetching history (or call a dedicated endpoint if available)
+            await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
+        },
         receiveMessage(msg) {
             if (msg.group_id === this.groupId) {
                 this.messages.push(msg);
@@ -86,10 +103,24 @@ const GroupChat = {
         });
         this.$nextTick(() => {
             if (this.$refs.inputBox) this.$refs.inputBox.focus();
+            const c = this.$refs.messagesContainer;
+            if (c) {
+                // Add user activity listeners
+                this._debouncedResetUnread = this.debounce(this.resetUnread, 500);
+                ['focus', 'keydown', 'mousedown', 'mousemove', 'scroll'].forEach(evt => {
+                    c.addEventListener(evt, this._debouncedResetUnread);
+                });
+            }
         });
     },
     beforeUnmount() {
         window.removeEventListener('group-chat-message', this._onGroupChatMessage);
+        const c = this.$refs.messagesContainer;
+        if (c && this._debouncedResetUnread) {
+            ['focus', 'keydown', 'mousedown', 'mousemove', 'scroll'].forEach(evt => {
+                c.removeEventListener(evt, this._debouncedResetUnread);
+            });
+        }
     }
 };
 window.G_GroupChat = GroupChat; 

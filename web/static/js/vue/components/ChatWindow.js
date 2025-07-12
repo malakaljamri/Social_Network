@@ -150,6 +150,23 @@ const ChatWindow = {
             const c = this.$refs.messagesContainer;
             if (c) c.scrollTop = c.scrollHeight;
         },
+        isScrolledToBottom() {
+            const c = this.$refs.messagesContainer;
+            if (!c) return false;
+            return Math.abs(c.scrollHeight - c.scrollTop - c.clientHeight) < 5;
+        },
+        debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        },
+        async resetUnread() {
+            if (!this.isScrolledToBottom()) return;
+            // Mark messages as read by re-fetching history (or call a dedicated endpoint if available)
+            await fetch(`/api/chat-history?user_id=${this.user.ID}`);
+        },
         receiveMessage(msg) {
             const lastMsg = this.messages[this.messages.length - 1];
             if (!lastMsg || lastMsg.timestamp != msg.timestamp) {
@@ -189,6 +206,12 @@ const ChatWindow = {
                     if (c.scrollTop === 0 && !this.loadingOlder && !this.allLoaded) {
                         this.fetchHistory(true);
                     }
+                    this._debouncedResetUnread();
+                });
+                // Add user activity listeners
+                this._debouncedResetUnread = this.debounce(this.resetUnread, 500);
+                ['focus', 'keydown', 'mousedown', 'mousemove'].forEach(evt => {
+                    c.addEventListener(evt, this._debouncedResetUnread);
                 });
             }
         });
@@ -200,6 +223,11 @@ const ChatWindow = {
         const c = this.$refs.messagesContainer;
         if (c && this._onScroll) {
             c.removeEventListener('scroll', this._onScroll);
+        }
+        if (c && this._debouncedResetUnread) {
+            ['focus', 'keydown', 'mousedown', 'mousemove'].forEach(evt => {
+                c.removeEventListener(evt, this._debouncedResetUnread);
+            });
         }
     }
 };

@@ -57,7 +57,10 @@ const NavBar = {
             </div>
             <div v-if="currentUserValue.isLoggedIn" class="nav-center" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: center;">
                 <button class="button secondary-button" @click="goToHome">🏠 Home</button>
-                <button class="button secondary-button" @click="goToGroups">👥 Groups</button>
+                <button class="button secondary-button" @click="goToGroups" style="position: relative;">
+                    👥 Groups
+                    <span v-if="myId && totalUnreadGroupCount > 0" class="unread-badge right-badge">{{ totalUnreadGroupCount }}</span>
+                </button>
             </div>
             <div v-if="currentUserValue.isLoggedIn" class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
                 <span class="user-greeting">{{ currentUserValue.username }} 👋</span>
@@ -82,17 +85,41 @@ const NavBar = {
         },
         currentUserValue() {
             return this.currentUser || { isLoggedIn: false, username: '' };
+        },
+        myId() {
+            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        },
+        totalUnreadGroupCount() {
+            if (!this.myId) return 0;
+            const total = Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
+            console.log('NavBar: Total unread group count calculation:', {
+                myId: this.myId,
+                unreadCounts: this.unreadCounts,
+                total: total
+            });
+            return total;
         }
     },
     data() {
         return {
             showDropdown: false,
             showModal: false,
-            notifications: [],
-            allNotifications: [],
-            notificationCount: 0,
-            loading: false
+            unreadCounts: {} // Track unread group counts
         };
+    },
+    mounted() {
+        // Fetch unread group counts on page load only if user is logged in
+        this.fetchUnreadCountsIfLoggedIn();
+
+        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+    },
+    watch: {
+        currentUser: {
+            handler() {
+                this.fetchUnreadCountsIfLoggedIn();
+            },
+            deep: true
+        }
     },
     methods: {
         goToHome() {
@@ -135,6 +162,25 @@ const NavBar = {
         },
         closeModal() {
             this.showModal = false;
+        },
+        handleUnreadCountUpdate(event) {
+            const { groupId, count } = event.detail;
+            this.unreadCounts[groupId] = count;
+        },
+        fetchUnreadCountsIfLoggedIn() {
+            if (this.currentUserValue.isLoggedIn) {
+                console.log('NavBar: Fetching unread group counts for user:', this.currentUserValue.id);
+                fetch('/api/unread-group-counts', { credentials: 'include' })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('NavBar: Received unread group counts:', data);
+                        this.unreadCounts = data || {};
+                    })
+                    .catch((error) => {
+                        console.error('NavBar: Error fetching unread group counts:', error);
+                        this.unreadCounts = {};
+                    });
+            }
         },
         
         async fetchNotifications() {
@@ -300,6 +346,7 @@ const NavBar = {
         if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
             this.$root.websocket.eventBus.off('notification-count-update');
         }
+        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     }
 };
 // No mount here, will be registered globally. 

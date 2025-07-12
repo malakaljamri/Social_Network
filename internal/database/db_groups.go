@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type Group struct {
@@ -192,8 +193,8 @@ func AddSelectedUsersToCustomGroup(db *sql.DB, groupID int, userIDs []int) error
 
 // UpdateLastGroupChatOpenTime updates the last_group_chat_open_time for a user in a group
 func UpdateLastGroupChatOpenTime(groupID, userID int) error {
-	query := `UPDATE group_members SET last_group_chat_open_time = CURRENT_TIMESTAMP WHERE group_id = ? AND user_id = ?`
-	_, err := db.Exec(query, groupID, userID)
+	query := `UPDATE group_members SET last_group_chat_open_time = ? WHERE group_id = ? AND user_id = ?`
+	_, err := db.Exec(query, time.Now(), groupID, userID)
 	return err
 }
 
@@ -204,7 +205,8 @@ func CountUnreadGroupMessages(groupID, userID int) int {
 	if err != nil || lastOpenTime == "" {
 		lastOpenTime = "1970-01-01 00:00:00"
 	}
-	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND timestamp > ?`
+	// Use a more explicit timestamp comparison to avoid precision issues
+	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`
 	var count int
 	err = db.QueryRow(query, groupID, lastOpenTime).Scan(&count)
 	if err != nil {
@@ -228,4 +230,30 @@ func GetGroupMemberIDs(groupID int) []int {
 		}
 	}
 	return ids
+}
+
+// GetUnreadGroupCountsForUser returns a map of group_id to unread count for the given user
+func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
+	rows, err := db.Query(`SELECT group_id, last_group_chat_open_time FROM group_members WHERE user_id = ? AND status = 'accepted'`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := make(map[int]int)
+	for rows.Next() {
+		var groupID int
+		var lastOpenTime sql.NullString
+		if err := rows.Scan(&groupID, &lastOpenTime); err == nil {
+			openTime := "1970-01-01 00:00:00"
+			if lastOpenTime.Valid && lastOpenTime.String != "" {
+				openTime = lastOpenTime.String
+			}
+			var count int
+			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`, groupID, openTime).Scan(&count)
+			if err2 == nil {
+				counts[groupID] = count
+			}
+		}
+	}
+	return counts, nil
 }

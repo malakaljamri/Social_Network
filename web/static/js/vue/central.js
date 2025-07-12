@@ -128,6 +128,9 @@ const app = Vue.createApp({
                     document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
                 });
                 
+                
+                // Refresh page to ensure clean state for new user
+                window.location.reload();
             } catch (error) {
                 console.error('Logout error:', error);
                 this.loggingOut = false;

@@ -47,7 +47,7 @@ func SaveGroupChatMessage(message *models.GroupChatMessage) error {
 
 // Fetch all messages for a given group_id
 func GetGroupChatHistory(groupID int, limit int, offset int) ([]*models.GroupChatMessage, error) {
-	query := `SELECT gm.group_id, gm.sender_id, u.username, u.avatar, gm.content, gm.timestamp FROM group_messages gm JOIN users u ON gm.sender_id = u.id WHERE gm.group_id = ? ORDER BY gm.timestamp ASC LIMIT ? OFFSET ?`
+	query := `SELECT gm.group_id, gm.sender_id, u.username, u.avatar, gm.content, gm.timestamp FROM group_messages gm JOIN users u ON gm.sender_id = u.id WHERE gm.group_id = ? ORDER BY gm.id DESC LIMIT ? OFFSET ?`
 	rows, err := db.Query(query, groupID, limit, offset)
 	if err != nil {
 		return nil, err
