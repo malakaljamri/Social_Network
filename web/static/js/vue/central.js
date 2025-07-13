@@ -80,7 +80,15 @@ const app = Vue.createApp({
             // Always set selectedProfileUserId to current user's ID
             const id = this.currentUser.value.id || this.currentUser.value.ID;
             this.selectedProfileUserId = id;
-            this.currentView = 'profile';
+            if (this.currentView !== 'profile') {
+                this.currentView = 'profile';
+            } else {
+                // If already on profile, force re-render
+                this.currentView = null;
+                this.$nextTick(() => {
+                    this.currentView = 'profile';
+                });
+            }
         },
         goToLogin() {
             this.currentView = 'login';
@@ -584,7 +592,7 @@ const app = Vue.createApp({
                 @open-create-group-post-modal="openCreateGroupPostModal"
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
-                v-bind="currentView === 'profile' ? { userId: selectedProfileUserId } : {}"
+                v-bind="currentView === 'profile' ? { userId: selectedProfileUserId, currentUser: currentUser.value || { id: null } } : {}"
                 @event-click="openEventDetailsModal"
             ></component>
             <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>
