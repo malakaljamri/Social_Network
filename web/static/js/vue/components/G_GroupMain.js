@@ -1,6 +1,11 @@
 // GroupMain Component
 const GroupMain = {
-    props: ['selectedGroup', 'groupPosts', 'groupEvents', 'categories', 'currentUser'],
+    props: {
+        currentUser: {
+            type: Object,
+            required: true
+        }
+    },
     data() {
         return {
             showCreateGroupPostForm: false,
@@ -22,12 +27,12 @@ const GroupMain = {
     },
     computed: {
         myId() {
-            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+            return this.currentUser?.id || null;
         }
     },
     mounted() {
         // Fetch unread group counts on page load only if user is logged in
-        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+        if (this.currentUser && this.currentUser.isLoggedIn) {
             fetch('/api/unread-group-counts', { credentials: 'include' })
                 .then(res => res.json())
                 .then(data => {

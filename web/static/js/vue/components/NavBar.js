@@ -4,7 +4,7 @@ const NavBar = {
         <nav class="navbar" style="display: flex; align-items: center; justify-content: space-between;">
             <div class="nav-left" style="display: flex; align-items: center; gap: 24px; flex: 1;">
                 <a href="http://localhost:8080"><span class="navbar-title" style="font-size: 1.3rem; font-weight: bold; color: #fff;">Social Network</span></a>
-                <div v-if="currentUser.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
+                <div v-if="currentUserValue.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications
                         <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
@@ -87,7 +87,7 @@ const NavBar = {
             return this.currentUser || { isLoggedIn: false, username: '' };
         },
         myId() {
-            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+            return this.currentUserValue.id || null;
         },
         totalUnreadGroupCount() {
             if (!this.myId) return 0;
@@ -108,10 +108,21 @@ const NavBar = {
         };
     },
     mounted() {
-        // Fetch unread group counts on page load only if user is logged in
+        if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
+            this.fetchNotificationCount();
+            this.fetchNotifications();
+        }
         this.fetchUnreadCountsIfLoggedIn();
-
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        // Listen for notification count updates from WebSocket
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.on('notification-count-update', (data) => {
+                if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
+                    this.fetchNotificationCount();
+                    this.fetchNotifications();
+                }
+            });
+        }
     },
     watch: {
         currentUser: {
@@ -184,6 +195,7 @@ const NavBar = {
         },
         
         async fetchNotifications() {
+            if (!this.currentUserValue.isLoggedIn) return;
             this.loading = true;
             try {
                 const response = await fetch('/api/notifications?limit=30', {
@@ -201,6 +213,7 @@ const NavBar = {
         },
         
         async fetchAllNotifications() {
+            if (!this.currentUserValue.isLoggedIn) return;
             try {
                 const response = await fetch('/api/notifications?limit=100', {
                     credentials: 'include'
@@ -215,6 +228,7 @@ const NavBar = {
         },
         
         async fetchNotificationCount() {
+            if (!this.currentUserValue.isLoggedIn) return;
             try {
                 const response = await fetch('/api/notifications/count', {
                     credentials: 'include'
@@ -229,6 +243,7 @@ const NavBar = {
         },
         
         async handleNotificationAction({ notificationId, action }) {
+            if (!this.currentUserValue.isLoggedIn) return;
             try {
                 console.log('NavBar: Handling notification action:', notificationId, action);
                 
@@ -307,6 +322,7 @@ const NavBar = {
         },
         
         async markNotificationsAsRead() {
+            if (!this.currentUserValue.isLoggedIn) return;
             try {
                 await fetch('/api/notifications/mark-read', {
                     method: 'POST',

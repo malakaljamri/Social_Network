@@ -435,6 +435,7 @@ const app = Vue.createApp({
             this.showGroupEventsModal = false;
         },
         async fetchUsers() {
+            if (!this.currentUser.value.isLoggedIn) return;
             try {
                 const response = await fetch('/api/users', { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch users');
@@ -445,6 +446,7 @@ const app = Vue.createApp({
             }
         },
         async fetchGroups() {
+            if (!this.currentUser.value.isLoggedIn) return;
             try {
                 const response = await fetch('/api/groups', { credentials: 'include' });
                 if (response.ok) {
@@ -460,6 +462,7 @@ const app = Vue.createApp({
         },
 
         async fetchNotificationCount() {
+            if (!this.currentUser.value.isLoggedIn) return;
             try {
                 const response = await fetch('/api/notifications/count', { credentials: 'include' });
                 if (response.ok) {
@@ -523,6 +526,12 @@ const app = Vue.createApp({
                 this.goToLogin();
             });
 
+        // Only fetch users and set interval if logged in
+        if (this.currentUser && this.currentUser.value && this.currentUser.value.isLoggedIn) {
+            this.fetchUsers();
+            this._userInterval = setInterval(this.fetchUsers, 30000);
+        }
+
         // Listen for chat window events
         window.addEventListener('show-chat', (event) => {
             this.showChat(event.detail.userId);
@@ -541,8 +550,11 @@ const app = Vue.createApp({
             this.openChat(e.detail);
         });
 
-        this.fetchUsers();
-        this._userInterval = setInterval(this.fetchUsers, 30000);
+        // Only fetch groups and notification count if logged in
+        if (this.currentUser && this.currentUser.value && this.currentUser.value.isLoggedIn) {
+            this.fetchGroups();
+            this.fetchNotificationCount();
+        }
     },
     beforeUnmount() {
         clearInterval(this._userInterval);
@@ -562,7 +574,7 @@ const app = Vue.createApp({
                 @show-modal="handleShowModal"
             ></nav-bar>
             <component :is="currentView + '-view'"
-                v-if="(currentUser.value && currentUser.value.isLoggedIn) || currentView === 'login' || currentView === 'register'"
+                v-if="((currentUser.value && currentUser.value.isLoggedIn) || (!currentUser.value && false)) || currentView === 'login' || currentView === 'register'"
                 :key="currentView"
                 @login="onLogin"
                 @registered="onRegistered"
@@ -590,7 +602,7 @@ const app = Vue.createApp({
             <m-group-create
                 :show="showCreateGroupModal"
                 :users="users"
-                :current-user="currentUser.value || {}"
+                :current-user="currentUser.value || { isLoggedIn: false }"
                 @close="showCreateGroupModal = false"
                 @created="onGroupCreated"
             ></m-group-create>
@@ -612,7 +624,7 @@ const app = Vue.createApp({
                     v-for="user in openChats"
                     :key="user.ID"
                     :user="user"
-                    :currentUser="currentUser.value"
+                    :currentUser="currentUser.value || { isLoggedIn: false }"
                     @close="openChats = []"
                 ></chat-window>
             </div>

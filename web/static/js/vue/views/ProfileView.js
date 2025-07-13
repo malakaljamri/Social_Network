@@ -127,7 +127,7 @@ const ProfileView = {
                                 <feed-main
                                     :posts="profile.posts || []"
                                     :categories="categories"
-                                    :current-user="$root.currentUser.value"
+                                    :current-user="currentUser"
                                     :total-pages="1"
                                     :current-page="1"
                                     :profile-user-name="profile.user.Username || profile.user.username"
@@ -139,7 +139,7 @@ const ProfileView = {
             </div>
             <users-list :users="$root.users" class="users-list" @open-chat="openChat"></users-list>
             <div id="chat-section">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="$root.currentUser.value" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>
     `,
@@ -179,18 +179,15 @@ const ProfileView = {
     },
     computed: {
         isOwnProfile() {
-            // Robust check for both ID and id fields
-            const currentId = this.$root.currentUser.value.ID || this.$root.currentUser.value.id;
+            const currentId = this.currentUser.ID || this.currentUser.id;
             const profileId = this.profile.user.ID || this.profile.user.id;
             return currentId === profileId;
         },
         isViewingOwnProfile() {
-            // Alias for template clarity
             return this.isOwnProfile;
         },
         isFollower() {
-            // Check if current user is in followers list
-            return this.followers.some(u => u.id === this.$root.currentUser.value.id);
+            return this.followers.some(u => u.id === this.currentUser.id);
         },
         filteredPosts() {
             return this.profile.posts || [];
@@ -214,7 +211,7 @@ const ProfileView = {
             try {
                 let userId = this.userId;
                 if (!userId) {
-                    userId = this.$root.currentUser.value.id;
+                    userId = this.currentUser.id;
                 }
                 if (!userId) {
                     console.error('ProfileView: userId is undefined, cannot fetch profile');
@@ -262,7 +259,7 @@ const ProfileView = {
         async fetchFollowers() {
             let userId = this.userId;
             if (!userId) {
-                userId = this.$root.currentUser.value.id;
+                userId = this.currentUser.id;
             }
             if (!userId) {
                 this.followers = [];
@@ -278,7 +275,7 @@ const ProfileView = {
         },
         async fetchFollowing() {
             let userId = this.userId;
-            if (!userId) userId = this.$root.currentUser.value.id;
+            if (!userId) userId = this.currentUser.id;
             if (!userId) {
                 this.following = [];
                 return;
@@ -312,7 +309,7 @@ const ProfileView = {
             this.filters = newFilters;
             let userId = this.userId;
             if (!userId) {
-                userId = this.$root.currentUser.value.id;
+                userId = this.currentUser.id;
             }
             this.filters.UserID = userId;
             this.fetchProfile();
@@ -425,6 +422,10 @@ const ProfileView = {
         userId: {
             type: [String, Number],
             default: null
+        },
+        currentUser: {
+            type: Object,
+            required: true
         }
     },
     watch: {

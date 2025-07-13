@@ -9,6 +9,10 @@ const FiltersSidebar = {
         isProfile: {
             type: Boolean,
             default: false
+        },
+        currentUser: {
+            type: Object,
+            required: true
         }
     },
     template: `
@@ -92,7 +96,7 @@ const FiltersSidebar = {
     },
     computed: {
         currentUserValue() {
-            return this.$root.currentUser.value;
+            return this.currentUser || { isLoggedIn: false };
         }
     },
     methods: {

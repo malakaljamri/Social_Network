@@ -7,7 +7,7 @@ const UsersList = {
         },
         currentUser: {
             type: Object,
-            default: () => ({})
+            required: true
         }
     },
     template: `
@@ -73,7 +73,7 @@ const UsersList = {
             });
         },
         myId() {
-            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+            return (this.currentUser && this.currentUser.id) || null;
         },
         totalUnreadCount() {
             if (!this.myId) return 0;
@@ -187,7 +187,7 @@ const UsersList = {
         this.refreshInterval = setInterval(() => {}, 30000); // No fetchUsers, so just a placeholder
 
         // Fetch unread counts on page load only if user is logged in
-        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+        if (this.currentUser?.value?.isLoggedIn || this.currentUser?.isLoggedIn) {
             fetch('/api/unread-counts', { credentials: 'include' })
                 .then(res => res.json())
                 .then(data => {

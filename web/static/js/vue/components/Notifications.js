@@ -135,6 +135,7 @@ const Notifications = {
         },
         
         async handleAction(notificationId, action) {
+            if (!this.$root.currentUser.value.isLoggedIn) return;
             try {
                 console.log('Notifications: Handling action:', notificationId, action);
                 

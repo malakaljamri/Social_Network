@@ -1,6 +1,13 @@
 // GroupList Component
 const GroupList = {
-    props: ['groups', 'selectedGroupId', 'onGroupSelected', 'currentUser'],
+    props: {
+        groups: Array,
+        selectedGroupId: [String, Number],
+        currentUser: {
+            type: Object,
+            required: true
+        }
+    },
     data() {
         return {
             searchQuery: '',
@@ -16,7 +23,7 @@ const GroupList = {
             return this.groups.filter(group => group.Name.toLowerCase().includes(query));
         },
         myId() {
-            return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+            return (this.currentUser && this.currentUser.id) || null;
         }
     },
     mounted() {
@@ -32,7 +39,7 @@ const GroupList = {
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
 
         // Fetch unread group counts on page load only if user is logged in
-        if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+        if (this.currentUser?.value?.isLoggedIn || this.currentUser?.isLoggedIn) {
             fetch('/api/unread-group-counts', { credentials: 'include' })
                 .then(res => res.json())
                 .then(data => {

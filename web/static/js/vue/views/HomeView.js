@@ -72,7 +72,7 @@ const HomeView = {
             this.$root.handleShowModal('createPost');
         },
         async fetchPosts() {
-            if (!this.currentUserValue && this.currentUserValue.isLoggedIn) return;
+            if (!this.currentUserValue || !this.currentUserValue.isLoggedIn) return;
             this.loading = true;
             let queryParams = new URLSearchParams({
                 page: this.currentPage,
