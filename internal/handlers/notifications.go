@@ -184,7 +184,21 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 func handleFollowRequestAction(notification *database.Notification, action string, sender *models.User) error {
 	switch action {
 	case "accept":
-		return database.AcceptFollowRequest(sender.ID, notification.UserID)
+		err := database.AcceptFollowRequest(sender.ID, notification.UserID)
+		if err == nil {
+			// Broadcast follow status update for both users
+			msg := websocket.Message{
+				Type: "follow_status_update",
+				Content: map[string]interface{}{
+					"follower_id": sender.ID,
+					"followed_id": notification.UserID,
+				},
+			}
+			if jsonMsg, err := json.Marshal(msg); err == nil {
+				websocket.MainHub.Broadcast <- jsonMsg
+			}
+		}
+		return err
 	case "decline":
 		return database.DeclineFollowRequest(sender.ID, notification.UserID)
 	default:

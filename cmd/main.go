@@ -69,7 +69,7 @@ func main() {
 	mux.HandleFunc("/api/oldest-post-date", handlers.GetOldestPostDate)
 	mux.HandleFunc("/api/newest-post-date", handlers.GetNewestPostDate)
 
-	// User profile and follow routes
+	// User profile and follow routes (unified under /api/user/)
 	mux.HandleFunc("/api/user/profile", handlers.GetUserProfile)
 	mux.HandleFunc("/api/user/posts", handlers.GetUserPosts)
 	mux.HandleFunc("/api/user/followers", handlers.GetUserFollowers)
@@ -78,27 +78,47 @@ func main() {
 	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 	mux.HandleFunc("/api/user/change_password", handlers.ChangePasswordHandler)
+	mux.HandleFunc("/api/user/image", handlers.UpdateProfileImage)
+	mux.HandleFunc("/api/user/info", handlers.UpdateProfileInfo)
+	mux.HandleFunc("/api/user/follow-request", handlers.HandleFollowRequest)
+	mux.HandleFunc("/api/user/follow-requests", handlers.GetPendingFollowRequestsHandler)
 
-	// New profile-related endpoints
-	mux.HandleFunc("/api/profile/image", handlers.UpdateProfileImage)
-	mux.HandleFunc("/api/profile/info", handlers.UpdateProfileInfo)
-	mux.HandleFunc("/api/profile/privacy", handlers.ToggleProfilePrivacy)
-	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest)
-	mux.HandleFunc("/api/profile/follow-requests", handlers.GetPendingFollowRequestsHandler)
-
-	// Other API routes
+	// Category endpoints unified under /api/
 	mux.HandleFunc("/api/categories", handlers.GetCategories)
-	mux.HandleFunc("/category/create", handlers.CreateCategory)
-	mux.HandleFunc("/category/delete", handlers.DeleteCategory)
-	mux.HandleFunc("/posts", handlers.GetPosts)
-	mux.HandleFunc("/post", handlers.PostHandler)
-	mux.HandleFunc("/post/create", handlers.CreatePost)
-	mux.HandleFunc("/post/delete", handlers.DeletePost)
+	mux.HandleFunc("/api/category/create", handlers.CreateCategory)
+	mux.HandleFunc("/api/category/delete", handlers.DeleteCategory)
+
+	// Post endpoints unified under /api/
+	mux.HandleFunc("/api/post", handlers.PostHandler)
+	mux.HandleFunc("/api/post/create", handlers.CreatePost)
+	mux.HandleFunc("/api/post/delete", handlers.DeletePost)
 	mux.HandleFunc("/api/comments", handlers.GetComments)
 	mux.HandleFunc("/api/comment/create", handlers.CreateComment)
 	mux.HandleFunc("/api/comment/delete", handlers.DeleteComment)
-	mux.HandleFunc("/post/like", handlers.LikePost)
-	mux.HandleFunc("/post/dislike", handlers.DislikePost)
+	mux.HandleFunc("/api/post/like", handlers.LikePost)
+	mux.HandleFunc("/api/post/dislike", handlers.DislikePost)
+
+	// Remove/redirect legacy endpoints
+	mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/posts", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/post", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/post/create", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/post/create", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/post/delete", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/post/delete", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/category/create", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/category/create", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/category/delete", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/category/delete", http.StatusMovedPermanently)
+	})
+
+	// Group endpoints unified under /api/
 	mux.HandleFunc("/api/groups/create", handlers.CreateGroupHandler(db))
 	mux.HandleFunc("/api/groups", handlers.GetAllGroupsHandler(db))
 	mux.HandleFunc("/api/groups/access", handlers.CheckGroupAccessHandler(db))
@@ -110,6 +130,8 @@ func main() {
 	mux.HandleFunc("/api/groups/events/attendance", handlers.EventAttendanceHandler(db))
 	mux.HandleFunc("/api/groups/events/attendance/list", handlers.ListEventAttendeesHandler(db))
 	mux.HandleFunc("/api/groups/access/batch", handlers.BatchGroupAccessHandler(db))
+
+	// Chat and WebSocket routes
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})

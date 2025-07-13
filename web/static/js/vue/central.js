@@ -119,25 +119,20 @@ const app = Vue.createApp({
                     Username: null,
                     email: null
                 };
-                
                 // Clear all other state
                 this.users = [];
                 this.groups = [];
                 this.selectedProfileUserId = null;
                 this.currentView = 'login';
                 this.loggingOut = false;
-                
                 // Clear any stored data
-                localStorage.removeItem('user');
+                localStorage.clear();
                 sessionStorage.clear();
-                
                 // Clear cookies by setting them to expire
-                document.cookie.split(";").forEach(function(c) { 
-                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                document.cookie.split(';').forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
                 });
-                
-                
-                // Refresh page to ensure clean state for new user
+                // Force a full page reload to guarantee a clean state
                 window.location.reload();
             } catch (error) {
                 console.error('Logout error:', error);
@@ -252,10 +247,20 @@ const app = Vue.createApp({
                 this.currentView = null;
                 this.$nextTick(() => {
                     this.currentView = view;
+                    this.fetchUsers(); // Always refresh users on navigation
+                    this.resetUserSearch();
                 });
             } else {
                 this.currentView = view;
+                this.fetchUsers(); // Always refresh users on navigation
+                this.resetUserSearch();
             }
+        },
+        resetUserSearch() {
+            // Emit event to reset user search in UsersList
+            this.$emit && this.$emit('reset-user-search');
+            // If using refs, you could also do:
+            // if (this.$refs.usersList && this.$refs.usersList.resetSearch) this.$refs.usersList.resetSearch();
         },
         async onLogin(data) {
             if (this.loggingOut) return; // Prevent login during logout
@@ -453,6 +458,9 @@ const app = Vue.createApp({
                 this.users = [];
             }
         },
+        async refreshUsers() {
+            await this.fetchUsers();
+        },
         async fetchGroups() {
             if (!this.currentUser.value.isLoggedIn) return;
             try {
@@ -503,53 +511,20 @@ const app = Vue.createApp({
         },
     },
     mounted() {
-        // Check if user is already logged in
-        fetch('/api/user', { credentials: 'include' })
-            .then(async response => {
-                const text = await response.text();
-                try {
-                    const data = JSON.parse(text);
-                    // Handle both response formats
-                    const isLoggedIn = data.isLoggedIn || data.loggedIn;
-                    const userId = data.id || data.userID;
-                    if (isLoggedIn) {
-                        this.currentUser.value = {
-                            isLoggedIn: true,
-                            id: userId,
-                            username: data.username,
-                            email: data.email || ''
-                        };
-                        this.goToHome();
-                    } else {
-                        this.currentUser.value = {
-                            isLoggedIn: false,
-                            id: null,
-                            username: null,
-                            email: null
-                        };
-                        this.goToLogin();
-                    }
-                } catch (e) {
-                    console.error('Error parsing user response:', e);
-                    this.currentUser.value = {
-                        isLoggedIn: false,
-                        id: null,
-                        username: null,
-                        email: null
-                    };
-                    this.goToLogin();
+        // Always check session and fetch users on mount
+        const checkAndFetch = async () => {
+            await this.checkUserStatus();
+            await this.fetchUsers();
+            if (this.currentUser.value.isLoggedIn && (!this.users || this.users.length === 0)) {
+                // If user list is empty while logged in, re-check session and log out if needed
+                await this.checkUserStatus();
+                await this.fetchUsers();
+                if (!this.users || this.users.length === 0) {
+                    this.handleLogout();
                 }
-            })
-            .catch(error => {
-                console.error('Error fetching user status:', error);
-                this.currentUser.value = {
-                    isLoggedIn: false,
-                    id: null,
-                    username: null,
-                    email: null
-                };
-                this.goToLogin();
-            });
+            }
+        };
+        checkAndFetch();
 
         // Only fetch users and set interval if logged in
         if (this.currentUser && this.currentUser.value && this.currentUser.value.isLoggedIn) {
@@ -579,6 +554,19 @@ const app = Vue.createApp({
         if (this.currentUser && this.currentUser.value && this.currentUser.value.isLoggedIn) {
             this.fetchGroups();
             this.fetchNotificationCount();
+        }
+
+        // Listen for WebSocket events to refresh user list
+        if (this.websocket && this.websocket.eventBus) {
+            this.websocket.eventBus.on('follow-status-update', () => {
+                this.fetchUsers();
+            });
+            this.websocket.eventBus.on('user_status', () => {
+                this.fetchUsers();
+            });
+            this.websocket.eventBus.on('profile-privacy-update', () => {
+                this.fetchUsers();
+            });
         }
     },
     beforeUnmount() {

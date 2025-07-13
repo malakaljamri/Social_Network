@@ -41,7 +41,7 @@ const UsersList = {
                         <span v-if="myId && user.ID !== myId && unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
-                <div v-else>No users found</div>
+                <div v-else>No users found. Please check your connection or try logging in again.</div>
             </div>
         </div>
     `,
@@ -57,12 +57,12 @@ const UsersList = {
     },
     computed: {
         displayedUsers() {
-            // If search bar is not focused or searchQuery is empty, show all users sorted
-            if (!this.searchBarFocused || !this.searchQuery.trim()) {
-                return this.sortedDisplayedUsersAll();
+            // Only filter if search bar is focused and has a value
+            if (this.searchBarFocused && this.searchQuery.trim()) {
+                return this.sortedDisplayedUsersFiltered();
             }
-            // Otherwise, show filtered and sorted users
-            return this.sortedDisplayedUsersFiltered();
+            // Otherwise, show all users
+            return this.sortedDisplayedUsersAll();
         },
         sortedDisplayedUsers() {
             return [...this.displayedUsers].sort((a, b) => {
@@ -179,13 +179,20 @@ const UsersList = {
                 }
                 return (a.Username || a.username || '').localeCompare(b.Username || b.username || '');
             });
+        },
+        resetSearch() {
+            this.searchQuery = '';
+            this.searchBarFocused = false;
         }
     },
     mounted() {
         window.addEventListener('user-status-change', this.handleUserStatusChange);
         window.addEventListener('unread-count-update', this.handleUnreadCountUpdate);
-        this.refreshInterval = setInterval(() => {}, 30000); // No fetchUsers, so just a placeholder
-
+        this.refreshInterval = setInterval(() => {
+            if (this.$root && typeof this.$root.fetchUsers === 'function') {
+                this.$root.fetchUsers();
+            }
+        }, 30000); // 30 seconds
         // Fetch unread counts on page load only if user is logged in
         if (this.currentUser?.value?.isLoggedIn || this.currentUser?.isLoggedIn) {
             fetch('/api/unread-counts', { credentials: 'include' })
@@ -196,6 +203,10 @@ const UsersList = {
                 .catch(() => {
                     this.unreadCounts = {};
                 });
+        }
+        // Expose resetSearch for root app
+        if (this.$root) {
+            this.$root.$on && this.$root.$on('reset-user-search', this.resetSearch);
         }
     },
     beforeUnmount() {

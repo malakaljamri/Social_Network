@@ -508,6 +508,15 @@ func UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast follow-status-update to both users
+	msg := websocket.Message{
+		Type:    "follow-status-update",
+		Content: map[string]interface{}{"follower_id": currentUserID, "followed_id": followReq.UserID},
+	}
+	if jsonMsg, err := json.Marshal(msg); err == nil {
+		websocket.MainHub.Broadcast <- jsonMsg
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User unfollowed successfully"})
 }
@@ -755,6 +764,18 @@ func ToggleProfilePrivacy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error updating privacy settings")
 		return
+	}
+
+	// Broadcast privacy change via WebSocket
+	privacyMsg := websocket.Message{
+		Type: "profile_privacy_update",
+		Content: map[string]interface{}{
+			"user_id":    currentUserID,
+			"is_private": privacyData.IsPrivate,
+		},
+	}
+	if jsonMsg, err := json.Marshal(privacyMsg); err == nil {
+		websocket.MainHub.Broadcast <- jsonMsg
 	}
 
 	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{

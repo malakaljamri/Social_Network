@@ -264,14 +264,21 @@ const NavBar = {
                 let success = false;
                 
                 if (notification.type === 'follow_request') {
-                    // Handle follow request via profile endpoint
-                    const response = await fetch(`/api/profile/follow-request?follower_id=${notification.sender_id}`, {
+                    // Handle follow request via user endpoint
+                    const response = await fetch(`/api/user/follow-request?follower_id=${notification.sender_id}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ action })
                     });
                     success = response.ok;
+                    if (success && action === 'accept') {
+                        // After accepting, navigate to the follower's profile
+                        if (this.$root) {
+                            this.$root.selectedProfileUserId = notification.sender_id;
+                            this.$root.currentView = 'profile';
+                        }
+                    }
                 } else {
                     // Handle other actionable notifications
                     const response = await fetch('/api/notifications/action', {

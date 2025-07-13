@@ -13,6 +13,14 @@ const FiltersSidebar = {
         currentUser: {
             type: Object,
             required: true
+        },
+        loading: {
+            type: Boolean,
+            default: false
+        },
+        error: {
+            type: String,
+            default: ''
         }
     },
     template: `
@@ -89,9 +97,7 @@ const FiltersSidebar = {
             dateTo: '',
             loggedInUserFilter: false,
             minDate: '2020-01-01', // Set this based on your oldest post
-            maxDate: new Date().toISOString().split('T')[0], // Today
-            loading: false,
-            error: '',
+            maxDate: new Date().toISOString().split('T')[0] // Today
         };
     },
     computed: {

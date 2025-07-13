@@ -2,12 +2,16 @@
 
 const ProfileView = {
     template: `
-        <div class="profile-view layout-grid">
+        <div class="profile-view layout-grid" :key="forceRerenderKey">
+            <div v-if="errorMessage" class="error-message" style="color:red;text-align:center;margin:2em;">{{ errorMessage }}</div>
             <filters-sidebar 
+                v-else
                 class="sidebar"
                 :is-profile="true" 
                 @filters-changed="onFiltersChanged" 
                 :categories="categories" 
+                :loading="categoriesLoading"
+                :error="categoriesError"
                 :total-results="profile.posts ? profile.posts.length : 0"
                 :current-user="currentUser"
             >
@@ -122,18 +126,23 @@ const ProfileView = {
                         <!-- Profile Content -->
                         <div class="profile-content">
                             <h3>Posts</h3>
-                            <div v-if="!profile.posts || profile.posts.length === 0" class="no-content">
-                                No posts to show.
+                            <div v-if="canViewPosts">
+                                <div v-if="!profile.posts || profile.posts.length === 0" class="no-content">
+                                    No posts to show.
+                                </div>
+                                <div v-else class="content-list">
+                                    <feed-main
+                                        :posts="profile.posts || []"
+                                        :categories="categories"
+                                        :current-user="currentUser"
+                                        :total-pages="1"
+                                        :current-page="1"
+                                        :profile-user-name="profile.user.Username || profile.user.username"
+                                    ></feed-main>
+                                </div>
                             </div>
-                            <div v-else class="content-list">
-                                <feed-main
-                                    :posts="profile.posts || []"
-                                    :categories="categories"
-                                    :current-user="currentUser"
-                                    :total-pages="1"
-                                    :current-page="1"
-                                    :profile-user-name="profile.user.Username || profile.user.username"
-                                ></feed-main>
+                            <div v-else class="private-profile-message">
+                                <p>This user's posts are private.</p>
                             </div>
                         </div>
                     </template>
@@ -177,7 +186,11 @@ const ProfileView = {
             followStatusMessage: '',
             openChats: [],
             showChangePassword: false,
-            _loggedUserIdError: false,
+            triedFetchWithoutUserId: false, // Prevent repeated error logs
+            errorMessage: '',
+            categoriesLoading: false,
+            categoriesError: '',
+            forceRerenderKey: 0
         };
     },
     computed: {
@@ -191,6 +204,10 @@ const ProfileView = {
         },
         isFollower() {
             return this.followers.some(u => u.id === this.currentUser.id);
+        },
+        canViewPosts() {
+            const isPrivate = (this.profile.user.IsPrivate !== undefined ? this.profile.user.IsPrivate : this.profile.user.is_private);
+            return !isPrivate || this.isOwnProfile || this.isFollower;
         },
         filteredPosts() {
             return this.profile.posts || [];
@@ -208,94 +225,65 @@ const ProfileView = {
         }
     },
     methods: {
-        async fetchProfile() {
+        async fetchAll() {
             this.loading = true;
-            console.log('=== Frontend fetchProfile started ===');
+            this.categoriesLoading = true;
+            this.errorMessage = '';
+            this.categoriesError = '';
             try {
                 let userId = this.userId;
+                if (!userId) userId = this.currentUser && this.currentUser.id;
                 if (!userId) {
-                    userId = this.currentUser.id;
-                }
-                if (!userId) {
-                    console.error('ProfileView: userId is undefined, cannot fetch profile');
-                    this.loading = false;
+                    if (!this.triedFetchWithoutUserId) {
+                        this.errorMessage = 'Cannot load profile. Please log in again.';
+                        console.error('ProfileView: userId is undefined, cannot fetch profile');
+                        this.triedFetchWithoutUserId = true;
+                    }
                     this.profile = { user: {}, followers_count: 0, following_count: 0, posts_count: 0 };
+                    this.followers = [];
+                    this.following = [];
+                    this.categories = [];
+                    this.loading = false;
+                    this.categoriesLoading = false;
                     return;
                 }
-                console.log('Fetching profile for user ID:', userId);
+                this.triedFetchWithoutUserId = false;
+                this.errorMessage = '';
+                // Fetch profile
                 let url = `/api/user/profile?id=${userId}`;
                 if (this.filters) {
                     url += `&filters=${encodeURIComponent(JSON.stringify(this.filters))}`;
                 }
-                console.log('Profile URL:', url);
-                const response = await fetch(url, { credentials: 'include' });
-                console.log('Profile response status:', response.status);
-                console.log('Profile response ok:', response.ok);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Profile fetch failed:', errorText);
-                    throw new Error('Failed to fetch profile');
-                }
-                this.profile = await response.json();
-                console.log('Profile data received:', this.profile);
-                console.log('Profile follow status - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
-                // Fetch followers and following lists
-                console.log('Fetching followers and following lists...');
-                await this.fetchFollowers();
-                await this.fetchFollowing();
-                console.log('=== Frontend fetchProfile completed successfully ===');
-            } catch (error) {
-                console.error('=== Frontend fetchProfile failed ===', error);
-            }
-            this.loading = false;
-        },
-        async fetchCategories() {
-            try {
-                const response = await fetch('/api/categories', { credentials: 'include' });
-                if (!response.ok) throw new Error('Failed to fetch categories');
-                this.categories = await response.json();
-            } catch (error) {
-                console.error('Error fetching categories:', error);
+                const profileRes = await fetch(url, { credentials: 'include' });
+                if (!profileRes.ok) throw new Error('Failed to fetch profile');
+                this.profile = await profileRes.json();
+                // Fetch followers
+                const followersRes = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
+                this.followers = followersRes.ok ? await followersRes.json() : [];
+                // Fetch following
+                const followingRes = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
+                this.following = followingRes.ok ? await followingRes.json() : [];
+                // Fetch categories
+                const categoriesRes = await fetch('/api/categories', { credentials: 'include' });
+                if (!categoriesRes.ok) throw new Error('Failed to fetch categories');
+                this.categories = await categoriesRes.json();
+            } catch (e) {
+                this.errorMessage = 'Failed to load profile or categories.';
+                this.categoriesError = 'Failed to load categories.';
+                this.profile = { user: {}, followers_count: 0, following_count: 0, posts_count: 0 };
+                this.followers = [];
+                this.following = [];
                 this.categories = [];
-            }
-        },
-        async fetchFollowers() {
-            let userId = this.userId;
-            if (!userId) {
-                userId = this.currentUser.id;
-            }
-            if (!userId) {
-                this.followers = [];
-                return;
-            }
-            try {
-                const response = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
-                if (!response.ok) throw new Error('Failed to fetch followers');
-                this.followers = await response.json();
-            } catch (error) {
-                this.followers = [];
-            }
-        },
-        async fetchFollowing() {
-            let userId = this.userId;
-            if (!userId) userId = this.currentUser.id;
-            if (!userId) {
-                this.following = [];
-                return;
-            }
-            try {
-                const response = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
-                if (!response.ok) throw new Error('Failed to fetch following');
-                this.following = await response.json();
-            } catch (error) {
-                this.following = [];
+            } finally {
+                this.loading = false;
+                this.categoriesLoading = false;
             }
         },
         async togglePrivacy() {
             try {
                 const currentPrivacy = (this.profile.user.IsPrivate !== undefined ? this.profile.user.IsPrivate : this.profile.user.is_private);
                 const newPrivacy = !currentPrivacy;
-                const response = await fetch('/api/profile/privacy', {
+                const response = await fetch('/api/user/privacy', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ is_private: newPrivacy }),
@@ -303,7 +291,7 @@ const ProfileView = {
                 });
                 if (!response.ok) throw new Error('Failed to update privacy');
                 // After successful update, fetch the latest profile from backend
-                await this.fetchProfile();
+                await this.fetchAll();
             } catch (error) {
                 alert('Failed to update privacy.');
             }
@@ -315,17 +303,17 @@ const ProfileView = {
                 userId = this.currentUser.id;
             }
             this.filters.UserID = userId;
-            this.fetchProfile();
+            this.fetchAll();
         },
         formatDate(dateStr) {
             return new Date(dateStr).toLocaleString();
         },
         onProfileUpdated() {
             this.showEditForm = false;
-            this.fetchProfile();
+            this.fetchAll();
         },
         onRequestHandled() {
-            this.fetchProfile();
+            this.fetchAll();
         },
         async followUser() {
             console.log('=== Frontend followUser started ===');
@@ -357,7 +345,7 @@ const ProfileView = {
                 
                 // Always re-fetch profile to get correct state (is_following, is_pending, followers_count)
                 console.log('Re-fetching profile after follow...');
-                await this.fetchProfile();
+                await this.fetchAll();
                 
                 console.log('Profile after re-fetch - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
                 
@@ -386,7 +374,7 @@ const ProfileView = {
                 });
                 if (!response.ok) throw new Error('Failed to unfollow user');
                 // Always re-fetch profile to get correct state
-                await this.fetchProfile();
+                await this.fetchAll();
                 this.followStatusMessage = 'Unfollowed!';
                 setTimeout(() => { this.followStatusMessage = ''; }, 3000);
             } catch (error) {
@@ -419,7 +407,30 @@ const ProfileView = {
         }
     },
     mounted() {
-        //this.fetchProfile(); // Now it is handled by the watch. This is for the van button to work.
+        this.fetchAll();
+        // Listen for WebSocket privacy update events
+        if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
+            this.$root.websocket.eventBus.on('profile-privacy-update', (data) => {
+                if (!data || !data.user_id) return;
+                const viewedId = this.userId || (this.currentUser && this.currentUser.id);
+                if (viewedId && String(data.user_id) === String(viewedId)) {
+                    this.fetchAll();
+                }
+            });
+            // Listen for follow status updates
+            this.$root.websocket.eventBus.on('follow-status-update', async (data) => {
+                if (!data) return;
+                const viewedId = this.userId || (this.currentUser && this.currentUser.id);
+                if (
+                    viewedId &&
+                    (String(data.follower_id) === String(viewedId) || String(data.followed_id) === String(viewedId))
+                ) {
+                    await this.fetchAll();
+                    this.forceRerenderKey++;
+                    this.$forceUpdate && this.$forceUpdate();
+                }
+            });
+        }
     },
     props: {
         userId: {
@@ -435,24 +446,14 @@ const ProfileView = {
         userId: {
             immediate: true,
             handler() {
-                const id = this.userId || (this.currentUser && this.currentUser.id);
-                if (id) {
-                    this.fetchProfile();
-                    this.fetchCategories();
-                    this.onFiltersChanged(this.filters || {}); // to load images
-                } else {
-                    // Do nothing: do not log error
-                }
+                this.fetchAll();
             }
         },
         currentUser: {
             deep: true,
-            handler() {
-                const id = this.userId || (this.currentUser && this.currentUser.id);
-                if (id) {
-                    this.fetchProfile();
-                    this.fetchCategories();
-                    this.onFiltersChanged(this.filters || {});
+            handler(newVal) {
+                if (newVal && newVal.id) {
+                    this.fetchAll();
                 }
             }
         }

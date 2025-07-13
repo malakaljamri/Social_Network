@@ -46,7 +46,7 @@ const P_FollowRequestList = {
     methods: {
         async loadFollowRequests() {
             try {
-                const response = await fetch('/api/profile/follow-requests', {
+                const response = await fetch('/api/user/follow-requests', {
                     credentials: 'include'
                 });
                 if (!response.ok) {
@@ -65,7 +65,7 @@ const P_FollowRequestList = {
         },
         async handleRequest(followerId, action) {
             try {
-                const response = await fetch(`/api/profile/follow-request?follower_id=${followerId}`, {
+                const response = await fetch(`/api/user/follow-request?follower_id=${followerId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
