@@ -183,7 +183,7 @@ const GroupsView = {
                     @event-click="handleEventClick"
                 ></g-group-main>
             </div>
-            <users-list :users="$root.users" class="sidebar"></users-list>
+            <users-list :users="$root.users" class="sidebar" :current-user="$root.currentUser.value"></users-list>
         </div>
     `
 };

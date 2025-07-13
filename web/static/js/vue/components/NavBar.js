@@ -104,7 +104,11 @@ const NavBar = {
         return {
             showDropdown: false,
             showModal: false,
-            unreadCounts: {} // Track unread group counts
+            unreadCounts: {}, // Track unread group counts
+            notificationCount: 0, // Add this line
+            notifications: [],
+            allNotifications: [],
+            loading: false
         };
     },
     mounted() {
@@ -182,7 +186,10 @@ const NavBar = {
             if (this.currentUserValue.isLoggedIn) {
                 console.log('NavBar: Fetching unread group counts for user:', this.currentUserValue.id);
                 fetch('/api/unread-group-counts', { credentials: 'include' })
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) throw new Error('Network response was not ok');
+                        return res.json().catch(() => ({})); // fallback to empty object if not JSON
+                    })
                     .then(data => {
                         console.log('NavBar: Received unread group counts:', data);
                         this.unreadCounts = data || {};

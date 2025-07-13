@@ -120,7 +120,7 @@ func main() {
 	mux.HandleFunc("/api/users", handlers.GetAllUsers)
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 	mux.HandleFunc("/api/unread-counts", handlers.GetUnreadCounts)
-	mux.HandleFunc("/api/unread-group-counts", handlers.GetUnreadGroupCounts)
+	mux.HandleFunc("/api/unread-group-counts", handlers.GetUnreadGroupCountsHandler)
 
 	// Notification routes
 	mux.HandleFunc("/api/notifications", handlers.GetNotificationsHandler)
