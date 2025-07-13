@@ -17,8 +17,8 @@ const CreateGroupModal = {
     template: `
         <teleport to="body">
             <!-- Main Group Creation Modal -->
-            <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
-                <div class="modal-content">
+            <div v-if="show" class="modal-overlay layer-modal" @click.self="$emit('close')">
+                <div class="modal-content layer-modal">
                     <h2>Create Group</h2>
                     <form @submit.prevent="createGroup">
                         <div class="form-group">
@@ -92,8 +92,8 @@ const CreateGroupModal = {
             </div>
 
             <!-- Custom User Selection Modal -->
-            <div v-if="showCustomUserModal" class="modal-overlay" @click.self="closeCustomUserModal">
-                <div class="modal-content custom-user-modal">
+            <div v-if="showCustomUserModal" class="modal-overlay layer-modal" @click.self="closeCustomUserModal">
+                <div class="modal-content layer-modal custom-user-modal">
                     <div class="modal-header">
                         <h3>Select Users for Custom Privacy</h3>
                         <button class="close-button" @click="closeCustomUserModal">&times;</button>

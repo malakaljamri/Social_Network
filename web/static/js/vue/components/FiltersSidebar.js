@@ -24,7 +24,7 @@ const FiltersSidebar = {
         }
     },
     template: `
-        <div class="filters-sidebar">
+        <div class="filters-sidebar layer-sidebar">
             <button v-if="!isProfile" class="button" style="margin-bottom: 12px; width: 100%; position: unset;" @click="$emit('show-create-post-modal')">✍️ Create Post</button>
             <div class="filter-section">
                 <h3>Categories</h3>

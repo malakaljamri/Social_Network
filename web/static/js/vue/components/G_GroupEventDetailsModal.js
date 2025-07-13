@@ -102,8 +102,8 @@ window.G_GroupEventDetailsModal = {
     }
   },
   template: `
-    <div class="modal-overlay" style="z-index: 3000; display: flex; justify-content: center; align-items: center;">
-      <div class="modal-content" style="display: flex; flex-direction: row; gap: 32px; min-width: 600px; max-width: 900px;">
+    <div class="modal-overlay layer-modal" style="z-index: 3000; display: flex; justify-content: center; align-items: center;">
+      <div class="modal-content layer-modal" style="display: flex; flex-direction: row; gap: 32px; min-width: 600px; max-width: 900px;">
         <!-- Left: Event Info -->
         <div style="flex: 1 1 0; min-width: 320px;">
           <h2>Event Details</h2>

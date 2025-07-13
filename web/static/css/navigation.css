@@ -10,7 +10,7 @@ nav {
   color: var(--button-text-color);
   box-shadow: var(--shadow-md);
   position: relative;
-  z-index: var(--z-sticky);
+  z-index: var(--z-index-navbar);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -198,6 +198,7 @@ nav a:focus {
 /* Search dropdown */
 .search-dropdown {
   position: absolute;
+  z-index: var(--z-index-dropdown);
   top: 100%;
   left: 0;
   right: 0;

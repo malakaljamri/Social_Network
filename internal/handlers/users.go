@@ -424,6 +424,9 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 		)
 		if err != nil {
 			log.Printf("WARNING: Failed to create follow request notification: %v", err)
+		} else {
+			// Send WebSocket notification
+			go sendNewNotificationWebSocket(followReq.UserID, currentUserID, "follow_request", "wants to follow you")
 		}
 	} else {
 		// Public profile - send notifications to both users

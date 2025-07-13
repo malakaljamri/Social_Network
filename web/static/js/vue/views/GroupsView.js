@@ -161,16 +161,16 @@ const GroupsView = {
         }
     },
     template: `
-        <div class="layout-grid groups-layout">
+        <div class="layout-grid groups-layout layer-content">
             <g-group-list
                 :groups="groups"
                 :selected-group-id="selectedGroupId"
                 :current-user="$root.currentUser.value"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
-                class="sidebar"
+                class="sidebar layer-sidebar"
             ></g-group-list>
-            <div class="main-content">
+            <div class="main-content layer-content">
                 <g-group-main
                     :selected-group="selectedGroup"
                     :group-posts="groupPosts"
@@ -183,7 +183,7 @@ const GroupsView = {
                     @event-click="handleEventClick"
                 ></g-group-main>
             </div>
-            <users-list :users="$root.users" class="sidebar" :current-user="$root.currentUser.value"></users-list>
+            <users-list :users="$root.users" class="sidebar layer-sidebar" :current-user="$root.currentUser.value"></users-list>
         </div>
     `
 };

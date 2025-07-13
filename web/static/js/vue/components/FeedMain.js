@@ -59,9 +59,9 @@ const FeedMain = {
         }
     },
     template: `
-        <div class="feed-main main-content">
+        <div class="feed-main main-content layer-content">
             <div v-if="posts.length === 0" class="no-posts">No posts to show.</div>
-            <div v-for="post in posts" :key="post.ID" class="post-card" :data-post-id="post.ID">
+            <div v-for="post in posts" :key="post.ID" class="post-card layer-card" :data-post-id="post.ID">
                 <div class="post-header">
                     <h2>{{ post.Title }}</h2>
                     <div class="post-meta">

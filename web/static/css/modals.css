@@ -10,7 +10,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: var(--z-index-modal);
+  z-index: var(--z-index-overlay);
 }
 
 .modal-content {
@@ -22,6 +22,7 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(255, 255, 255, 0.2);
+  z-index: var(--z-index-modal);
 }
 
 .modal-content h2 {

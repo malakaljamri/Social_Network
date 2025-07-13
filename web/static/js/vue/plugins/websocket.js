@@ -91,6 +91,12 @@ const WebSocketPlugin = {
                         case 'notification_count_update':
                             handleNotificationCountUpdate(data);
                             break;
+                        case 'new_notification':
+                            handleNewNotification(data);
+                            break;
+                        case 'notification_update':
+                            handleNotificationUpdate(data);
+                            break;
                         case 'group_created':
                             handleGroupCreated(data);
                             break;
@@ -267,11 +273,69 @@ const WebSocketPlugin = {
             console.log('Notification count update received:', data);
             eventBus.emit('notification-count-update', data);
             
+            // Show immediate notification popup
+            if (data.count > 0) {
+                const message = data.count === 1 ? 'You have 1 new notification' : `You have ${data.count} new notifications`;
+                layerManager.showInfo(message, 4000);
+            }
+            
             // Also try to update NavBar directly if available
             const root = app._instance?.proxy;
             if (root && root.fetchNotificationCount) {
                 root.fetchNotificationCount();
             }
+        }
+
+        // Handle new individual notifications
+        function handleNewNotification(data) {
+            console.log('New notification received:', data);
+            
+            // Show immediate notification popup with specific message
+            const message = data.message || 'New notification';
+            const type = data.type || 'info';
+            
+            switch (type) {
+                case 'follow_request':
+                    layerManager.showInfo(`🔔 ${data.sender_name} wants to follow you`, 5000);
+                    break;
+                case 'follow_established':
+                    layerManager.showSuccess(`✅ ${data.sender_name} is now following you`, 5000);
+                    break;
+                case 'group_invitation':
+                    layerManager.showInfo(`👥 ${data.sender_name} invited you to join a group`, 5000);
+                    break;
+                case 'new_comment':
+                    layerManager.showInfo(`💬 ${data.sender_name} commented on your post`, 5000);
+                    break;
+                default:
+                    layerManager.showInfo(message, 5000);
+            }
+            
+            // Emit event for components to refresh
+            eventBus.emit('new-notification', data);
+        }
+
+        // Handle notification updates (when actions are completed)
+        function handleNotificationUpdate(data) {
+            console.log('Notification update received:', data);
+            
+            // Show success message for completed actions
+            const message = data.message || 'Action completed';
+            const type = data.type || 'info';
+            
+            switch (type) {
+                case 'follow_established':
+                    layerManager.showSuccess(`✅ ${message}`, 5000);
+                    break;
+                case 'group_membership_confirmed':
+                    layerManager.showSuccess(`✅ ${message}`, 5000);
+                    break;
+                default:
+                    layerManager.showSuccess(`✅ ${message}`, 5000);
+            }
+            
+            // Emit event for components to refresh
+            eventBus.emit('notification-update', data);
         }
 
         // Notification system

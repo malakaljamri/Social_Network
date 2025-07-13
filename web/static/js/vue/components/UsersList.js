@@ -11,7 +11,7 @@ const UsersList = {
         }
     },
     template: `
-        <div class="users-list card">
+        <div class="users-list card layer-sidebar">
             <h3 class="users-list-header" style="display: flex; align-items: center; justify-content: space-between;">
                 Users
                 <span v-if="myId && totalUnreadCount > 0" class="unread-badge right-badge">{{ totalUnreadCount }}</span>

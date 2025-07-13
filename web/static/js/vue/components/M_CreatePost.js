@@ -2,8 +2,8 @@
 const CreatePostModal = {
     template: `
         <teleport to="body">
-            <div class="modal-overlay" @click.self="close">
-                <div class="modal-content">
+            <div class="modal-overlay layer-modal" @click.self="close">
+                <div class="modal-content layer-modal">
                     <h2>Create Post</h2>
                     <form @submit.prevent="submitPost">
                         <input type="text" v-model="form.title" placeholder="Title" required minlength="3" maxlength="100">

@@ -3,7 +3,7 @@ const GroupChat = {
     props: ['groupName', 'groupId'],
     inject: ['websocket'],
     template: `
-        <div class="chat-window card group-chat" @click.stop style="max-width: 400px;">
+        <div class="chat-window card group-chat layer-fixed" @click.stop style="max-width: 400px;">
             <div class="chat-header">
                 {{ groupName }} Chat Room
                 <span class="close-span" @click="$emit('close')">X</span>

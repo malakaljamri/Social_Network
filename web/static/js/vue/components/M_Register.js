@@ -3,8 +3,8 @@ const RegisterModal = {
     emits: ['close', 'registered'],
     template: `
         <teleport to="body">
-            <div class="modal-overlay" @click.self="close">
-                <div class="modal-content register-modal">
+            <div class="modal-overlay layer-modal" @click.self="close">
+                <div class="modal-content layer-modal register-modal">
                     <div class="modal-header">
                         <h2><i class="fas fa-user-plus"></i> Create Your Account</h2>
                         <button class="modal-close" @click="close" type="button">

@@ -160,10 +160,10 @@ const GroupMain = {
         }
     },
     template: `
-        <div class="group-main-content">
+        <div class="group-main-content layer-content">
             <div class="group-description">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Description') : 'Group Description' }}</h2>
-                <div class="card">
+                <div class="card layer-card">
                     <template v-if="!selectedGroup">
                         <p style="color: grey;"><span style="color: blue;">↖</span> Click on a group</p>
                     </template>
@@ -201,8 +201,8 @@ const GroupMain = {
                 </div>
             </div>
             <!-- Create Group Post Modal -->
-            <div v-if="showCreateGroupPostForm" class="modal-overlay" @click.self="closeCreateGroupPostModal">
-                <div class="modal-content" @click.stop>
+            <div v-if="showCreateGroupPostForm" class="modal-overlay layer-modal" @click.self="closeCreateGroupPostModal">
+                <div class="modal-content layer-modal" @click.stop>
                     <h2>Create Group Post</h2>
                     <form @submit.prevent="submitGroupPost">
                         <div class="form-group">
@@ -246,7 +246,7 @@ const GroupMain = {
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
             </div>
             <!-- Group Posts Section -->
-            <div class="group-posts">
+            <div class="group-posts layer-content">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
                 <div v-if="!selectedGroup">
                     <p style="color: grey;">Select a group to view its posts</p>
@@ -255,7 +255,7 @@ const GroupMain = {
                     <!-- Show posts only if user has access -->
                     <div v-if="groupAccess">
                     <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
-                    <div v-for="post in groupPosts" :key="post.ID" class="post-card">
+                    <div v-for="post in groupPosts" :key="post.ID" class="post-card layer-card">
                         <div class="post-header">
                             <h3>{{ post.Title }}</h3>
                             <div class="post-meta">

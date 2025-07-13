@@ -2,7 +2,7 @@
 const CommentSection = {
     props: ['postId', 'currentUser'],
     template: `
-        <div class="comments-section">
+        <div class="comments-section layer-content">
             <button @click="showComments = !showComments" class="comment-toggle-btn">{{ commentButtonText }}</button>
             <div v-if="showComments">
                 <h3 class="comments-title">Comments</h3>

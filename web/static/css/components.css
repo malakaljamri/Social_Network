@@ -505,7 +505,7 @@ button.pagination-button.active {
     box-shadow: var(--shadow-md);
     padding: var(--spacing-lg);
     max-width: 300px;
-    z-index: var(--z-index-modal);
+    z-index: var(--z-index-notification);
     opacity: 0;
     transform: translateX(100%);
     transition: all 0.3s ease;
@@ -661,14 +661,17 @@ button.pagination-button.active {
     right: -8px;
     background: var(--error-color);
     color: white;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: var(--font-weight-bold);
-    padding: 2px 6px;
-    border-radius: 10px;
-    min-width: 16px;
+    padding: 3px 7px;
+    border-radius: 12px;
+    min-width: 18px;
     text-align: center;
     line-height: 1;
     animation: pulse 2s infinite;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    border: 2px solid white;
+    z-index: var(--z-index-notification);
 }
 
 @keyframes pulse {
@@ -707,7 +710,7 @@ button.pagination-button.active {
   color: white;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--border-radius);
-  z-index: var(--z-index-modal);
+  z-index: var(--z-index-notification);
   box-shadow: var(--shadow-md);
   animation: fadeIn 0.3s;
 }
@@ -771,7 +774,7 @@ button.pagination-button.active {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 9999;
+  z-index: var(--z-index-fixed);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -790,4 +793,13 @@ button.pagination-button.active {
   align-items: center;
   justify-content: space-between;
   min-height: 40px;
+}
+
+.notifications-dropdown.layer-dropdown {
+  z-index: var(--z-index-dropdown) !important;
+  position: absolute;
+}
+
+.floating-notification.layer-notification {
+  z-index: var(--z-index-notification) !important;
 }

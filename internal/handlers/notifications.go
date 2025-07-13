@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"social_network/internal/database"
 	"social_network/internal/models"
@@ -165,10 +167,10 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete actionable notification after handling
-	err = database.DeleteNotification(notification.ID, userID)
+	// Replace actionable notification with approval message instead of deleting
+	err = replaceNotificationWithApproval(notification, request.Action, sender)
 	if err != nil {
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to delete notification")
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to update notification")
 		return
 	}
 
@@ -266,6 +268,125 @@ func handleGroupJoinRequestAction(notification *database.Notification, action st
 	default:
 		return errors.New("Invalid action")
 	}
+}
+
+// replaceNotificationWithApproval replaces an actionable notification with an approval message
+func replaceNotificationWithApproval(notification *database.Notification, action string, sender *models.User) error {
+	var newMessage string
+	var newType string
+	var actionRequired bool
+	var actionData map[string]interface{}
+
+	switch notification.Type {
+	case "follow_request":
+		if action == "accept" {
+			newMessage = "You are now following each other"
+			newType = "follow_established"
+			actionRequired = false
+			actionData = nil
+		} else {
+			// For decline, we can either delete or show a declined message
+			return database.DeleteNotification(notification.ID, notification.UserID)
+		}
+	case "group_invitation":
+		if action == "accept" {
+			newMessage = "You have joined the group"
+			newType = "group_membership_confirmed"
+			actionRequired = false
+			actionData = nil
+		} else {
+			// For decline, we can either delete or show a declined message
+			return database.DeleteNotification(notification.ID, notification.UserID)
+		}
+	case "group_join_request":
+		if action == "accept" {
+			newMessage = "User has been added to the group"
+			newType = "group_membership_confirmed"
+			actionRequired = false
+			actionData = nil
+		} else {
+			// For decline, we can either delete or show a declined message
+			return database.DeleteNotification(notification.ID, notification.UserID)
+		}
+	default:
+		// For unsupported types, just delete the notification
+		return database.DeleteNotification(notification.ID, notification.UserID)
+	}
+
+	// Update the notification with the new content
+	query := `UPDATE notifications 
+			  SET type = ?, message = ?, action_required = ?, action_data = ?, is_read = 0, created_at = CURRENT_TIMESTAMP 
+			  WHERE id = ?`
+
+	var actionDataJSON string
+	if actionData != nil {
+		jsonData, err := json.Marshal(actionData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal action data: %v", err)
+		}
+		actionDataJSON = string(jsonData)
+	}
+
+	_, err := database.ExecuteQuery(query, newType, newMessage, actionRequired, actionDataJSON, notification.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update notification: %v", err)
+	}
+
+	// Send WebSocket notification about the updated notification
+	sendNotificationUpdate(notification.UserID, notification.ID, newType, newMessage, sender)
+
+	return nil
+}
+
+// sendNotificationUpdate sends WebSocket notification about notification updates
+func sendNotificationUpdate(userID, notificationID int, notificationType, message string, sender *models.User) {
+	updateMsg := websocket.Message{
+		Type: "notification_update",
+		Content: map[string]interface{}{
+			"user_id":         userID,
+			"notification_id": notificationID,
+			"type":            notificationType,
+			"message":         message,
+			"sender_name":     sender.Username,
+			"sender_id":       sender.ID,
+		},
+	}
+
+	jsonMessage, err := json.Marshal(updateMsg)
+	if err == nil {
+		websocket.MainHub.Broadcast <- jsonMessage
+	}
+}
+
+// sendNewNotificationWebSocket sends a WebSocket notification when a new notification is created
+func sendNewNotificationWebSocket(userID, senderID int, notificationType, message string) {
+	// Get sender information
+	sender, err := database.GetUserByID(senderID)
+	if err != nil {
+		log.Printf("Warning: failed to get sender info for WebSocket notification: %v", err)
+		return
+	}
+
+	// Create WebSocket message
+	wsMessage := websocket.Message{
+		Type: "new_notification",
+		Content: map[string]interface{}{
+			"user_id":     userID,
+			"type":        notificationType,
+			"message":     message,
+			"sender_id":   senderID,
+			"sender_name": sender.Username,
+		},
+	}
+
+	// Send via WebSocket
+	jsonMessage, err := json.Marshal(wsMessage)
+	if err != nil {
+		log.Printf("Warning: failed to marshal WebSocket notification: %v", err)
+		return
+	}
+
+	websocket.MainHub.Broadcast <- jsonMessage
 }
 
 // sendNotificationCountUpdate sends WebSocket notification to update notification count

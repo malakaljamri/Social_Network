@@ -2,11 +2,11 @@
 
 const ProfileView = {
     template: `
-        <div class="profile-view layout-grid" :key="forceRerenderKey">
+        <div class="profile-view layout-grid layer-content" :key="forceRerenderKey">
             <div v-if="errorMessage" class="error-message" style="color:red;text-align:center;margin:2em;">{{ errorMessage }}</div>
             <filters-sidebar 
                 v-else
-                class="sidebar"
+                class="sidebar layer-sidebar"
                 :is-profile="true" 
                 @filters-changed="onFiltersChanged" 
                 :categories="categories" 
@@ -16,7 +16,7 @@ const ProfileView = {
                 :current-user="currentUser"
             >
             </filters-sidebar>
-            <div class="profile-main main-content">
+            <div class="profile-main main-content layer-content">
                 <div v-if="loading" class="loading-indicator">Loading profile...</div>
                 <div v-else>
                     <div class="profile-header">
@@ -148,8 +148,8 @@ const ProfileView = {
                     </template>
                 </div>
             </div>
-            <users-list :users="$root.users" class="users-list" @open-chat="openChat" :current-user="currentUser"></users-list>
-            <div id="chat-section">
+            <users-list :users="$root.users" class="users-list layer-sidebar" @open-chat="openChat" :current-user="currentUser"></users-list>
+            <div id="chat-section" class="chat-window-fixed layer-fixed">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>

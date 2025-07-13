@@ -48,6 +48,9 @@ func CreateNotification(userID, senderID, referenceID int, notificationType stri
 		log.Printf("Warning: failed to cleanup old notifications for user %d: %v", userID, err)
 	}
 
+	// Send WebSocket notification to the user (handled by handlers)
+	// Note: WebSocket notification is sent from the handlers layer to avoid import cycles
+
 	return nil
 }
 
@@ -233,3 +236,5 @@ func GetNotificationWithSenderInfo(notificationID int) (*Notification, *models.U
 
 	return nil, nil, fmt.Errorf("notification not found")
 }
+
+// Note: WebSocket notification functionality moved to handlers layer to avoid import cycles

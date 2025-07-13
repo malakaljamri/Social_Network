@@ -1,9 +1,9 @@
 // HomeView Component
 const HomeView = {
     template: `
-        <div class="home-view layout-grid">
-            <filters-sidebar class="sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')" :categories="categories" :total-results="totalResults" :current-user="currentUserValue"></filters-sidebar>
-            <div class="feed-main main-content">
+        <div class="home-view layout-grid layer-content">
+            <filters-sidebar class="sidebar layer-sidebar" @filters-changed="onFiltersChanged" @show-create-post-modal="$emit('show-create-post-modal')" :categories="categories" :total-results="totalResults" :current-user="currentUserValue"></filters-sidebar>
+            <div class="feed-main main-content layer-content">
                 <h1>Welcome To Social Network</h1>
                 <div v-if="loading" class="loading-indicator">Loading posts...</div>
                 <div v-if="!loading && filteredPosts.length === 0" class="no-posts">No posts match your filters</div>
@@ -19,8 +19,8 @@ const HomeView = {
                     @view-user-profile="viewPostsByUser"
                 ></feed-main>
             </div>
-            <users-list :users="$root.users" class="users-list" @open-chat="openChat" :current-user="currentUserValue"></users-list>
-            <div id="chat-section chat-window-fixed">
+            <users-list :users="$root.users" class="users-list layer-sidebar" @open-chat="openChat" :current-user="currentUserValue"></users-list>
+            <div id="chat-section" class="chat-window-fixed layer-fixed">
                 <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>

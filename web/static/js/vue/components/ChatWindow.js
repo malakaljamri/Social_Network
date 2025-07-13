@@ -3,7 +3,7 @@ const ChatWindow = {
     props: ['user', 'currentUser', 'onClose'], //( props = properties in vue (parent and passes data to child component , expects to receive )
     inject: ['websocket'],  //inject is araay of strings , component except to recive
     template: `
-        <div class="modal-content chat-window-fixed" @click.stop style="max-width: 400px;">
+        <div class="modal-content chat-window-fixed layer-fixed" @click.stop style="max-width: 400px;">
             <div class="chat-header-bar" style="width: 100%;">
                 Chat with {{ user.Username }}
                 <span class="close-span" @click="onClose" style="float:right;cursor:pointer;">X</span>

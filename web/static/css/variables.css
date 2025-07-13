@@ -98,11 +98,46 @@
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.75;
   
-  /* Enhanced Z-Index Scale */
-  --z-index-dropdown: 10;
-  --z-index-sticky: 100;
-  --z-index-modal: 1000;
-  --z-index-tooltip: 1100;
+  /* Enhanced Z-Index Scale with Comprehensive Priority System */
+  --z-index-base: 1;
+  
+  /* Background and base content layers */
+  --z-index-background: 1;
+  --z-index-content: 10;
+  --z-index-card: 20;
+  
+  /* Navigation and main UI components */
+  --z-index-navbar: 100;
+  --z-index-sidebar: 110;
+  --z-index-dropdown: 120;
+  --z-index-sticky: 130;
+  --z-index-fixed: 140;
+  
+  /* Interactive elements */
+  --z-index-button: 150;
+  --z-index-tooltip: 160;
+  --z-index-context-menu: 170;
+  
+  /* Overlay and modal system */
+  --z-index-overlay: 200;
+  --z-index-modal: 300;
+  --z-index-modal-stack: 400;
+  --z-index-modal-stack-2: 500;
+  --z-index-modal-stack-3: 600;
+  --z-index-modal-stack-4: 700;
+  --z-index-modal-stack-5: 800;
+  
+  /* Notification system (highest priority after modals) */
+  --z-index-notification: 900;
+  --z-index-notification-stack: 1000;
+  --z-index-notification-stack-2: 1100;
+  --z-index-notification-stack-3: 1200;
+  --z-index-notification-stack-4: 1300;
+  --z-index-notification-stack-5: 1400;
+  
+  /* Special cases */
+  --z-index-debug: 9998;
+  --z-index-max: 9999;
   
   /* Animation Durations */
   --duration-fast: 150ms;

@@ -11,7 +11,7 @@ const Notifications = {
         }
     },
     template: `
-        <div class="notifications-container">
+        <div class="notifications-container layer-notification">
             <div v-if="notifications.length === 0" class="no-notifications">
                 No notifications
             </div>
@@ -159,16 +159,53 @@ const Notifications = {
 
                 if (success) {
                     console.log('Notifications: Action successful');
+                    
+                    // Show success message based on action
+                    const notification = this.notifications.find(n => n.id === notificationId);
+                    if (notification) {
+                        let successMessage = '';
+                        switch (notification.type) {
+                            case 'follow_request':
+                                if (action === 'accept') {
+                                    successMessage = 'Follow request accepted! You are now following each other.';
+                                } else {
+                                    successMessage = 'Follow request declined.';
+                                }
+                                break;
+                            case 'group_invitation':
+                                if (action === 'accept') {
+                                    successMessage = 'Group invitation accepted! You have joined the group.';
+                                } else {
+                                    successMessage = 'Group invitation declined.';
+                                }
+                                break;
+                            default:
+                                successMessage = 'Action completed successfully!';
+                        }
+                        
+                        if (window.layerManager) {
+                            window.layerManager.showSuccess(successMessage, 5000);
+                        }
+                    }
+                    
                     // Emit action handled event to parent (parent will update notifications list)
                     this.$emit('action-handled', { notificationId, action });
                 } else {
                     console.error('Notifications: Action failed');
                     // Show error to user
-                    alert('Failed to process notification action. Please try again.');
+                    if (window.layerManager) {
+                        window.layerManager.showError('Failed to process notification action. Please try again.', 5000);
+                    } else {
+                        alert('Failed to process notification action. Please try again.');
+                    }
                 }
             } catch (error) {
                 console.error('Notifications: Error handling action:', error);
-                alert('Error processing notification action. Please try again.');
+                if (window.layerManager) {
+                    window.layerManager.showError('Error processing notification action. Please try again.', 5000);
+                } else {
+                    alert('Error processing notification action. Please try again.');
+                }
             }
         },
         

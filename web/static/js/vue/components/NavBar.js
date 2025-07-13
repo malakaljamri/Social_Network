@@ -9,7 +9,7 @@ const NavBar = {
                         Notifications
                         <span v-if="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
                     </button>
-                    <div v-if="showDropdown" class="notifications-dropdown" @click.stop style="position: absolute; left: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;">
+                    <div v-if="showDropdown" class="notifications-dropdown layer-dropdown" @click.stop style="position: absolute; left: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: var(--z-index-dropdown);">
                         <div class="dropdown-header" style="position: sticky; top: 0; background: #fff; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
                             <a href="#" @click.prevent="openModal" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
                         </div>
@@ -126,6 +126,22 @@ const NavBar = {
                     this.fetchNotifications();
                 }
             });
+            
+            // Listen for new notifications
+            this.$root.websocket.eventBus.on('new-notification', (data) => {
+                if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
+                    this.fetchNotificationCount();
+                    this.fetchNotifications();
+                }
+            });
+            
+            // Listen for notification updates
+            this.$root.websocket.eventBus.on('notification-update', (data) => {
+                if (this.currentUserValue && this.currentUserValue.isLoggedIn) {
+                    this.fetchNotificationCount();
+                    this.fetchNotifications();
+                }
+            });
         }
     },
     watch: {
@@ -174,9 +190,25 @@ const NavBar = {
             this.showDropdown = false;
             // Fetch all notifications when modal opens
             await this.fetchAllNotifications();
+            
+            // Use layer manager for modal stacking
+            this.$nextTick(() => {
+                const modalElement = this.$el.querySelector('.modal-overlay');
+                if (modalElement && window.layerManager) {
+                    window.layerManager.openModal(modalElement);
+                }
+            });
         },
         closeModal() {
             this.showModal = false;
+            
+            // Use layer manager to close modal
+            this.$nextTick(() => {
+                const modalElement = this.$el.querySelector('.modal-overlay');
+                if (modalElement && window.layerManager) {
+                    window.layerManager.closeModal(modalElement);
+                }
+            });
         },
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
