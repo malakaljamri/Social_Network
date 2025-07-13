@@ -484,6 +484,23 @@ const app = Vue.createApp({
                 console.error('Error fetching notification count:', error);
             }
         },
+        getViewProps(view) {
+            // Centralize prop passing for all main views
+            const base = { currentUser: this.currentUser.value || { id: null } };
+            if (view === 'profile') {
+                return { ...base, userId: this.selectedProfileUserId };
+            }
+            if (view === 'home') {
+                return base;
+            }
+            if (view === 'groups') {
+                return base;
+            }
+            if (view === 'login') {
+                return base;
+            }
+            return base;
+        },
     },
     mounted() {
         // Check if user is already logged in
@@ -592,7 +609,7 @@ const app = Vue.createApp({
                 @open-create-group-post-modal="openCreateGroupPostModal"
                 @open-create-group-modal="openCreateGroupModal"
                 @show-create-post-modal="openCreatePostModal"
-                v-bind="currentView === 'profile' ? { userId: selectedProfileUserId, currentUser: currentUser.value || { id: null } } : {}"
+                v-bind="getViewProps(currentView)"
                 @event-click="openEventDetailsModal"
             ></component>
             <m-register v-if="showRegisterModal" @close="showRegisterModal = false" @registered="onRegistered"></m-register>

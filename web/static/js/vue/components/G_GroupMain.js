@@ -4,6 +4,18 @@ const GroupMain = {
         currentUser: {
             type: Object,
             required: true
+        },
+        selectedGroup: {
+            type: [Object, null],
+            default: null
+        },
+        groupPosts: {
+            type: Array,
+            default: () => []
+        },
+        groupEvents: {
+            type: Array,
+            default: () => []
         }
     },
     data() {

@@ -176,7 +176,8 @@ const ProfileView = {
             following: [],
             followStatusMessage: '',
             openChats: [],
-            showChangePassword: false
+            showChangePassword: false,
+            _loggedUserIdError: false,
         };
     },
     computed: {
@@ -434,10 +435,25 @@ const ProfileView = {
         userId: {
             immediate: true,
             handler() {
-                this.fetchProfile();
-                this.fetchCategories();
-                //document.querySelector('.category-item input').dispatchEvent(new Event('change', { bubbles: true }));
-                this.onFiltersChanged(this.filters || {}); // to load images
+                const id = this.userId || (this.currentUser && this.currentUser.id);
+                if (id) {
+                    this.fetchProfile();
+                    this.fetchCategories();
+                    this.onFiltersChanged(this.filters || {}); // to load images
+                } else {
+                    // Do nothing: do not log error
+                }
+            }
+        },
+        currentUser: {
+            deep: true,
+            handler() {
+                const id = this.userId || (this.currentUser && this.currentUser.id);
+                if (id) {
+                    this.fetchProfile();
+                    this.fetchCategories();
+                    this.onFiltersChanged(this.filters || {});
+                }
             }
         }
     },
