@@ -257,3 +257,174 @@ func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
 	}
 	return counts, nil
 }
+
+// GetGroupMembers returns all members of a group with their details, always including the group creator (admin)
+func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) {
+	// First, get the group creator
+	var creatorID int
+	var creatorUsername, creatorAvatar, creatorFirstName, creatorLastName string
+	err := db.QueryRow(`SELECT g.creator_id, u.username, u.avatar, u.first_name, u.last_name FROM groups g JOIN users u ON g.creator_id = u.id WHERE g.id = ?`, groupID).Scan(&creatorID, &creatorUsername, &creatorAvatar, &creatorFirstName, &creatorLastName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all accepted members (excluding the creator if present)
+	query := `
+		SELECT u.id, u.username, u.avatar, u.first_name, u.last_name, gm.status, gm.last_group_chat_open_time
+		FROM group_members gm
+		JOIN users u ON gm.user_id = u.id
+		WHERE gm.group_id = ? AND gm.status = 'accepted' AND u.id != ?
+		ORDER BY u.username ASC
+	`
+	rows, err := db.Query(query, groupID, creatorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []map[string]interface{}
+	// Add the admin first
+	admin := map[string]interface{}{
+		"id":             creatorID,
+		"username":       creatorUsername,
+		"avatar":         creatorAvatar,
+		"first_name":     creatorFirstName,
+		"last_name":      creatorLastName,
+		"status":         "admin",
+		"last_chat_time": "",
+	}
+	members = append(members, admin)
+
+	for rows.Next() {
+		var member map[string]interface{} = make(map[string]interface{})
+		var userID int
+		var username, avatar, firstName, lastName, status, lastChatTime string
+
+		err := rows.Scan(&userID, &username, &avatar, &firstName, &lastName, &status, &lastChatTime)
+		if err != nil {
+			continue
+		}
+		member["id"] = userID
+		member["username"] = username
+		member["avatar"] = avatar
+		member["first_name"] = firstName
+		member["last_name"] = lastName
+		member["status"] = status
+		member["last_chat_time"] = lastChatTime
+		members = append(members, member)
+	}
+	return members, nil
+}
+
+// RequestGroupInvite creates a group invitation request that needs admin approval
+func RequestGroupInvite(db *sql.DB, inviterID, inviteeID, groupID int) error {
+	// First check if the inviter has access to the group
+	hasAccess, err := CheckUserGroupAccess(db, inviterID, groupID)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		return errors.New("inviter does not have access to this group")
+	}
+
+	// Check if invitee is already a member
+	membershipStatus, err := CheckUserGroupMembership(db, inviteeID, groupID)
+	if err != nil {
+		return err
+	}
+	if membershipStatus == "accepted" {
+		return errors.New("user is already a member of this group")
+	}
+
+	// Get group creator/admin
+	var creatorID int
+	err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+	if err != nil {
+		return err
+	}
+
+	// Create notification for admin approval
+	actionData := map[string]interface{}{
+		"action":     "group_invite_response",
+		"group_id":   groupID,
+		"inviter_id": inviterID,
+		"invitee_id": inviteeID,
+	}
+
+	err = CreateNotification(
+		creatorID, // admin receives notification
+		inviterID, // inviter is sender
+		groupID,   // reference to the group
+		"group_invite_request",
+		true, // action required
+		actionData,
+		"would like to invite",
+	)
+
+	return err
+}
+
+// ApproveGroupInvite approves a group invitation and sends notification to invitee
+func ApproveGroupInvite(db *sql.DB, adminID, inviterID, inviteeID, groupID int) error {
+	// Verify admin is the group creator
+	var creatorID int
+	err := db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+	if err != nil {
+		return err
+	}
+	if adminID != creatorID {
+		return errors.New("only group admin can approve invitations")
+	}
+
+	// Add invitee to group with accepted status
+	query := `INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
+	_, err = db.Exec(query, groupID, inviteeID)
+	if err != nil {
+		return err
+	}
+
+	// Send notification to invitee
+	actionData := map[string]interface{}{
+		"action":     "group_response",
+		"group_id":   groupID,
+		"inviter_id": inviterID,
+	}
+
+	err = CreateNotification(
+		inviteeID, // invitee receives notification
+		inviterID, // inviter is sender
+		groupID,   // reference to the group
+		"group_invitation",
+		true, // action required
+		actionData,
+		"invites you to join",
+	)
+
+	return err
+}
+
+// DeclineGroupInvite declines a group invitation
+func DeclineGroupInvite(db *sql.DB, adminID, inviterID, inviteeID, groupID int) error {
+	// Verify admin is the group creator
+	var creatorID int
+	err := db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+	if err != nil {
+		return err
+	}
+	if adminID != creatorID {
+		return errors.New("only group admin can decline invitations")
+	}
+
+	// Remove any pending membership
+	query := `DELETE FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'pending'`
+	_, err = db.Exec(query, groupID, inviteeID)
+
+	return err
+}
+
+// GetGroupCreatorID returns the creator ID of a group
+func GetGroupCreatorID(db *sql.DB, groupID int) (int, error) {
+	var creatorID int
+	err := db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+	return creatorID, err
+}

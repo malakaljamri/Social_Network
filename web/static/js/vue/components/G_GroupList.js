@@ -13,7 +13,8 @@ const GroupList = {
             searchQuery: '',
             groupAccess: new Map(), // Store access status for each group
             groupMembership: new Map(), // Store membership status for each group
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            accessFetchPromise: null // Prevent duplicate access fetches
         };
     },
     computed: {
@@ -29,6 +30,13 @@ const GroupList = {
     mounted() {
         this.fetchAllGroupAccess();
         
+        // Initialize unread count service
+        if (window.unreadCountService) {
+            window.unreadCountService.addListener((counts) => {
+                this.unreadCounts = counts;
+            });
+        }
+        
         // Listen for data clearing events
         window.addEventListener('clear-all-data', this.clearAllData);
         window.addEventListener('session-expired', this.handleSessionExpired);
@@ -36,30 +44,36 @@ const GroupList = {
     beforeUnmount() {
         window.removeEventListener('clear-all-data', this.clearAllData);
         window.removeEventListener('session-expired', this.handleSessionExpired);
-        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
-
-        // Fetch unread group counts on page load only if user is logged in
-        if (this.currentUser?.value?.isLoggedIn || this.currentUser?.isLoggedIn) {
-            fetch('/api/unread-group-counts', { credentials: 'include' })
-                .then(res => res.json())
-                .then(data => {
-                    this.unreadCounts = data || {};
-                })
-                .catch(() => {
-                    this.unreadCounts = {};
-                });
+        
+        // Clean up unread count service listener
+        if (window.unreadCountService) {
+            window.unreadCountService.removeListener((counts) => {
+                this.unreadCounts = counts;
+            });
         }
     },
     watch: {
         groups: {
             handler() {
-                this.fetchAllGroupAccess();
+                // Debounce the access fetch to prevent excessive API calls
+                if (this.accessFetchTimeout) {
+                    clearTimeout(this.accessFetchTimeout);
+                }
+                this.accessFetchTimeout = setTimeout(() => {
+                    this.fetchAllGroupAccess();
+                }, 300);
             },
             immediate: true
         },
         currentUser: {
             handler() {
-                this.fetchAllGroupAccess();
+                // Debounce the access fetch to prevent excessive API calls
+                if (this.accessFetchTimeout) {
+                    clearTimeout(this.accessFetchTimeout);
+                }
+                this.accessFetchTimeout = setTimeout(() => {
+                    this.fetchAllGroupAccess();
+                }, 300);
             },
             deep: true
         }
@@ -69,30 +83,49 @@ const GroupList = {
             this.groupAccess = new Map();
             this.groupMembership = new Map();
             this.searchQuery = '';
+            this.unreadCounts = {};
+            if (this.accessFetchTimeout) {
+                clearTimeout(this.accessFetchTimeout);
+            }
+            if (this.accessFetchPromise) {
+                this.accessFetchPromise = null;
+            }
         },
         handleSessionExpired() {
             this.clearAllData();
         },
         async fetchAllGroupAccess() {
+            // Prevent multiple simultaneous fetches
+            if (this.accessFetchPromise) {
+                return this.accessFetchPromise;
+            }
+
             if (!this.currentUser || !this.currentUser.isLoggedIn || !this.groups.length) {
                 this.groupAccess = new Map();
                 this.groupMembership = new Map();
                 return;
             }
+
             const groupIds = this.groups.map(g => g.ID);
-            try {
-                const response = await fetch('/api/groups/access/batch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ group_ids: groupIds }),
-                    credentials: 'include'
-                });
+            
+            this.accessFetchPromise = fetch('/api/groups/access/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group_ids: groupIds }),
+                credentials: 'include'
+            })
+            .then(response => {
                 if (response.status === 401) {
                     window.dispatchEvent(new CustomEvent('session-expired'));
-                    return;
+                    return null;
                 }
                 if (response.ok) {
-                    const data = await response.json();
+                    return response.json();
+                }
+                throw new Error('Failed to fetch group access');
+            })
+            .then(data => {
+                if (data) {
                     const accessMap = new Map();
                     const membershipMap = new Map();
                     for (const groupId of groupIds) {
@@ -103,9 +136,15 @@ const GroupList = {
                     this.groupAccess = accessMap;
                     this.groupMembership = membershipMap;
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error fetching batch group access:', error);
-            }
+            })
+            .finally(() => {
+                this.accessFetchPromise = null;
+            });
+
+            return this.accessFetchPromise;
         },
         selectGroup(groupId) {
             this.$emit('group-selected', groupId);
@@ -124,17 +163,22 @@ const GroupList = {
                 } else {
                     return '🔒❌'; // Private group, no access
                 }
+            } else if (group.PrivacySetting === 'custom') {
+                const hasAccess = this.groupAccess.get(group.ID);
+                const membershipStatus = this.groupMembership.get(group.ID);
+                if (hasAccess) {
+                    return '🔒✅'; // Custom group, has access
+                } else if (membershipStatus === 'pending') {
+                    return '🔒⏳'; // Custom group, pending approval
+                } else {
+                    return '🔒❌'; // Custom group, no access
+                }
             }
             return ''; // Public group, no indicator needed
         },
-        handleUnreadCountUpdate(event) {
-            const { groupId, count } = event.detail;
-            this.unreadCounts[groupId] = count;
-        }
+        // Unread count updates are now handled by the centralized service
     },
-    beforeUnmount() {
-        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
-    },
+    // Cleanup is handled in the main beforeUnmount method
     template: `
         <div class="group-list-container">
             <h3 class="group-list-header">List of Groups</h3>

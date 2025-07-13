@@ -132,6 +132,7 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Printf("[NotificationAction] Invalid request body: %v", err)
 		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -139,15 +140,19 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 	// Get notification to verify ownership and get details
 	notification, sender, err := database.GetNotificationWithSenderInfo(request.NotificationID)
 	if err != nil {
+		log.Printf("[NotificationAction] Notification not found: %v", err)
 		utils.WriteJSONError(w, http.StatusNotFound, "Notification not found")
 		return
 	}
 
 	// Verify notification belongs to current user
 	if notification.UserID != userID {
+		log.Printf("[NotificationAction] User %d not authorized for notification %d", userID, notification.ID)
 		utils.WriteJSONError(w, http.StatusForbidden, "Not authorized to handle this notification")
 		return
 	}
+
+	log.Printf("[NotificationAction] Handling type: %s, action: %s, notification: %+v", notification.Type, request.Action, notification)
 
 	// Handle different notification types
 	switch notification.Type {
@@ -157,24 +162,43 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 		err = handleGroupInvitationAction(notification, request.Action, sender)
 	case "group_join_request":
 		err = handleGroupJoinRequestAction(notification, request.Action, sender)
+	case "group_invite_request":
+		err = handleGroupInviteRequestAction(notification, request.Action, sender)
 	default:
+		log.Printf("[NotificationAction] Unsupported notification type: %s", notification.Type)
 		utils.WriteJSONError(w, http.StatusBadRequest, "Unsupported notification type")
 		return
 	}
 
 	if err != nil {
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to handle notification action")
+		log.Printf("[NotificationAction] Failed to handle notification action: %v", err)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to handle notification action: "+err.Error())
 		return
 	}
 
 	// Replace actionable notification with approval message instead of deleting
 	err = replaceNotificationWithApproval(notification, request.Action, sender)
 	if err != nil {
+		log.Printf("[NotificationAction] Action completed but failed to update notification: %v", err)
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to update notification")
 		return
 	}
 
+	// Send WebSocket notifications to refresh data
 	sendNotificationCountUpdate(userID)
+
+	// Send group membership change notification if this was a group-related action
+	if notification.Type == "group_invite_request" || notification.Type == "group_join_request" {
+		var actionData map[string]interface{}
+		if notification.ActionData != "" {
+			if err := json.Unmarshal([]byte(notification.ActionData), &actionData); err == nil {
+				if groupID, ok := actionData["group_id"].(float64); ok {
+					// Broadcast group membership change
+					BroadcastGroupMembershipChange(int(groupID), userID, request.Action)
+				}
+			}
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -270,6 +294,52 @@ func handleGroupJoinRequestAction(notification *database.Notification, action st
 	}
 }
 
+// Add handler for group invite request actions
+func handleGroupInviteRequestAction(notification *database.Notification, action string, sender *models.User) error {
+	// Log notification ID and raw ActionData for debugging
+	log.Printf("[GroupInviteRequest] Notification ID: %d, Raw ActionData: %s", notification.ID, notification.ActionData)
+	// Parse action data to get group ID, inviter ID, and invitee ID
+	var actionData map[string]interface{}
+	if notification.ActionData != "" {
+		if err := json.Unmarshal([]byte(notification.ActionData), &actionData); err != nil {
+			log.Printf("[GroupInviteRequest] Failed to parse action data: %v", err)
+			return errors.New("Invalid action data in notification")
+		}
+	} else {
+		log.Printf("[GroupInviteRequest] ActionData is empty for notification ID: %d", notification.ID)
+	}
+	log.Printf("[GroupInviteRequest] Parsed ActionData for notification ID %d: %+v", notification.ID, actionData)
+	groupID, ok1 := actionData["group_id"].(float64)
+	_, ok2 := actionData["inviter_id"].(float64)
+	inviteeID, ok3 := actionData["invitee_id"].(float64)
+	if !ok1 || !ok2 || !ok3 {
+		log.Printf("[GroupInviteRequest] Missing required fields in action data for notification ID %d: group_id=%v, inviter_id=%v, invitee_id=%v", notification.ID, ok1, ok2, ok3)
+		return errors.New("Invalid group invite request action data: missing group_id, inviter_id, or invitee_id")
+	}
+
+	switch action {
+	case "accept":
+		// Add invitee to group with accepted status
+		query := `INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
+		_, err := database.ExecuteQuery(query, int(groupID), int(inviteeID))
+		if err != nil {
+			log.Printf("[GroupInviteRequest] Failed to add invitee to group: %v", err)
+		}
+		return err
+	case "decline":
+		// Remove any pending membership
+		query := `DELETE FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'pending'`
+		_, err := database.ExecuteQuery(query, int(groupID), int(inviteeID))
+		if err != nil {
+			log.Printf("[GroupInviteRequest] Failed to remove pending membership: %v", err)
+		}
+		return err
+	default:
+		log.Printf("[GroupInviteRequest] Invalid action: %s", action)
+		return errors.New("Invalid action")
+	}
+}
+
 // replaceNotificationWithApproval replaces an actionable notification with an approval message
 func replaceNotificationWithApproval(notification *database.Notification, action string, sender *models.User) error {
 	var newMessage string
@@ -302,6 +372,16 @@ func replaceNotificationWithApproval(notification *database.Notification, action
 		if action == "accept" {
 			newMessage = "User has been added to the group"
 			newType = "group_membership_confirmed"
+			actionRequired = false
+			actionData = nil
+		} else {
+			// For decline, we can either delete or show a declined message
+			return database.DeleteNotification(notification.ID, notification.UserID)
+		}
+	case "group_invite_request":
+		if action == "accept" {
+			newMessage = "Invitation approved and sent to user"
+			newType = "group_invite_approved"
 			actionRequired = false
 			actionData = nil
 		} else {

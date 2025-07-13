@@ -130,6 +130,9 @@ func main() {
 	mux.HandleFunc("/api/groups/events/attendance", handlers.EventAttendanceHandler(db))
 	mux.HandleFunc("/api/groups/events/attendance/list", handlers.ListEventAttendeesHandler(db))
 	mux.HandleFunc("/api/groups/access/batch", handlers.BatchGroupAccessHandler(db))
+	mux.HandleFunc("/api/groups/members", handlers.GetGroupMembersHandler(db))
+	mux.HandleFunc("/api/groups/invite", handlers.RequestGroupInviteHandler(db))
+	mux.HandleFunc("/api/groups/invite/action", handlers.HandleGroupInviteActionHandler(db))
 
 	// Chat and WebSocket routes
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

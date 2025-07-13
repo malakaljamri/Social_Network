@@ -83,6 +83,16 @@ The notification system has been fully implemented with real-time WebSocket supp
    - Action: None (informational)
    - Recipient: User who joined
 
+3. **Group Invite Request**
+   - Trigger: Group member requests to invite another user
+   - Action: Accept/Decline buttons (admin only)
+   - Recipients: Group admin
+
+4. **Group Invitation (from member)**
+   - Trigger: Admin approves member's invitation request
+   - Action: Accept/Decline buttons
+   - Recipients: Invited user
+
 #### Comment Notifications
 1. **New Comment**
    - Trigger: Comment posted on user's post

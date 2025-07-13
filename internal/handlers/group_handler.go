@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"social_network/internal/database"
+	"social_network/internal/models"
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
@@ -346,4 +347,225 @@ func BroadcastGroupMessage(groupID int, senderID int, content string) {
 	if err == nil {
 		websocket.MainHub.Broadcast <- jsonMessage
 	}
+}
+
+// GetGroupMembersHandler returns all members of a group
+func GetGroupMembersHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		groupIDStr := r.URL.Query().Get("group_id")
+		if groupIDStr == "" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
+			return
+		}
+
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
+			return
+		}
+
+		// Check if user has access to the group
+		hasAccess, err := database.CheckUserGroupAccess(db, userID, groupID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check group access")
+			return
+		}
+		if !hasAccess {
+			utils.WriteJSONError(w, http.StatusForbidden, "You don't have access to this group")
+			return
+		}
+
+		members, err := database.GetGroupMembers(db, groupID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch group members")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"members": members,
+		})
+	}
+}
+
+// RequestGroupInviteHandler handles group invitation requests
+func RequestGroupInviteHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		var request struct {
+			InviteeID int `json:"invitee_id"`
+			GroupID   int `json:"group_id"`
+		}
+		err = json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		err = database.RequestGroupInvite(db, userID, request.InviteeID, request.GroupID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Get group creator to send WebSocket notification
+		creatorID, err := database.GetGroupCreatorID(db, request.GroupID)
+		if err == nil {
+			sendNotificationCountUpdate(creatorID)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Invitation request sent to group admin",
+		})
+	}
+}
+
+// HandleGroupInviteActionHandler handles admin approval/decline of group invitations
+func HandleGroupInviteActionHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		var request struct {
+			NotificationID int    `json:"notification_id"`
+			Action         string `json:"action"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Get notification to verify ownership and get details
+		notification, sender, err := database.GetNotificationWithSenderInfo(request.NotificationID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusNotFound, "Notification not found")
+			return
+		}
+
+		// Verify notification belongs to current user
+		if notification.UserID != userID {
+			utils.WriteJSONError(w, http.StatusForbidden, "Not authorized to handle this notification")
+			return
+		}
+
+		// Parse action data
+		var actionData map[string]interface{}
+		if notification.ActionData != "" {
+			if err := json.Unmarshal([]byte(notification.ActionData), &actionData); err != nil {
+				utils.WriteJSONError(w, http.StatusBadRequest, "Invalid notification data")
+				return
+			}
+		}
+
+		groupID, ok1 := actionData["group_id"].(float64)
+		inviterID, ok2 := actionData["inviter_id"].(float64)
+		inviteeID, ok3 := actionData["invitee_id"].(float64)
+		if !ok1 || !ok2 || !ok3 {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid notification data")
+			return
+		}
+
+		// Handle the action
+		switch request.Action {
+		case "accept":
+			err = database.ApproveGroupInvite(db, userID, int(inviterID), int(inviteeID), int(groupID))
+		case "decline":
+			err = database.DeclineGroupInvite(db, userID, int(inviterID), int(inviteeID), int(groupID))
+		default:
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid action")
+			return
+		}
+
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to handle invitation action")
+			return
+		}
+
+		// Replace notification with approval message
+		err = replaceGroupInviteNotificationWithApproval(notification, request.Action, sender, int(inviterID), int(inviteeID))
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Action completed but failed to update notification")
+			return
+		}
+
+		// Send WebSocket notifications
+		sendNotificationCountUpdate(userID)
+		if request.Action == "accept" {
+			sendNotificationCountUpdate(int(inviteeID))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Invitation " + request.Action + "ed",
+		})
+	}
+}
+
+// replaceGroupInviteNotificationWithApproval replaces group invite notification with approval message
+func replaceGroupInviteNotificationWithApproval(notification *database.Notification, action string, sender *models.User, inviterID, inviteeID int) error {
+	var newMessage string
+	var newType string
+	var actionRequired bool
+	var actionData map[string]interface{}
+
+	// Get inviter and invitee usernames
+	inviter, err := database.GetUserByID(inviterID)
+	if err != nil {
+		return err
+	}
+	invitee, err := database.GetUserByID(inviteeID)
+	if err != nil {
+		return err
+	}
+
+	if action == "accept" {
+		newMessage = fmt.Sprintf("You approved %s's invitation for %s", inviter.Username, invitee.Username)
+		newType = "group_invite_approved"
+		actionRequired = false
+		actionData = nil
+	} else {
+		newMessage = fmt.Sprintf("You declined %s's invitation for %s", inviter.Username, invitee.Username)
+		newType = "group_invite_declined"
+		actionRequired = false
+		actionData = nil
+	}
+
+	// Update the notification
+	query := `UPDATE notifications 
+			  SET type = ?, message = ?, action_required = ?, action_data = ?, is_read = 0, created_at = CURRENT_TIMESTAMP 
+			  WHERE id = ?`
+
+	var actionDataJSON string
+	if actionData != nil {
+		jsonData, err := json.Marshal(actionData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal action data: %v", err)
+		}
+		actionDataJSON = string(jsonData)
+	}
+
+	_, err = database.ExecuteQuery(query, newType, newMessage, actionRequired, actionDataJSON, notification.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update notification: %v", err)
+	}
+
+	return nil
 }

@@ -23,6 +23,8 @@ const GroupMain = {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
+            showInviteUserModal: false,
+            showGroupMembersModal: false,
             newGroupPost: {
                 title: '',
                 content: '',
@@ -34,7 +36,9 @@ const GroupMain = {
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            groupMembers: [],
+            groupAdminId: null
         };
     },
     computed: {
@@ -43,19 +47,12 @@ const GroupMain = {
         }
     },
     mounted() {
-        // Fetch unread group counts on page load only if user is logged in
-        if (this.currentUser && this.currentUser.isLoggedIn) {
-            fetch('/api/unread-group-counts', { credentials: 'include' })
-                .then(res => res.json())
-                .then(data => {
-                    this.unreadCounts = data || {};
-                })
-                .catch(() => {
-                    this.unreadCounts = {};
-                });
+        // Initialize unread count service
+        if (window.unreadCountService) {
+            window.unreadCountService.addListener((counts) => {
+                this.unreadCounts = counts;
+            });
         }
-
-        window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
     },
     methods: {
         openCreateGroupPostModal() {
@@ -68,11 +65,9 @@ const GroupMain = {
             this.showGroupChatWindow = true;
             // Reset unread count when group chat is opened
             if (this.selectedGroup && this.selectedGroup.ID) {
-                this.unreadCounts[this.selectedGroup.ID] = 0;
-                // Dispatch event to update other components
-                window.dispatchEvent(new CustomEvent('unread-group-count-update', { 
-                    detail: { groupId: this.selectedGroup.ID, count: 0 } 
-                }));
+                if (window.unreadCountService) {
+                    window.unreadCountService.resetUnreadCount(this.selectedGroup.ID);
+                }
             }
         },
         closeCreateGroupPostModal() {
@@ -83,6 +78,54 @@ const GroupMain = {
         },
         closeGroupChatWindow() {
             this.showGroupChatWindow = false;
+        },
+        async openInviteUserModal() {
+            // Fetch group members and admin ID before opening modal
+            if (this.selectedGroup && this.selectedGroup.ID) {
+                try {
+                    const response = await fetch(`/api/groups/members?group_id=${this.selectedGroup.ID}`, { credentials: 'include' });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.groupMembers = data.members || [];
+                        // Find admin ID
+                        const admin = this.groupMembers.find(m => m.status === 'admin');
+                        this.groupAdminId = admin ? (admin.id || admin.ID) : null;
+                    }
+                } catch (e) {
+                    this.groupMembers = [];
+                    this.groupAdminId = null;
+                }
+            }
+            this.showInviteUserModal = true;
+        },
+        closeInviteUserModal() {
+            this.showInviteUserModal = false;
+        },
+        async openGroupMembersModal() {
+            // Fetch group members and admin ID before opening modal
+            if (this.selectedGroup && this.selectedGroup.ID) {
+                try {
+                    const response = await fetch(`/api/groups/members?group_id=${this.selectedGroup.ID}`, { credentials: 'include' });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.groupMembers = data.members || [];
+                        // Find admin ID
+                        const admin = this.groupMembers.find(m => m.status === 'admin');
+                        this.groupAdminId = admin ? (admin.id || admin.ID) : null;
+                    }
+                } catch (e) {
+                    this.groupMembers = [];
+                    this.groupAdminId = null;
+                }
+            }
+            this.showGroupMembersModal = true;
+        },
+        closeGroupMembersModal() {
+            this.showGroupMembersModal = false;
+        },
+        handleInvitationSent(data) {
+            // Handle successful invitation
+            console.log('Invitation sent:', data);
         },
         submitGroupPost() {
             this.$emit('create-group-post', { ...this.newGroupPost });
@@ -143,13 +186,15 @@ const GroupMain = {
                 this.joinLoading = false;
             }
         },
-        handleUnreadCountUpdate(event) {
-            const { groupId, count } = event.detail;
-            this.unreadCounts[groupId] = count;
-        }
+        // Unread count updates are now handled by the centralized service
     },
     beforeUnmount() {
-        window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        // Clean up unread count service listener
+        if (window.unreadCountService) {
+            window.unreadCountService.removeListener((counts) => {
+                this.unreadCounts = counts;
+            });
+        }
     },
     watch: {
         selectedGroup: {
@@ -180,9 +225,17 @@ const GroupMain = {
                         <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-calendar-alt"></i> Group Events
                         </button>
-                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px; margin-right: 10px;">
                             <i class="fas fa-comments"></i> Group Chat
                                 <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
+                        </button>
+                        <!-- Show Invite User button only for private groups -->
+                        <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openInviteUserModal" class="invite-user-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                            <i class="fas fa-user-plus"></i> Invite User
+                        </button>
+                        <!-- Show Group Members button only for private groups -->
+                        <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openGroupMembersModal" class="group-members-btn" style="margin-bottom: 16px;">
+                            <i class="fas fa-users"></i> Group Members
                         </button>
                         </div>
                         
@@ -245,6 +298,32 @@ const GroupMain = {
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
             </div>
+            
+            <!-- Invite User Modal -->
+            <group-invite-modal
+                v-if="showInviteUserModal && selectedGroup"
+                :show="showInviteUserModal"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name"
+                :current-user="currentUser"
+                :users="$root.users"
+                :group-members="groupMembers"
+                :group-admin-id="groupAdminId"
+                @close="closeInviteUserModal"
+                @invitation-sent="handleInvitationSent"
+            />
+            
+            <!-- Group Members Modal -->
+            <group-members-modal
+                v-if="showGroupMembersModal && selectedGroup"
+                :show="showGroupMembersModal"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name"
+                :current-user="currentUser"
+                :group-members="groupMembers"
+                :group-admin-id="groupAdminId"
+                @close="closeGroupMembersModal"
+            />
             <!-- Group Posts Section -->
             <div class="group-posts layer-content">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
@@ -286,7 +365,9 @@ const GroupMain = {
     `,
     components: {
         'g-group-events-modal': window.G_GroupEventsModal,
-        'comment-section': window.G_CommentSection
+        'comment-section': window.CommentSection,
+        'group-invite-modal': window.GroupInviteModal,
+        'group-members-modal': window.GroupMembersModal
     }
 };
 window.G_GroupMain = GroupMain; 

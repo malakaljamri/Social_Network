@@ -291,6 +291,133 @@
     border-top: 1px solid var(--border-color);
 }
 
+/* Group Invite Modal Specific Styles */
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.user-details .username {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.user-details .nickname {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.user-details .email {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.no-users {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Group Members Modal Specific Styles */
+.members-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-color);
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-item:hover {
+    background-color: var(--hover-color);
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.member-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.member-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.member-status {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.member-actions {
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.member-item:hover .member-actions {
+    color: var(--primary-color);
+}
+
+.no-members {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
+.loading-indicator {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+}
+
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
+.success-message {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
 .primary-button {
     background-color: var(--primary-color);
     color: white;

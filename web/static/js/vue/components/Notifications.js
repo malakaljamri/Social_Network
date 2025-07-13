@@ -49,7 +49,7 @@ const Notifications = {
                         </div>
                         
                         <!-- Action buttons for actionable notifications -->
-                        <div v-if="notification.action_required && showActions" class="notification-actions">
+                        <div v-if="showActions && notification.action_required === true && isActionableType(notification.type)" class="notification-actions">
                             <button @click="handleAction(notification.id, 'accept')" 
                                     class="action-btn accept-btn">
                                 Accept
@@ -138,16 +138,13 @@ const Notifications = {
             if (!this.$root.currentUser.value.isLoggedIn) return;
             try {
                 console.log('Notifications: Handling action:', notificationId, action);
-                
                 // Find the notification to get its type
                 const notification = this.notifications.find(n => n.id === notificationId);
                 if (!notification) {
                     console.error('Notification not found:', notificationId);
                     return;
                 }
-
                 let success = false;
-
                 // All actionable notification types now use the unified endpoint
                 const response = await fetch('/api/notifications/action', {
                     method: 'POST',
@@ -156,43 +153,35 @@ const Notifications = {
                     body: JSON.stringify({ notification_id: notificationId, action })
                 });
                 success = response.ok;
-
                 if (success) {
                     console.log('Notifications: Action successful');
-                    
+                    // Immediately disable action buttons for this notification
+                    notification.action_required = false;
+                    // Optionally, update the notification type/message if needed
                     // Show success message based on action
-                    const notification = this.notifications.find(n => n.id === notificationId);
-                    if (notification) {
-                        let successMessage = '';
-                        switch (notification.type) {
-                            case 'follow_request':
-                                if (action === 'accept') {
-                                    successMessage = 'Follow request accepted! You are now following each other.';
-                                } else {
-                                    successMessage = 'Follow request declined.';
-                                }
-                                break;
-                            case 'group_invitation':
-                                if (action === 'accept') {
-                                    successMessage = 'Group invitation accepted! You have joined the group.';
-                                } else {
-                                    successMessage = 'Group invitation declined.';
-                                }
-                                break;
-                            default:
-                                successMessage = 'Action completed successfully!';
-                        }
-                        
-                        if (window.layerManager) {
-                            window.layerManager.showSuccess(successMessage, 5000);
-                        }
+                    let successMessage = '';
+                    switch (notification.type) {
+                        case 'follow_request':
+                            successMessage = (action === 'accept') ? 'Follow request accepted! You are now following each other.' : 'Follow request declined.';
+                            break;
+                        case 'group_invitation':
+                            successMessage = (action === 'accept') ? 'Group invitation accepted! You have joined the group.' : 'Group invitation declined.';
+                            break;
+                        case 'group_invite_request':
+                            successMessage = (action === 'accept') ? 'Group invite approved!' : 'Group invite declined.';
+                            break;
+                        default:
+                            successMessage = 'Action completed successfully!';
                     }
-                    
+                    if (window.layerManager) {
+                        window.layerManager.showSuccess(successMessage, 5000);
+                    }
                     // Emit action handled event to parent (parent will update notifications list)
                     this.$emit('action-handled', { notificationId, action });
+                    // Refresh notifications list to reflect new state
+                    this.fetchLatestNotifications();
                 } else {
                     console.error('Notifications: Action failed');
-                    // Show error to user
                     if (window.layerManager) {
                         window.layerManager.showError('Failed to process notification action. Please try again.', 5000);
                     } else {
@@ -283,9 +272,18 @@ const Notifications = {
             // This method should be provided by the parent component (NavBar) via prop or event
             // For now, emit an event so the parent can refresh notifications
             this.$emit('refresh-notifications');
+        },
+        isActionableType(type) {
+            // Only allow action buttons for these types
+            return [
+                'follow_request',
+                'group_invitation',
+                'group_invite_request',
+                'group_join_request'
+            ].includes(type);
         }
     },
-    emits: ['action-handled', 'view-profile', 'view-post', 'view-event', 'view-group']
+    emits: ['action-handled', 'view-profile', 'view-post', 'view-event', 'view-group', 'refresh-notifications']
 };
 
 // Add CSS animations

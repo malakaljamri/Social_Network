@@ -313,6 +313,7 @@ const WebSocketPlugin = {
             
             // Emit event for components to refresh
             eventBus.emit('new-notification', data);
+            window.dispatchEvent(new CustomEvent('new-notification', { detail: data }));
         }
 
         // Handle notification updates (when actions are completed)
@@ -336,6 +337,7 @@ const WebSocketPlugin = {
             
             // Emit event for components to refresh
             eventBus.emit('notification-update', data);
+            window.dispatchEvent(new CustomEvent('notification-update', { detail: data }));
         }
 
         // Notification system
@@ -451,6 +453,7 @@ const WebSocketPlugin = {
             console.log('New group created:', data.content);
             // Dispatch event to refresh groups list
             window.dispatchEvent(new CustomEvent('group-created', { detail: data.content }));
+            eventBus.emit('group-created', data.content);
         }
 
         // Handle group membership changes
@@ -458,6 +461,7 @@ const WebSocketPlugin = {
             console.log('Group membership changed:', data.content);
             // Dispatch event to update group access for affected users
             window.dispatchEvent(new CustomEvent('group-membership-changed', { detail: data.content }));
+            eventBus.emit('group-membership-changed', data.content);
         }
 
         // Handle group messages
@@ -471,6 +475,7 @@ const WebSocketPlugin = {
         function handleGroupUpdated(data) {
             console.log('Group updated event received:', data);
             eventBus.emit('group-updated', data);
+            window.dispatchEvent(new CustomEvent('group-updated', { detail: data.content }));
         }
 
         // Initialize WebSocket connection

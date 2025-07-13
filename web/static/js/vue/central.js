@@ -276,8 +276,15 @@ const app = Vue.createApp({
                 email: data.email
             };
             this.currentView = 'home';
+            
+            // Initialize unread count service
+            if (window.unreadCountService) {
+                await window.unreadCountService.init();
+            }
+            
             await this.fetchUsers(); // Ensure user list is loaded after login
             await this.fetchGroups(); // Ensure groups are loaded after login
+            await this.fetchNotificationCount(); // Ensure notifications are loaded after login
             if (this.websocket && typeof this.websocket.init === 'function') {
                 this.websocket.init();
             }
