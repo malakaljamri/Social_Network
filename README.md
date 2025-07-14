@@ -1,11 +1,11 @@
 
-
-# + - the creatour of the Groups should invite others to the group and they should accept and reject the invitition
+# emoji in group and private chat --> we could use vue library
 
 ------------------
 
-# 4- username part 
-If the user has no username then generate a unique one from first and last name --> so we could see it in the profile and users list page 
+#  the creatour of the Groups should invite others to the group and they should accept and reject the invitition
+
+------------------
 
 # 5-Notfication part  
 A user must be able to see the notifications in every page of the project.
@@ -21,8 +21,6 @@ A user must be able to see the notifications in every page of the project.
 
 # is member of a group and an event is created
 
----------------
-
-# 6- some css need to enhance for the UX 
+--------------
 
 
