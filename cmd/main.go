@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+//mux = as a traffic cop that directs incoming HTTP requests to the correct handler function, based on the request's URL path.
 var migrate = false
 
 func main() {

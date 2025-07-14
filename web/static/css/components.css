@@ -525,6 +525,48 @@ button.pagination-button.active {
   font-size: var(--font-size-sm);
 }
 
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    top: 80px; /* Moved down to avoid navbar */
+    right: 20px;
+    background-color: #ffffff; /* White background */
+    color: #000000; /* Black text */
+    padding: 15px 25px;
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--shadow-large);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    min-width: 320px; /* Made it wider */
+    overflow: hidden; /* Keep the progress bar contained */
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-notification .toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    width: 100%;
+    background-color: var(--accent-color);
+    animation: progress-bar 8s linear forwards;
+}
+
+@keyframes progress-bar {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
 /* Custom Alert */
 .custom-alert {
   position: fixed;

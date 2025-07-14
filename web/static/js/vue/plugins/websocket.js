@@ -104,6 +104,9 @@ const WebSocketPlugin = {
                 case 'group_chat':
                     handleGroupChatMessage(message.content);
                     break;
+                case 'private_message_notification':
+                    handlePrivateMessageNotification(message.content);
+                    break;
                 case 'typing_status':
                     handleTypingIndicator(message.content);
                     break;
@@ -200,19 +203,54 @@ const WebSocketPlugin = {
 
         // Handle new group notifications
         function handleNewGroup(data) {
-            const vueApp = app.config.globalProperties.$root;
-            if (vueApp && vueApp.groups) {
-                const groupObj = {
-                    ID: data.id,
-                    Name: data.name,
-                    Description: data.description,
-                    CreatedAt: data.created_at,
-                    Creator: { Username: data.creator.username }
-                };
-                if (!vueApp.groups.some(g => g.ID === groupObj.ID)) {
-                    vueApp.groups.push(groupObj);
-                }
+            console.log("New group created:", data);
+            const root = app._instance?.proxy;
+            if (!root) return;
+
+            // Add the new group to the list
+            if (root.chat && root.chat.groups) {
+                root.chat.groups.unshift(data); // Add to the top of the list
             }
+
+            // Show a toast notification
+            const notificationText = `New group created: "${data.title}"`;
+            showToastNotification(notificationText);
+        }
+
+        function handlePrivateMessageNotification(data) {
+            const notificationText = `New message from: ${data.sender_name}`;
+            showToastNotification(notificationText);
+        }
+
+        function showToastNotification(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+
+            const messageText = document.createElement('span');
+            messageText.textContent = message;
+
+            const progressBar = document.createElement('div');
+            progressBar.className = 'toast-progress';
+
+            toast.appendChild(messageText);
+            toast.appendChild(progressBar);
+
+            document.body.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 100);
+
+            // Animate out and remove after 8 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 500); // Corresponds to the transition duration
+            }, 8000); // 8 seconds
         }
 
         // Notification system

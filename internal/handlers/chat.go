@@ -142,6 +142,23 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			jsonMessage, _ := json.Marshal(msg)
 			h.hub.Broadcast <- jsonMessage
 		}
+
+		// START: SEND NOTIFICATION TO RECEIVER
+		sender, err := database.GetUserByID(chatMessage.SenderID)
+		if err != nil {
+			log.Printf("Error getting sender details for notification: %v", err)
+		} else {
+			notification := websocket.Message{
+				Type: "private_message_notification",
+				Content: map[string]string{
+					"sender_name": sender.FirstName + " " + sender.LastName,
+				},
+				UserID: chatMessage.ReceiverID,
+			}
+			jsonNotification, _ := json.Marshal(notification)
+			h.hub.Broadcast <- jsonNotification
+		}
+		// END: SEND NOTIFICATION TO RECEIVER
 		// END: ENFORCE PRIVATE MESSAGE RULE
 		// Broadcast unread count to recipient
 		unreadCount := database.CountUnreadMessages(chatMessage.ReceiverID, chatMessage.SenderID)

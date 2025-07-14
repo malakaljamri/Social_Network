@@ -65,3 +65,42 @@ func GenerateUniqueUsername(first, last string) string {
 	}
 }.  in db_users.go
 
+
+// chat.go --> for send msg notification to receiver
+// START: SEND NOTIFICATION TO RECEIVER
+		sender, err := database.GetUserByID(chatMessage.SenderID)
+		if err != nil {
+			log.Printf("Error getting sender details for notification: %v", err)
+		} else {
+			notification := websocket.Message{
+				Type: "private_message_notification",
+				Content: map[string]string{
+					"sender_name": sender.FirstName + " " + sender.LastName,
+				},
+				UserID: chatMessage.ReceiverID,
+			}
+			jsonNotification, _ := json.Marshal(notification)
+			h.hub.Broadcast <- jsonNotification
+		}
+		// END: SEND NOTIFICATION TO RECEIVER
+
+// websocket.js --> for receive msg notification to receiver
+
+ case 'private_message_notification':
+                    handlePrivateMessageNotification(message.content);
+                    break;
+
+
+
+
+            const messageText = document.createElement('span');
+            messageText.textContent = message;
+
+            const progressBar = document.createElement('div');
+            progressBar.className = 'toast-progress';
+
+            toast.appendChild(messageText);
+            toast.appendChild(progressBar);
+
+
+
