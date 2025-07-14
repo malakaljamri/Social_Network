@@ -21,6 +21,9 @@ const GroupChat = {
             </div>
             <div class="chat-input-container">
                 <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox">
+                <button @click.stop="toggleEmojiPicker" class="emoji-button">
+                    <i class="fa-regular fa-face-smile"></i>
+                </button>
                 <button @click="sendMessage">Send</button>
             </div>
         </div>
@@ -30,10 +33,40 @@ const GroupChat = {
             messages: [],
             input: '',
             loading: true,
-            currentUserId: null
+            currentUserId: null,
+            showEmojiPicker: false,
         };
     },
+    watch: {
+        showEmojiPicker(isShown) {
+            if (isShown) {
+                this.$nextTick(() => {
+                    const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                    if (picker) {
+                        picker.addEventListener('emoji-click', this.onEmojiSelect);
+                    }
+                });
+            } else {
+                const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                if (picker) {
+                    picker.removeEventListener('emoji-click', this.onEmojiSelect);
+                }
+            }
+        }
+    },
     methods: {
+        toggleEmojiPicker() {
+            this.showEmojiPicker = !this.showEmojiPicker;
+        },
+        onEmojiSelect(event) {
+            this.input += event.detail.unicode;
+            this.$refs.inputBox.focus();
+        },
+        closeEmojiPickerOnClickOutside(event) {
+            if (this.$refs.emojiPickerContainer && !this.$refs.emojiPickerContainer.contains(event.target) && !event.target.closest('.emoji-button')) {
+                this.showEmojiPicker = false;
+            }
+        },
         async fetchHistory() {
             this.loading = true;
             try {
@@ -92,6 +125,7 @@ const GroupChat = {
         }
     },
     mounted() {
+        document.addEventListener('click', this.closeEmojiPickerOnClickOutside);
         // Get current user ID from root
         this.currentUserId = this.$root.currentUser?.id;
         this.fetchHistory();
@@ -114,6 +148,7 @@ const GroupChat = {
         });
     },
     beforeUnmount() {
+        document.removeEventListener('click', this.closeEmojiPickerOnClickOutside);
         window.removeEventListener('group-chat-message', this._onGroupChatMessage);
         const c = this.$refs.messagesContainer;
         if (c && this._debouncedResetUnread) {

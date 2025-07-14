@@ -27,8 +27,16 @@ const ChatWindow = {
                 You can only message users you follow or who follow you
             </div>
             <template v-else>
-                <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox" style="width: 80%; margin-right: 8px;">
-                <button @click="sendMessage">Send</button>
+                                <div class="chat-input-container">
+                    <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
+                    <button @click.stop="toggleEmojiPicker" class="emoji-button">
+                        <i class="fa-regular fa-face-smile"></i>
+                    </button>
+                    <button @click="sendMessage">Send</button>
+                    <div v-if="showEmojiPicker" class="emoji-picker-container" ref="emojiPickerContainer">
+                        <emoji-picker class="light"></emoji-picker>
+                    </div>
+                </div>
             </template>
         </div>
     `,
@@ -44,6 +52,7 @@ const ChatWindow = {
             allLoaded: false,
             offset: 0,
             batchSize: 10,
+            showEmojiPicker: false,
         };
     },
     computed: {
@@ -51,7 +60,36 @@ const ChatWindow = {
             return this.currentUser;
         }
     },
+    watch: {
+        showEmojiPicker(isShown) {
+            if (isShown) {
+                this.$nextTick(() => {
+                    const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                    if (picker) {
+                        picker.addEventListener('emoji-click', this.onEmojiSelect);
+                    }
+                });
+            } else {
+                const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                if (picker) {
+                    picker.removeEventListener('emoji-click', this.onEmojiSelect);
+                }
+            }
+        }
+    },
     methods: {
+        toggleEmojiPicker() {
+            this.showEmojiPicker = !this.showEmojiPicker;
+        },
+        onEmojiSelect(event) {
+            this.input += event.detail.unicode;
+            this.$refs.inputBox.focus();
+        },
+        closeEmojiPickerOnClickOutside(event) {
+            if (this.$refs.emojiPickerContainer && !this.$refs.emojiPickerContainer.contains(event.target) && !event.target.closest('.emoji-button')) {
+                this.showEmojiPicker = false;
+            }
+        },
         async fetchHistory(loadOlder = false) {
             if (loadOlder) {
                 if (this.loadingOlder || this.allLoaded) return;
@@ -169,6 +207,7 @@ const ChatWindow = {
         }
     },
     mounted() {
+        document.addEventListener('click', this.closeEmojiPickerOnClickOutside);
         this.fetchHistory();
         this.fetchFollowStatus();
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
@@ -203,6 +242,12 @@ const ChatWindow = {
         });
     },
     beforeUnmount() {
+        document.removeEventListener('click', this.closeEmojiPickerOnClickOutside);
+        const emojiPicker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+        if (emojiPicker) {
+            emojiPicker.removeEventListener('emoji-click', this.onEmojiSelect);
+        }
+
         window.removeEventListener('chat-message', this._onChatMessage);
         window.removeEventListener('chat-typing', this._onChatTyping);
         clearTimeout(this.typingTimeout);

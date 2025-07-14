@@ -1,15 +1,14 @@
 /* Chat and Real-time Features */
 
-.chat-window {
-  position: fixed;
+/* Private Chat Window */
+.chat-window-fixed {
+  position: fixed; /* Keeps the chat window in place */
   bottom: 20px;
   right: 20px;
-  width: 300px;
-  height: 400px;
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); 
-  border-radius: var(--border-radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: var(--z-index-modal);
+  width: 350px; /* Adjusted for better spacing */
+  height: 450px;
+  z-index: 1000;
+  /* The 'position: fixed' also makes this a positioning context for its children. */
 }
 
 /* Online Users List Styles */
@@ -336,6 +335,7 @@
 
 /* Chat Input Container */
 .chat-input-container {
+  position: relative; /* This is crucial for positioning the emoji picker */
   display: flex;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
@@ -395,4 +395,53 @@
   right: 0;
   background: green;
   border-radius: 50%;
+}
+
+/* Emoji Picker Styles */
+.emoji-button {
+    background: transparent;
+    border: none;
+    color: var(--text-color-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.emoji-button:hover {
+    background-color: var(--surface-alt-color);
+}
+
+.emoji-picker-container {
+    position: absolute;
+    top: 100%; /* Position it right below the input container */
+    right: 0;
+    z-index: 1001; /* Ensure it's on top */
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--border-radius);
+    margin-top: 5px; /* Add a little space */
+}
+
+emoji-picker {
+    --border-radius: var(--border-radius);
+    --background: var(--surface-color);
+    --color-text: var(--text-color);
+    --color-text-secondary: var(--text-color-secondary);
+    --border-color: var(--border-color);
+    width: 320px;
+    height: 400px;
+}
+
+/* Specific rule for group chat to open upwards and to the left */
+.group-chat .emoji-picker-container {
+    bottom: 100%; /* Position it to open upwards from the input container */
+    top: auto; /* Unset the top property */
+    left: 0; /* Align to the left */
+    right: auto; /* Unset the right property */
+    margin-top: 0;
+    margin-bottom: 5px; /* Add a little space between picker and input */
 }

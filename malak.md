@@ -103,4 +103,64 @@ func GenerateUniqueUsername(first, last string) string {
             toast.appendChild(progressBar);
 
 
+add this in chatwindow.js 
 
+  <!-- <div class="chat-input-area">
+                    <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
+                    <button @click.stop="toggleEmojiPicker" class="emoji-button">
+                        <i class="fa-regular fa-face-smile"></i>
+                    </button>
+                    <button @click="sendMessage">Send</button>
+                </div>
+                <div v-if="showEmojiPicker" class="emoji-picker-container" ref="emojiPickerContainer">
+                    <emoji-picker class="light"></emoji-picker>
+                </div>			 -->
+
+----
+ <!-- showEmojiPicker: false,
+        };
+    },
+    watch: {
+        showEmojiPicker(isShown) {
+            if (isShown) {
+                this.$nextTick(() => {
+                    const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                    if (picker) {
+                        picker.addEventListener('emoji-click', this.onEmojiSelect);
+                    }
+                });
+            } else {
+                const picker = this.$refs.emojiPickerContainer?.querySelector('emoji-picker');
+                if (picker) {
+                    picker.removeEventListener('emoji-click', this.onEmojiSelect);
+                }
+            }
+        }
+    },
+    methods: {
+        toggleEmojiPicker() {
+            this.showEmojiPicker = !this.showEmojiPicker;
+        },
+        onEmojiSelect(event) {
+            this.input += event.detail.unicode;
+            this.$refs.inputBox.focus();
+        },
+        closeEmojiPickerOnClickOutside(event) {
+            if (this.$refs.emojiPickerContainer && !this.$refs.emojiPickerContainer.contains(event.target) && !event.target.closest('.emoji-button')) {
+                this.showEmojiPicker = false;
+            }
+        },
+        async fetchHistory() {				 -->
+
+remove this:
+  <!-- <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox"> -->
+
+
+Modify the group chat.js and add the same code
+
+
+ <!-- <div v-if="showEmojiPicker" class="emoji-picker-container" ref="emojiPickerContainer">
+                    <emoji-picker class="light"></emoji-picker>
+                </div>.
+                
+remove this from the group chat untill solving the problem. -->
