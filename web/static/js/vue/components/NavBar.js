@@ -314,8 +314,8 @@ const NavBar = {
                     return;
                 }
 
-                let response;
                 let success = false;
+                let response;
                 
                 if (notification.type === 'follow_request') {
                     // Handle follow request via user endpoint
@@ -347,14 +347,12 @@ const NavBar = {
                     success = response.ok;
                     
                     if (success) {
-                        console.log('NavBar: Group invitation action successful');
-                        // Wait for backend processing and WebSocket updates
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        // Refresh data after successful action
-                        if (this.$root && this.$root.refreshAllData) {
-                            await this.$root.refreshAllData();
-                        }
+                        // Wait a moment for backend to process, then refresh data
+                        setTimeout(async () => {
+                            if (this.$root && this.$root.refreshAllData) {
+                                await this.$root.refreshAllData();
+                            }
+                        }, 500);
                     }
                 } else {
                     // Handle other actionable notifications
@@ -368,11 +366,11 @@ const NavBar = {
                 }
 
                 if (success) {
-                    console.log('NavBar: Notification action completed successfully');
+                    console.log('NavBar: Notification action successful');
                     // Remove the notification from the list
                     this.notifications = this.notifications.filter(n => n.id !== notificationId);
                     // Refresh notification count
-                    await this.fetchNotificationCount();
+                    this.fetchNotificationCount();
                 } else {
                     console.error('NavBar: Notification action failed', response.status, response.statusText);
                     const errorData = await response.text();

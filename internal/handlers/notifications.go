@@ -188,7 +188,7 @@ func HandleNotificationActionHandler(w http.ResponseWriter, r *http.Request) {
 	sendNotificationCountUpdate(userID)
 
 	// Send group membership change notification if this was a group-related action
-	if notification.Type == "group_invite_request" || notification.Type == "group_join_request" || notification.Type == "group_invitation" {
+	if notification.Type == "group_invite_request" || notification.Type == "group_join_request" {
 		var actionData map[string]interface{}
 		if notification.ActionData != "" {
 			if err := json.Unmarshal([]byte(notification.ActionData), &actionData); err == nil {
@@ -252,26 +252,12 @@ func handleGroupInvitationAction(notification *database.Notification, action str
 		// Add user to group with accepted status
 		query := `INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
 		_, err := database.ExecuteQuery(query, int(groupID), notification.UserID)
-		if err != nil {
-			return err
-		}
-
-		// Broadcast group membership change
-		BroadcastGroupMembershipChange(int(groupID), notification.UserID, "added")
-		return nil
-
+		return err
 	case "decline":
 		// Remove user from group
 		query := `DELETE FROM group_members WHERE group_id = ? AND user_id = ?`
 		_, err := database.ExecuteQuery(query, int(groupID), notification.UserID)
-		if err != nil {
-			return err
-		}
-
-		// Broadcast group membership change
-		BroadcastGroupMembershipChange(int(groupID), notification.UserID, "removed")
-		return nil
-
+		return err
 	default:
 		return errors.New("Invalid action")
 	}

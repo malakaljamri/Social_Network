@@ -38,6 +38,11 @@ func InitializeDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
+	// Configure connection pool for better concurrency
+	db.SetMaxOpenConns(10) // Allow more connections for better performance
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(time.Hour)
+
 	// Test the database connection
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %v", err)

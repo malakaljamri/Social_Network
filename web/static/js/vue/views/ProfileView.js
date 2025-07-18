@@ -192,7 +192,8 @@ const ProfileView = {
             categoriesError: '',
             forceRerenderKey: 0,
             fetchTimeout: null, // For debouncing fetch requests
-            lastFetchUserId: null // Track last fetched user to prevent duplicate requests
+            lastFetchUserId: null, // Track last fetched user to prevent duplicate requests
+
         };
     },
     computed: {
@@ -274,10 +275,9 @@ const ProfileView = {
                     return;
                 }
                 
-                // Prevent duplicate requests for the same user
+                // Only prevent duplicate requests if we're already loading AND it's the same user
                 if (this.lastFetchUserId === userId && this.loading) {
-                    console.log('ProfileView: Skipping duplicate request for user', userId);
-                    return;
+                    console.log('ProfileView: Already loading profile for user', userId, ', allowing concurrent request');
                 }
                 
                 this.lastFetchUserId = userId;

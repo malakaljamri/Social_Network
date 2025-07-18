@@ -41,19 +41,27 @@ const WebSocketPlugin = {
         function initWebSocket() {
             const root = app._instance?.proxy;
             if (!root || !root.currentUser?.value?.isLoggedIn) {
-                console.log('WebSocket not initialized: user not logged in or not loaded');
+                console.log('WebSocket not initialized: user not logged in');
                 return;
             }
 
             const currentUser = root.currentUser.value;
+            
+            // Check if we should allow reconnection (only if user is still logged in)
             if (wsState.reconnectAttempts >= wsState.MAX_RECONNECT_ATTEMPTS) {
-                console.error('Max reconnection attempts reached');
+                console.log('Max reconnection attempts reached, user may have logged out');
                 return;
             }
 
             // Prevent multiple socket creation
             if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
                 console.log('WebSocket already open or connecting, skipping init');
+                return;
+            }
+
+            // Check if user is still logged in before connecting
+            if (!root.currentUser?.value?.isLoggedIn) {
+                console.log('User no longer logged in, skipping WebSocket init');
                 return;
             }
 
@@ -118,15 +126,27 @@ const WebSocketPlugin = {
                 console.log('WebSocket connection closed:', event.code, event.reason);
                 wsState.connected = false;
                 
-                if (event.code !== 1000 && wsState.reconnectAttempts < wsState.MAX_RECONNECT_ATTEMPTS) {
+                // Only attempt reconnection if user is still logged in and it's not a normal close
+                const root = app._instance?.proxy;
+                if (event.code !== 1000 && 
+                    wsState.reconnectAttempts < wsState.MAX_RECONNECT_ATTEMPTS &&
+                    root?.currentUser?.value?.isLoggedIn) {
                     wsState.reconnectAttempts++;
                     console.log(`Attempting to reconnect... (${wsState.reconnectAttempts}/${wsState.MAX_RECONNECT_ATTEMPTS})`);
                     setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
+                } else if (event.code === 1000) {
+                    console.log('WebSocket closed normally (logout or user action)');
+                } else {
+                    console.log('WebSocket reconnection stopped - user may have logged out');
                 }
             };
 
             socket.onerror = function(error) {
-                console.error('WebSocket error:', error);
+                // Only log errors if user is still logged in to avoid spam
+                const root = app._instance?.proxy;
+                if (root?.currentUser?.value?.isLoggedIn) {
+                    console.error('WebSocket error:', error);
+                }
                 wsState.connected = false;
             };
         }
@@ -517,18 +537,59 @@ const WebSocketPlugin = {
             sendUserStatus: sendUserStatus,
             sendGroupChatMessage: sendGroupChatMessage,
             init: initWebSocket, // Expose initWebSocket
+            isConnected: () => wsState.connected,
+            isInitialized: () => socket !== null,
             close: () => {
                 if (socket) {
                     console.log('Closing WebSocket connection...');
-                    socket.close();
-                    socket = null;
+                    // Reset reconnection attempts to prevent reconnection
+                    wsState.reconnectAttempts = wsState.MAX_RECONNECT_ATTEMPTS;
                     wsState.connected = false;
+                    
+                    // Close the socket with normal close code
+                    socket.close(1000, 'User logout');
+                    socket = null;
+                    
+                    // Clear any active notifications
+                    wsState.activeNotifications.forEach(notification => {
+                        if (notification && notification.remove) {
+                            notification.remove();
+                        }
+                    });
+                    wsState.activeNotifications.clear();
+                    
+                    // Clear online users
+                    wsState.onlineUsers.clear();
+                    
+                    console.log('WebSocket connection closed and state cleared');
                 } else {
                     console.log('No WebSocket connection to close');
                 }
+            },
+            
+            // Reset WebSocket state (for logout)
+            reset: () => {
+                console.log('Resetting WebSocket state...');
+                wsState.reconnectAttempts = wsState.MAX_RECONNECT_ATTEMPTS;
+                wsState.connected = false;
+                
+                if (socket) {
+                    socket.close(1000, 'User logout');
+                    socket = null;
+                }
+                
+                // Clear all state
+                wsState.activeNotifications.clear();
+                wsState.onlineUsers.clear();
+                wsState.chatWindows.clear();
+                wsState.typingUsers.clear();
+                
+                console.log('WebSocket state reset complete');
             },
             eventBus: eventBus
         });
     }
 };
-// No export statement, define globally 
+
+// Define WebSocketPlugin globally
+window.WebSocketPlugin = WebSocketPlugin; 

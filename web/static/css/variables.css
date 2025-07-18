@@ -127,13 +127,13 @@
   --z-index-modal-stack-4: 700;
   --z-index-modal-stack-5: 800;
   
-  /* Notification system (highest priority after modals) */
-  --z-index-notification: 900;
-  --z-index-notification-stack: 1000;
-  --z-index-notification-stack-2: 1100;
-  --z-index-notification-stack-3: 1200;
-  --z-index-notification-stack-4: 1300;
-  --z-index-notification-stack-5: 1400;
+  /* Notification system (highest priority - above everything) */
+  --z-index-notification: 2000;
+  --z-index-notification-stack: 2100;
+  --z-index-notification-stack-2: 2200;
+  --z-index-notification-stack-3: 2300;
+  --z-index-notification-stack-4: 2400;
+  --z-index-notification-stack-5: 2500;
   
   /* Special cases */
   --z-index-debug: 9998;

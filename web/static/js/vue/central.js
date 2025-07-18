@@ -544,8 +544,8 @@ const app = Vue.createApp({
             
             try {
                 const users = await this.retryApiCall(async () => {
-                    const response = await fetch('/api/users', { credentials: 'include' });
-                    if (!response.ok) throw new Error('Failed to fetch users');
+                const response = await fetch('/api/users', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to fetch users');
                     return await response.json();
                 });
                 
@@ -744,15 +744,15 @@ const app = Vue.createApp({
                     ]);
                     
                     // Initialize WebSocket connection
-                    if (this.websocket && this.websocket.init) {
-                        console.log('Initializing WebSocket connection...');
-                        this.websocket.init();
-                    }
-                    
+                if (this.websocket && this.websocket.init) {
+                    console.log('Initializing WebSocket connection...');
+                    this.websocket.init();
+                }
+
                     // Set up periodic user refresh (less frequent to reduce load)
                     this._userInterval = setInterval(() => {
                         if (this.currentUser.value && this.currentUser.value.isLoggedIn) {
-                            this.fetchUsers();
+            this.fetchUsers();
                         }
                     }, 60000); // Refresh every minute instead of 30 seconds
                 } else {

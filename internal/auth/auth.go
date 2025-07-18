@@ -364,14 +364,20 @@ func (h *AuthHandlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clear the session cookie
+	// Clear the session cookie - match the login cookie settings
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Expires:  time.Now(),
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		Name:       "session_token",
+		Value:      "",
+		Path:       "/",
+		Domain:     "",
+		Expires:    time.Now().Add(-1 * time.Hour), // Set to past time to expire immediately
+		RawExpires: "",
+		MaxAge:     -1,    // Delete immediately
+		Secure:     false, // Match login setting for HTTP
+		HttpOnly:   true,
+		SameSite:   http.SameSiteLaxMode, // Match login setting
+		Raw:        "",
+		Unparsed:   []string{},
 	})
 
 	// Send a success response
