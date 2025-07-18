@@ -311,6 +311,25 @@ const NavBar = {
                             this.$root.currentView = 'profile';
                         }
                     }
+                } else if (notification.type === 'group_invitation') {
+                    // Handle group invitation via notifications/action endpoint
+                    const response = await fetch('/api/notifications/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ 
+                            notification_id: notificationId, 
+                            action: action 
+                        })
+                    });
+                    success = response.ok;
+                    
+                    if (success) {
+                        // Refresh all data after group membership change
+                        if (this.$root && this.$root.refreshAllData) {
+                            await this.$root.refreshAllData();
+                        }
+                    }
                 } else {
                     // Handle other actionable notifications
                     const response = await fetch('/api/notifications/action', {

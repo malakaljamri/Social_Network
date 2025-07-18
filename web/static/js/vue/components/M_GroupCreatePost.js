@@ -18,10 +18,6 @@ const CreateGroupPostModal = {
                             <option value="">Select a category</option>
                             <option v-for="cat in categories" :key="cat.ID" :value="cat.ID">{{ cat.Name }}</option>
                         </select>
-                        <select v-model="form.privacy_setting" required>
-                            <option value="public">Public</option>
-                            <option value="private">Private</option>
-                        </select>
                         <!-- Image Upload Section -->
                         <div class="image-upload-section">
                             <div class="image-upload-container" 
@@ -64,7 +60,6 @@ const CreateGroupPostModal = {
                 title: '',
                 content: '',
                 category_id: '',
-                privacy_setting: 'public',
                 loading: false,
                 error: '',
                 file: null,
@@ -166,7 +161,6 @@ const CreateGroupPostModal = {
                 formData.append('title', this.form.title);
                 formData.append('content', this.form.content);
                 formData.append('category_id', this.form.category_id ? Number(this.form.category_id) : '');
-                formData.append('privacy_setting', this.form.privacy_setting);
                 formData.append('group_id', this.groupId);
                 if (this.form.file) {
                     formData.append('image', this.form.file);

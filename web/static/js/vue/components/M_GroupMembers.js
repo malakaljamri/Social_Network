@@ -6,7 +6,7 @@ const GroupMembersModal = {
         groupName: String,
         currentUser: Object
     },
-    emits: ['close'],
+    emits: ['close', 'view-user-profile'],
     data() {
         return {
             members: [],
@@ -33,6 +33,16 @@ const GroupMembersModal = {
         show(newVal) {
             if (newVal) {
                 this.fetchMembers();
+            } else {
+                // Clear data when modal closes
+                this.members = [];
+                this.error = '';
+                this.searchQuery = '';
+            }
+        },
+        groupId(newVal) {
+            if (newVal && this.show) {
+                this.fetchMembers();
             }
         }
     },
@@ -42,33 +52,23 @@ const GroupMembersModal = {
             this.error = '';
 
             try {
+                console.log('Fetching members for group:', this.groupId);
                 const response = await fetch(`/api/groups/members?group_id=${this.groupId}`, {
                     credentials: 'include'
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    let members = data.members || [];
-                    // Ensure admin and current user are present
-                    const admin = members.find(m => m.status === 'admin');
-                    const currentUserId = this.currentUser.id;
-                    const hasCurrentUser = members.some(m => (m.id || m.ID) === currentUserId);
-                    if (!admin && this.groupAdminId) {
-                        // Optionally fetch admin details if not present
-                        // (Assume admin is always present in backend for now)
-                    }
-                    if (!hasCurrentUser) {
-                        // Optionally fetch current user details if not present
-                        // (Assume current user is always present in backend for now)
-                    }
-                    this.members = members;
+                    this.members = data.members || [];
+                    console.log('Fetched members:', this.members);
                 } else {
                     const errorData = await response.json();
                     this.error = errorData.error || 'Failed to fetch group members';
+                    console.error('Error fetching members:', errorData);
                 }
             } catch (error) {
                 console.error('Error fetching group members:', error);
-                this.error = 'Failed to fetch group members';
+                this.error = 'Failed to fetch group members: ' + error.message;
             } finally {
                 this.loading = false;
             }
@@ -76,10 +76,12 @@ const GroupMembersModal = {
         closeModal() {
             this.$emit('close');
         },
+        async refreshMembers() {
+            await this.fetchMembers();
+        },
         goToUserProfile(userId) {
-            // Navigate to user profile
-            this.$root.currentView = 'profile';
-            this.$root.viewUserProfile(userId);
+            // Emit event to parent instead of direct $root access
+            this.$emit('view-user-profile', userId);
             this.closeModal();
         },
         getAvatarUrl(avatar) {
@@ -108,7 +110,12 @@ const GroupMembersModal = {
                 <div class="modal-content layer-modal">
                     <div class="modal-header">
                         <h2>{{ groupName }} Members</h2>
-                        <button class="close-button" @click="closeModal">&times;</button>
+                        <div class="modal-actions">
+                            <button class="refresh-button" @click="refreshMembers" :disabled="loading">
+                                <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
+                            </button>
+                            <button class="close-button" @click="closeModal">&times;</button>
+                        </div>
                     </div>
                     
                     <div class="search-section">

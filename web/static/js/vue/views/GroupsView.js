@@ -112,8 +112,26 @@ const GroupsView = {
             this.clearAllData();
             this.$root.goToLogin();
         },
-        // These methods are now handled by WebSocket events directly
-        // Removed to avoid duplication
+        handleRefreshGroupPosts() {
+            if (this.selectedGroupId) {
+                this.fetchGroupPosts(this.selectedGroupId);
+            }
+        },
+        handleViewUserProfile(userId) {
+            this.$root.currentView = 'profile';
+            this.$root.viewUserProfile(userId);
+        },
+        handleRefreshAllData() {
+            this.fetchGroups();
+            this.fetchCategories();
+            if (this.selectedGroupId) {
+                this.fetchGroupPosts(this.selectedGroupId);
+                this.fetchGroupEvents(this.selectedGroupId);
+            }
+        },
+        handleGroupCreatedEvent() {
+            this.fetchGroups();
+        }
     },
     mounted() {
         this.fetchGroups();
@@ -124,6 +142,13 @@ const GroupsView = {
         
         // Listen for session expiry
         window.addEventListener('session-expired', this.handleSessionExpired);
+        
+        // Listen for group post creation to refresh posts
+        window.addEventListener('refresh-group-posts', this.handleRefreshGroupPosts);
+        
+        // Listen for comprehensive data refresh events
+        window.addEventListener('refresh-all-data', this.handleRefreshAllData);
+        window.addEventListener('group-created', this.handleGroupCreatedEvent);
         
         // Listen for group creation and updates from WebSocket (consolidated)
         if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
@@ -140,12 +165,19 @@ const GroupsView = {
             this.$root.websocket.eventBus.on('group-membership-changed', (data) => {
                 console.log('GroupsView: Group membership changed event received:', data);
                 this.fetchGroups(); // Refresh the group list
+                // Also refresh group posts if a group is selected
+                if (this.selectedGroupId) {
+                    this.fetchGroupPosts(this.selectedGroupId);
+                }
             });
         }
     },
     beforeUnmount() {
         window.removeEventListener('clear-all-data', this.clearAllData);
         window.removeEventListener('session-expired', this.handleSessionExpired);
+        window.removeEventListener('refresh-group-posts', this.handleRefreshGroupPosts);
+        window.removeEventListener('refresh-all-data', this.handleRefreshAllData);
+        window.removeEventListener('group-created', this.handleGroupCreatedEvent);
         
         // Clean up WebSocket event listeners
         if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
@@ -175,6 +207,7 @@ const GroupsView = {
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                     @event-click="handleEventClick"
+                    @view-user-profile="handleViewUserProfile"
                 ></g-group-main>
             </div>
             <users-list :users="$root.users" class="sidebar layer-sidebar" :current-user="$root.currentUser.value"></users-list>

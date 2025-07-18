@@ -255,6 +255,8 @@ const CreateGroupModal = {
                     groupData.selected_user_ids = this.selectedUsers.map(u => u.id || u.ID)
                 }
 
+                console.log('Creating group with data:', groupData)
+
                 const response = await fetch('/api/groups/create', {
                     method: 'POST',
                     headers: {
@@ -275,7 +277,7 @@ const CreateGroupModal = {
                 }
             } catch (error) {
                 console.error('Error creating group:', error)
-                this.error = 'Failed to create group'
+                this.error = 'Failed to create group: ' + error.message
             } finally {
                 this.loading = false
             }

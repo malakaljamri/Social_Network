@@ -34,13 +34,41 @@ func CreateGroup(db *sql.DB, group *Group) error {
 		return errors.New("group cannot be nil")
 	}
 
+	// Start a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	// Insert the group
 	query := `
 		INSERT INTO groups (name, description, creator_id, privacy_setting)
 		VALUES (?, ?, ?, ?)
 	`
-	_, err := db.Exec(query, group.Name, group.Description, group.CreatorID, group.PrivacySetting)
+	result, err := tx.Exec(query, group.Name, group.Description, group.CreatorID, group.PrivacySetting)
 	if err != nil {
 		return fmt.Errorf("failed to insert group: %v", err)
+	}
+
+	// Get the group ID
+	groupID, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get group ID: %v", err)
+	}
+	group.ID = int(groupID)
+
+	// Always add the creator as a member with admin status
+	creatorQuery := `INSERT OR IGNORE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
+	_, err = tx.Exec(creatorQuery, group.ID, group.CreatorID)
+	if err != nil {
+		return fmt.Errorf("failed to add creator to group: %v", err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
 	}
 
 	return nil
@@ -268,13 +296,15 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 		return nil, err
 	}
 
-	// Get all accepted members (excluding the creator if present)
+	// Get all accepted members (including the creator if they're also a member)
 	query := `
 		SELECT u.id, u.username, u.avatar, u.first_name, u.last_name, gm.status, gm.last_group_chat_open_time
 		FROM group_members gm
 		JOIN users u ON gm.user_id = u.id
-		WHERE gm.group_id = ? AND gm.status = 'accepted' AND u.id != ?
-		ORDER BY u.username ASC
+		WHERE gm.group_id = ? AND gm.status = 'accepted'
+		ORDER BY 
+			CASE WHEN u.id = ? THEN 0 ELSE 1 END, -- Creator first
+			u.username ASC
 	`
 	rows, err := db.Query(query, groupID, creatorID)
 	if err != nil {
@@ -283,17 +313,9 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 	defer rows.Close()
 
 	var members []map[string]interface{}
-	// Add the admin first
-	admin := map[string]interface{}{
-		"id":             creatorID,
-		"username":       creatorUsername,
-		"avatar":         creatorAvatar,
-		"first_name":     creatorFirstName,
-		"last_name":      creatorLastName,
-		"status":         "admin",
-		"last_chat_time": "",
-	}
-	members = append(members, admin)
+
+	// Check if creator is already in the members list
+	creatorInMembers := false
 
 	for rows.Next() {
 		var member map[string]interface{} = make(map[string]interface{})
@@ -304,15 +326,42 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 		if err != nil {
 			continue
 		}
+
+		// Determine if this is the admin/creator
+		isAdmin := userID == creatorID
+		if isAdmin {
+			creatorInMembers = true
+		}
+
 		member["id"] = userID
 		member["username"] = username
 		member["avatar"] = avatar
 		member["first_name"] = firstName
 		member["last_name"] = lastName
-		member["status"] = status
+		if isAdmin {
+			member["status"] = "admin"
+		} else {
+			member["status"] = "member"
+		}
 		member["last_chat_time"] = lastChatTime
 		members = append(members, member)
 	}
+
+	// If creator is not in the members list, add them as admin
+	if !creatorInMembers {
+		admin := map[string]interface{}{
+			"id":             creatorID,
+			"username":       creatorUsername,
+			"avatar":         creatorAvatar,
+			"first_name":     creatorFirstName,
+			"last_name":      creatorLastName,
+			"status":         "admin",
+			"last_chat_time": "",
+		}
+		// Insert admin at the beginning
+		members = append([]map[string]interface{}{admin}, members...)
+	}
+
 	return members, nil
 }
 

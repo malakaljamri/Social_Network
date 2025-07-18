@@ -20,25 +20,17 @@ const GroupMain = {
     },
     data() {
         return {
-            showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
             showInviteUserModal: false,
             showGroupMembersModal: false,
-            newGroupPost: {
-                title: '',
-                content: '',
-                privacy_setting: 'public',
-                category_id: ''
-            },
+
             today: new Date().toISOString().split('T')[0],
             eventError: '',
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            unreadCounts: {}, // Track unread counts by group ID
-            groupMembers: [],
-            groupAdminId: null
+            unreadCounts: {} // Track unread counts by group ID
         };
     },
     computed: {
@@ -56,7 +48,7 @@ const GroupMain = {
     },
     methods: {
         openCreateGroupPostModal() {
-            this.showCreateGroupPostForm = true;
+            this.$emit('open-create-group-post-modal', this.selectedGroup.ID);
         },
         openGroupEventsModal() {
             this.showGroupEventsModal = true;
@@ -70,9 +62,7 @@ const GroupMain = {
                 }
             }
         },
-        closeCreateGroupPostModal() {
-            this.showCreateGroupPostForm = false;
-        },
+
         closeGroupEventsModal() {
             this.showGroupEventsModal = false;
         },
@@ -101,37 +91,20 @@ const GroupMain = {
         closeInviteUserModal() {
             this.showInviteUserModal = false;
         },
-        async openGroupMembersModal() {
-            // Fetch group members and admin ID before opening modal
-            if (this.selectedGroup && this.selectedGroup.ID) {
-                try {
-                    const response = await fetch(`/api/groups/members?group_id=${this.selectedGroup.ID}`, { credentials: 'include' });
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.groupMembers = data.members || [];
-                        // Find admin ID
-                        const admin = this.groupMembers.find(m => m.status === 'admin');
-                        this.groupAdminId = admin ? (admin.id || admin.ID) : null;
-                    }
-                } catch (e) {
-                    this.groupMembers = [];
-                    this.groupAdminId = null;
-                }
-            }
+        openGroupMembersModal() {
             this.showGroupMembersModal = true;
         },
         closeGroupMembersModal() {
             this.showGroupMembersModal = false;
         },
+        handleViewUserProfile(userId) {
+            this.$emit('view-user-profile', userId);
+        },
         handleInvitationSent(data) {
             // Handle successful invitation
             console.log('Invitation sent:', data);
         },
-        submitGroupPost() {
-            this.$emit('create-group-post', { ...this.newGroupPost });
-            this.newGroupPost = { title: '', content: '', privacy_setting: 'public', category_id: '' };
-            this.closeCreateGroupPostModal();
-        },
+
         formatDate(dateStr) {
             if (!dateStr) return '';
             // SQLite returns "YYYY-MM-DD HH:MM:SS", replace space with T for JS Date
@@ -253,37 +226,7 @@ const GroupMain = {
                     </template>
                 </div>
             </div>
-            <!-- Create Group Post Modal -->
-            <div v-if="showCreateGroupPostForm" class="modal-overlay layer-modal" @click.self="closeCreateGroupPostModal">
-                <div class="modal-content layer-modal" @click.stop>
-                    <h2>Create Group Post</h2>
-                    <form @submit.prevent="submitGroupPost">
-                        <div class="form-group">
-                            <label for="post-title">Title</label>
-                            <input type="text" id="post-title" v-model="newGroupPost.title" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-content">Content</label>
-                            <textarea id="post-content" v-model="newGroupPost.content" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="privacy-setting">Privacy</label>
-                            <select id="privacy-setting" v-model="newGroupPost.privacy_setting" required>
-                                <option value="public">Public</option>
-                                <option value="private">Private</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="post-category">Category</label>
-                            <input type="text" id="post-category" v-model="newGroupPost.category_id">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="submit-btn">Create</button>
-                            <button type="button" class="cancel-btn" @click="closeCreateGroupPostModal">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+
             <!-- Group Events Modal -->
             <g-group-events-modal
                 v-if="showGroupEventsModal && selectedGroup"
@@ -320,9 +263,8 @@ const GroupMain = {
                 :group-id="selectedGroup.ID"
                 :group-name="selectedGroup.Name"
                 :current-user="currentUser"
-                :group-members="groupMembers"
-                :group-admin-id="groupAdminId"
                 @close="closeGroupMembersModal"
+                @view-user-profile="handleViewUserProfile"
             />
             <!-- Group Posts Section -->
             <div class="group-posts layer-content">

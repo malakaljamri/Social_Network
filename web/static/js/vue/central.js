@@ -53,12 +53,7 @@ const app = Vue.createApp({
             posts: [],
             openChats: [],
             selectedProfileUserId: null,
-            posts: [], // for updating after post creation
-            groups: [], // for updating after group creation
-            openChats: [], // <-- moved from HomeView
-            selectedEvent: null,
             showEventDetailsModal: false,
-            showGroupEventsModal: false,
             upcomingEvents: [],
             pastEvents: [],
             _userInterval: null,
@@ -167,6 +162,48 @@ const app = Vue.createApp({
             window.dispatchEvent(new CustomEvent('clear-all-data'));
         },
 
+        // Comprehensive data refresh method for core events
+        async refreshAllData() {
+            if (this.currentUser.value && this.currentUser.value.isLoggedIn) {
+                console.log('🔄 Refreshing all data...');
+                
+                // Prevent multiple simultaneous refreshes
+                if (this._refreshingData) {
+                    console.log('🔄 Data refresh already in progress, skipping...');
+                    return;
+                }
+                this._refreshingData = true;
+                
+                try {
+                    // Refresh all core data in parallel
+                    await Promise.all([
+                        this.fetchUsers(),
+                        this.fetchGroups(),
+                        this.fetchNotificationCount()
+                    ]);
+                    
+                    // Dispatch events to refresh child components
+                    window.dispatchEvent(new CustomEvent('refresh-all-data'));
+                    
+                    console.log('✅ All data refreshed successfully');
+                } catch (error) {
+                    console.error('❌ Error refreshing data:', error);
+                } finally {
+                    this._refreshingData = false;
+                }
+            }
+        },
+
+        // Debounced refresh method to prevent excessive API calls
+        debouncedRefresh() {
+            if (this._refreshTimeout) {
+                clearTimeout(this._refreshTimeout);
+            }
+            this._refreshTimeout = setTimeout(() => {
+                this.refreshAllData();
+            }, 1000); // Wait 1 second before refreshing
+        },
+
         // Chat window management
         showChat(userId) {
             if (!this.chatWindows.has(userId)) {
@@ -243,10 +280,13 @@ const app = Vue.createApp({
             console.log('✅ Group created successfully:', newGroup);
             // Refresh the groups list to show the new group
             await this.fetchGroups();
+            // Dispatch event to refresh all group-related data
+            window.dispatchEvent(new CustomEvent('group-created', { detail: newGroup }));
         },
-        onGroupPostCreated() {
+        onGroupPostCreated(postData) {
             this.closeCreateGroupPostModal();
-            // Optionally refresh group posts here
+            // Dispatch event to refresh group posts
+            window.dispatchEvent(new CustomEvent('refresh-group-posts', { detail: postData }));
         },
         handleNavigate(view) {
             if (this.currentView === view) {
@@ -493,32 +533,50 @@ const app = Vue.createApp({
             this.showGroupEventsModal = false;
         },
         async fetchUsers() {
-            if (!this.currentUser.value.isLoggedIn) return;
+            if (!this.currentUser.value || !this.currentUser.value.isLoggedIn) return;
+            
+            // Prevent multiple simultaneous fetches
+            if (this._fetchingUsers) return;
+            this._fetchingUsers = true;
+            
             try {
                 const response = await fetch('/api/users', { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch users');
-                this.users = await response.json();
+                const users = await response.json();
+                this.users = users || [];
+                console.log('Users fetched successfully:', this.users.length);
             } catch (error) {
                 console.error('Error fetching users:', error);
                 this.users = [];
+            } finally {
+                this._fetchingUsers = false;
             }
         },
         async refreshUsers() {
             await this.fetchUsers();
         },
         async fetchGroups() {
-            if (!this.currentUser.value.isLoggedIn) return;
+            if (!this.currentUser.value || !this.currentUser.value.isLoggedIn) return;
+            
+            // Prevent multiple simultaneous fetches
+            if (this._fetchingGroups) return;
+            this._fetchingGroups = true;
+            
             try {
                 const response = await fetch('/api/groups', { credentials: 'include' });
                 if (response.ok) {
                     const groups = await response.json();
-                    this.groups = groups;
-                    console.log('Groups fetched:', groups);
+                    this.groups = groups || [];
+                    console.log('Groups fetched successfully:', this.groups.length);
                 } else {
                     console.error('Failed to fetch groups');
+                    this.groups = [];
                 }
             } catch (error) {
                 console.error('Error fetching groups:', error);
+                this.groups = [];
+            } finally {
+                this._fetchingGroups = false;
             }
         },
 
@@ -556,50 +614,44 @@ const app = Vue.createApp({
         },
     },
     mounted() {
-        // Always check session and fetch users on mount
-        const checkAndFetch = async () => {
-            await this.checkUserStatus();
-            await this.fetchUsers();
-            if (this.currentUser.value.isLoggedIn && (!this.users || this.users.length === 0)) {
-                // If user list is empty while logged in, re-check session and log out if needed
+        // Initialize data fetching with proper error handling
+        const initializeApp = async () => {
+            try {
                 await this.checkUserStatus();
-                await this.fetchUsers();
-                if (!this.users || this.users.length === 0) {
-                    this.handleLogout();
-                }
-            }
-            
-            // Initialize WebSocket connection after user status check completes
-            if (this.currentUser.value.isLoggedIn) {
-                console.log('User is logged in, initializing WebSocket...', {
-                    websocket: !!this.websocket,
-                    websocketInit: !!this.websocket?.init,
-                    currentUser: this.currentUser.value
-                });
                 
-                if (this.websocket && this.websocket.init) {
-                    console.log('Initializing WebSocket connection...');
-                    this.websocket.init();
+                if (this.currentUser.value && this.currentUser.value.isLoggedIn) {
+                    console.log('User is logged in, fetching initial data...');
+                    
+                    // Fetch all data in parallel for better performance
+                    await Promise.all([
+                        this.fetchUsers(),
+                        this.fetchGroups(),
+                        this.fetchNotificationCount()
+                    ]);
+                    
+                    // Initialize WebSocket connection
+                    if (this.websocket && this.websocket.init) {
+                        console.log('Initializing WebSocket connection...');
+                        this.websocket.init();
+                    }
+                    
+                    // Set up periodic user refresh (less frequent to reduce load)
+                    this._userInterval = setInterval(() => {
+                        if (this.currentUser.value && this.currentUser.value.isLoggedIn) {
+                            this.fetchUsers();
+                        }
+                    }, 60000); // Refresh every minute instead of 30 seconds
                 } else {
-                    console.error('WebSocket not available or init method missing');
+                    console.log('User not logged in, redirecting to login...');
+                    this.currentView = 'login';
                 }
+            } catch (error) {
+                console.error('Error during app initialization:', error);
+                this.currentView = 'login';
             }
         };
-        checkAndFetch();
-
-        // Only fetch users and set interval if logged in
-        if (this.currentUser && this.currentUser.value && this.currentUser.value.isLoggedIn) {
-            this.fetchUsers();
-            this._userInterval = setInterval(this.fetchUsers, 30000);
-        }
-
-        // Fallback WebSocket initialization after 2 seconds
-        setTimeout(() => {
-            if (this.currentUser.value.isLoggedIn && this.websocket && this.websocket.init && !this.websocket.state.connected) {
-                console.log('Fallback WebSocket initialization...');
-                this.websocket.init();
-            }
-        }, 2000);
+        
+        initializeApp();
 
         // Listen for chat window events
         window.addEventListener('show-chat', (event) => {
@@ -636,10 +688,35 @@ const app = Vue.createApp({
             this.websocket.eventBus.on('profile-privacy-update', () => {
                 this.fetchUsers();
             });
+            
+            // Listen for group-related events to refresh data
+            this.websocket.eventBus.on('group-created', (data) => {
+                console.log('🔄 Group created event received, scheduling data refresh...');
+                this.debouncedRefresh();
+            });
+            
+            this.websocket.eventBus.on('group-updated', (data) => {
+                console.log('🔄 Group updated event received, scheduling data refresh...');
+                this.debouncedRefresh();
+            });
+            
+            this.websocket.eventBus.on('group-membership-changed', (data) => {
+                console.log('🔄 Group membership changed event received, scheduling data refresh...');
+                this.debouncedRefresh();
+            });
+            
+            // Listen for notification events
+            this.websocket.eventBus.on('notification-count-update', (data) => {
+                console.log('🔄 Notification count update received, refreshing notifications...');
+                this.fetchNotificationCount();
+            });
         }
     },
     beforeUnmount() {
         clearInterval(this._userInterval);
+        if (this._refreshTimeout) {
+            clearTimeout(this._refreshTimeout);
+        }
     },
     provide() {
         return {
