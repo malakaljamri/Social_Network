@@ -38,6 +38,11 @@ func InitializeDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
+	// Test the database connection
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %v", err)
+	}
+
 	// Create tables in the database
 	err = createTables()
 	if err != nil {
@@ -54,6 +59,13 @@ func InitializeDB() (*sql.DB, error) {
 	if isEmpty {
 		GenerateFakeData()
 	}
+
+	// Run any necessary migrations
+	err = runMigrations()
+	if err != nil {
+		log.Printf("WARNING: Failed to run migrations: %v", err)
+	}
+
 	// absPath, _ := filepath.Abs("forum.db")
 	// log.Println("📂 Using DB file:", absPath)
 
@@ -107,6 +119,14 @@ func createTables() error {
 		}
 	}
 
+	return nil
+}
+
+// runMigrations performs any necessary database migrations
+func runMigrations() error {
+	// For now, skip the migration to avoid table recreation issues
+	// The 'custom' privacy setting will be handled in the application logic
+	log.Println("ℹ️ Skipping database migration - custom privacy handled in application logic")
 	return nil
 }
 

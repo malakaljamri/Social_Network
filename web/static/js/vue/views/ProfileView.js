@@ -13,7 +13,7 @@ const ProfileView = {
                 :loading="categoriesLoading"
                 :error="categoriesError"
                 :total-results="profile.posts ? profile.posts.length : 0"
-                :current-user="currentUser"
+                :current-user="currentUserValue"
             >
             </filters-sidebar>
             <div class="profile-main main-content layer-content">
@@ -134,7 +134,7 @@ const ProfileView = {
                                     <feed-main
                                         :posts="profile.posts || []"
                                         :categories="categories"
-                                        :current-user="currentUser"
+                                        :current-user="currentUserValue"
                                         :total-pages="1"
                                         :current-page="1"
                                         :profile-user-name="profile.user.Username || profile.user.username"
@@ -148,9 +148,9 @@ const ProfileView = {
                     </template>
                 </div>
             </div>
-            <users-list :users="$root.users" class="users-list layer-sidebar" @open-chat="openChat" :current-user="currentUser"></users-list>
+            <users-list :users="$root.users" class="users-list layer-sidebar" @open-chat="openChat" :current-user="currentUserValue"></users-list>
             <div id="chat-section" class="chat-window-fixed layer-fixed">
-                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUser" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="currentUserValue" :onClose="() => closeChat(user.ID)" :style="{ zIndex: getChatZIndex(user.ID) }"></chat-window>
             </div>
         </div>
     `,
@@ -190,20 +190,32 @@ const ProfileView = {
             errorMessage: '',
             categoriesLoading: false,
             categoriesError: '',
-            forceRerenderKey: 0
+            forceRerenderKey: 0,
+            fetchTimeout: null, // For debouncing fetch requests
+            lastFetchUserId: null // Track last fetched user to prevent duplicate requests
         };
     },
     computed: {
+        currentUserValue() {
+            return this.$root.currentUser.value;
+        },
+        targetUserId() {
+            // Use the userId prop if provided, otherwise use current user's ID
+            if (this.userId) {
+                return this.userId;
+            }
+            return this.currentUserValue?.id || this.currentUserValue?.ID;
+        },
         isOwnProfile() {
-            const currentId = this.currentUser.ID || this.currentUser.id;
-            const profileId = this.profile.user.ID || this.profile.user.id;
-            return currentId === profileId;
+            const currentId = this.currentUserValue?.id || this.currentUserValue?.ID;
+            const profileId = this.profile.user?.id || this.profile.user?.ID;
+            return currentId && profileId && currentId === profileId;
         },
         isViewingOwnProfile() {
             return this.isOwnProfile;
         },
         isFollower() {
-            return this.followers.some(u => u.id === this.currentUser.id);
+            return this.followers.some(u => u.id === this.currentUserValue?.id || u.ID === this.currentUserValue?.ID);
         },
         canViewPosts() {
             const isPrivate = (this.profile.user.IsPrivate !== undefined ? this.profile.user.IsPrivate : this.profile.user.is_private);
@@ -226,13 +238,27 @@ const ProfileView = {
     },
     methods: {
         async fetchAll() {
+            // Clear any existing timeout
+            if (this.fetchTimeout) {
+                clearTimeout(this.fetchTimeout);
+            }
+            
+            // Debounce the fetch request
+            this.fetchTimeout = setTimeout(async () => {
+                await this._fetchAll();
+            }, 100);
+        },
+        
+        async _fetchAll() {
             this.loading = true;
             this.categoriesLoading = true;
             this.errorMessage = '';
             this.categoriesError = '';
+            
             try {
-                let userId = this.userId;
-                if (!userId) userId = this.currentUser && this.currentUser.id;
+                // Get the target user ID
+                const userId = this.targetUserId;
+                
                 if (!userId) {
                     if (!this.triedFetchWithoutUserId) {
                         this.errorMessage = 'Cannot load profile. Please log in again.';
@@ -247,28 +273,59 @@ const ProfileView = {
                     this.categoriesLoading = false;
                     return;
                 }
+                
+                // Prevent duplicate requests for the same user
+                if (this.lastFetchUserId === userId && this.loading) {
+                    console.log('ProfileView: Skipping duplicate request for user', userId);
+                    return;
+                }
+                
+                this.lastFetchUserId = userId;
                 this.triedFetchWithoutUserId = false;
                 this.errorMessage = '';
+                
                 // Fetch profile
                 let url = `/api/user/profile?id=${userId}`;
                 if (this.filters) {
                     url += `&filters=${encodeURIComponent(JSON.stringify(this.filters))}`;
                 }
+                
+                console.log('ProfileView: Fetching profile for user', userId);
                 const profileRes = await fetch(url, { credentials: 'include' });
-                if (!profileRes.ok) throw new Error('Failed to fetch profile');
+                
+                if (!profileRes.ok) {
+                    if (profileRes.status === 401) {
+                        this.errorMessage = 'Please log in again to view this profile.';
+                    } else if (profileRes.status === 500) {
+                        this.errorMessage = 'Server error. Please try again.';
+                        console.error('ProfileView: Server error fetching profile for user', userId);
+                    } else {
+                        this.errorMessage = 'Failed to load profile.';
+                    }
+                    throw new Error(`Failed to fetch profile: ${profileRes.status}`);
+                }
+                
                 this.profile = await profileRes.json();
+                console.log('ProfileView: Successfully loaded profile for user', userId);
+                
                 // Fetch followers
                 const followersRes = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
                 this.followers = followersRes.ok ? await followersRes.json() : [];
+                
                 // Fetch following
                 const followingRes = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
                 this.following = followingRes.ok ? await followingRes.json() : [];
+                
                 // Fetch categories
                 const categoriesRes = await fetch('/api/categories', { credentials: 'include' });
                 if (!categoriesRes.ok) throw new Error('Failed to fetch categories');
                 this.categories = await categoriesRes.json();
+                
             } catch (e) {
-                this.errorMessage = 'Failed to load profile or categories.';
+                console.error('ProfileView fetchAll error:', e);
+                if (!this.errorMessage) {
+                    this.errorMessage = 'Failed to load profile or categories.';
+                }
                 this.categoriesError = 'Failed to load categories.';
                 this.profile = { user: {}, followers_count: 0, following_count: 0, posts_count: 0 };
                 this.followers = [];
@@ -298,11 +355,10 @@ const ProfileView = {
         },
         onFiltersChanged(newFilters) {
             this.filters = newFilters;
-            let userId = this.userId;
-            if (!userId) {
-                userId = this.currentUser.id;
+            const userId = this.targetUserId;
+            if (userId) {
+                this.filters.UserID = userId;
             }
-            this.filters.UserID = userId;
             this.fetchAll();
         },
         formatDate(dateStr) {
@@ -412,7 +468,7 @@ const ProfileView = {
         if (this.$root && this.$root.websocket && this.$root.websocket.eventBus) {
             this.$root.websocket.eventBus.on('profile-privacy-update', (data) => {
                 if (!data || !data.user_id) return;
-                const viewedId = this.userId || (this.currentUser && this.currentUser.id);
+                const viewedId = this.targetUserId;
                 if (viewedId && String(data.user_id) === String(viewedId)) {
                     this.fetchAll();
                 }
@@ -420,7 +476,7 @@ const ProfileView = {
             // Listen for follow status updates
             this.$root.websocket.eventBus.on('follow-status-update', async (data) => {
                 if (!data) return;
-                const viewedId = this.userId || (this.currentUser && this.currentUser.id);
+                const viewedId = this.targetUserId;
                 if (
                     viewedId &&
                     (String(data.follower_id) === String(viewedId) || String(data.followed_id) === String(viewedId))
@@ -430,6 +486,12 @@ const ProfileView = {
                     this.$forceUpdate && this.$forceUpdate();
                 }
             });
+        }
+    },
+    beforeUnmount() {
+        // Clean up timeout to prevent memory leaks
+        if (this.fetchTimeout) {
+            clearTimeout(this.fetchTimeout);
         }
     },
     props: {
@@ -449,12 +511,9 @@ const ProfileView = {
                 this.fetchAll();
             }
         },
-        currentUser: {
-            deep: true,
-            handler(newVal) {
-                if (newVal && newVal.id) {
-                    this.fetchAll();
-                }
+        'currentUserValue.isLoggedIn'(val) {
+            if (val) {
+                this.fetchAll();
             }
         }
     },
@@ -463,4 +522,6 @@ const ProfileView = {
         'p-change-password': window.P_ChangePassword
     },
 };
-// No mount here, will be registered globally.
+
+// Attach to window for global use
+window.ProfileView = ProfileView;

@@ -110,6 +110,8 @@ func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 
 // GetUserProfile returns user profile with follower and following counts
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	// Get target user ID from URL query
 	targetUserIDStr := r.URL.Query().Get("id")
 	filtersJSON := r.URL.Query().Get("filters")
@@ -121,13 +123,19 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		// If no id provided, use current session user
 		targetUserID, err = database.GetUserIDFromSession(r)
 		if err != nil || targetUserID <= 0 {
-			utils.WriteJSONError(w, http.StatusBadRequest, "No user ID provided and not logged in")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "No user ID provided and not logged in",
+			})
 			return
 		}
 	} else {
 		targetUserID, err = strconv.Atoi(targetUserIDStr)
 		if err != nil {
-			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid user ID",
+			})
 			return
 		}
 	}
@@ -138,9 +146,16 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	// Get user profile with follow counts
 	profile, err := database.GetUserWithFollowCounts(targetUserID)
 	if err != nil {
-		http.Error(w, "Error fetching user profile", http.StatusInternalServerError)
+		log.Printf("Error fetching user profile for ID %d: %v", targetUserID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Error fetching user profile",
+		})
 		return
 	}
+
+	// Initialize posts slice to prevent nil pointer issues
+	profile.Posts = []models.Post{}
 
 	if filtersJSON != "" {
 		var filters map[string]interface{}
@@ -149,6 +164,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 			posts, _, err := database.GetFilteredPosts(1, 1000, filters, r)
 			if err == nil {
 				profile.Posts = posts
+			} else {
+				log.Printf("Error fetching filtered posts: %v", err)
 			}
 		}
 	} else {
@@ -156,6 +173,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		posts, err := database.GetPostsByUserID(targetUserID)
 		if err == nil {
 			profile.Posts = posts
+		} else {
+			log.Printf("Error fetching user posts: %v", err)
 		}
 	}
 
@@ -196,7 +215,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Remove sensitive information before sending
 	profile.User.Password = ""
-	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(profile)
 }
 

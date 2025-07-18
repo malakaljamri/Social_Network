@@ -174,7 +174,10 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		avatarPath = relPath
 	}
 
-	createSession(w, user, h)
+	if err := createSession(w, user, h); err != nil {
+		writeJSONError(w, "Failed to create session after registration", http.StatusInternalServerError)
+		return
+	}
 
 	// Send success response
 	w.WriteHeader(http.StatusCreated)
@@ -183,10 +186,13 @@ func (h *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		"username": user.Username,
 		"avatar":   avatarPath,
 		"user_id":  user.ID,
+		"id":       user.ID, // Add both for compatibility
 	})
 }
 
 func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var loginData struct {
 		Identifier string `json:"identifier"`
 		Password   string `json:"password"`
@@ -194,13 +200,26 @@ func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Invalid request format",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Validate input
+	if loginData.Identifier == "" || loginData.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Email/username and password are required",
+		})
 		return
 	}
 
 	user, err := database.GetUserByEmailOrNickname(loginData.Identifier)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Invalid credentials.",
 			"error":   err.Error(),
@@ -211,7 +230,7 @@ func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginData.Password))
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Invalid credentials.",
 			"error":   err.Error(),
@@ -219,21 +238,30 @@ func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createSession(w, user, h)
-	w.WriteHeader(http.StatusOK) // Send response last
+	// Create session and handle any errors
+	if err := createSession(w, user, h); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Failed to create session",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{
 		"message":  "Logged in successfully",
 		"username": user.Username,
 		"user_id":  user.ID,
+		"id":       user.ID, // Add both for compatibility
 	})
 }
 
-func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
+func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) error {
 	// Delete existing sessions for this user
 	err := database.DeleteSessionsByUserID(user.ID)
 	if err != nil {
-		http.Error(w, "Error managing sessions", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("error managing sessions: %v", err)
 	}
 
 	// Generate a new session token
@@ -251,8 +279,7 @@ func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
 	// Store the session in the database
 	err = database.CreateSession(&session)
 	if err != nil {
-		http.Error(w, "Error creating session", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("error creating session: %v", err)
 	}
 
 	// Set the session token as a cookie
@@ -287,6 +314,8 @@ func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
 		jsonMessage, _ := json.Marshal(message)
 		h.hub.Broadcast <- jsonMessage
 	}()
+
+	return nil
 }
 
 func (h *AuthHandlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {

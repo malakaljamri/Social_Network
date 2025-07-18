@@ -11,6 +11,7 @@ import (
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -53,10 +54,16 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Create group object
+		// Handle 'custom' privacy setting by converting to 'private' for now
+		privacySetting := requestData.PrivacySetting
+		if privacySetting == "custom" {
+			privacySetting = "private"
+		}
+
 		group := database.Group{
 			Name:           requestData.Name,
 			Description:    requestData.Description,
-			PrivacySetting: requestData.PrivacySetting,
+			PrivacySetting: privacySetting,
 			CreatorID:      userID,
 		}
 
@@ -65,7 +72,12 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 		err = database.CreateGroup(db, &group)
 		if err != nil {
 			log.Printf("❌ Failed to insert group: %v", err)
-			utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create group: %v", err))
+			// Check if it's a unique constraint violation
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				utils.WriteJSONError(w, http.StatusConflict, "A group with this name already exists")
+			} else {
+				utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create group: %v", err))
+			}
 			return
 		}
 
@@ -110,8 +122,8 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		// If group is custom, add selected users
-		if group.PrivacySetting == "custom" && len(requestData.SelectedUserIDs) > 0 {
+		// If group was originally custom, add selected users (even though privacy setting is now private)
+		if requestData.PrivacySetting == "custom" && len(requestData.SelectedUserIDs) > 0 {
 			err = database.AddSelectedUsersToCustomGroup(db, group.ID, requestData.SelectedUserIDs)
 			if err != nil {
 				log.Printf("⚠️ Failed to add selected users to custom group: %v", err)
@@ -149,6 +161,8 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Broadcast new group to all clients
+		// Use original privacy setting for the broadcast
+		broadcastPrivacySetting := requestData.PrivacySetting
 		message := websocket.Message{
 			Type: "group_created",
 			Content: map[string]interface{}{
@@ -156,7 +170,7 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 				"name":            group.Name,
 				"description":     group.Description,
 				"created_at":      group.CreatedAt,
-				"privacy_setting": group.PrivacySetting,
+				"privacy_setting": broadcastPrivacySetting,
 				"creator": map[string]interface{}{
 					"username": creatorUsername,
 				},
@@ -168,8 +182,15 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"id":              group.ID,
+			"name":            group.Name,
+			"description":     group.Description,
+			"created_at":      group.CreatedAt,
+			"privacy_setting": broadcastPrivacySetting,
+			"creator": map[string]interface{}{
+				"username": creatorUsername,
+			},
 		})
 	}
 }

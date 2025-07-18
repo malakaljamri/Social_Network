@@ -265,11 +265,13 @@ const CreateGroupModal = {
 
                 if (response.ok) {
                     const group = await response.json()
+                    console.log('✅ Group created successfully:', group)
                     this.$emit('created', group)
                     this.$emit('close')
                 } else {
                     const errorData = await response.json()
-                    this.error = errorData.error || 'Failed to create group'
+                    console.error('❌ Group creation failed:', errorData)
+                    this.error = errorData.error || errorData.message || 'Failed to create group'
                 }
             } catch (error) {
                 console.error('Error creating group:', error)

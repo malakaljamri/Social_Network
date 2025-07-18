@@ -238,9 +238,11 @@ const app = Vue.createApp({
                 window.dispatchEvent(new CustomEvent('refresh-posts'));
             }
         },
-        onGroupCreated(newGroup) {
+        async onGroupCreated(newGroup) {
             this.showCreateGroupModal = false;
-            // Optionally: this.groups.unshift(newGroup);
+            console.log('✅ Group created successfully:', newGroup);
+            // Refresh the groups list to show the new group
+            await this.fetchGroups();
         },
         onGroupPostCreated() {
             this.closeCreateGroupPostModal();
