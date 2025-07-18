@@ -44,6 +44,7 @@ const ChatWindow = {
             allLoaded: false,
             offset: 0,
             batchSize: 10,
+            _fetchingFollowStatus: false, // New property for tracking follow status fetch
         };
     },
     computed: {
@@ -107,8 +108,14 @@ const ChatWindow = {
                 return;
             }
             
-            // Use the profile endpoint which already includes follow status
+            // Prevent multiple simultaneous requests
+            if (this._fetchingFollowStatus) {
+                return;
+            }
+            this._fetchingFollowStatus = true;
+            
             try {
+                // Use the profile endpoint which already includes follow status
                 const res = await fetch(`/api/user/profile?id=${userId}`, { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
@@ -116,12 +123,35 @@ const ChatWindow = {
                     this.canMessage = data.is_following || data.is_follower;
                     console.log(`ChatWindow: canMessage set to ${this.canMessage} for users ${currentUserId} and ${userId} (is_following: ${data.is_following}, is_follower: ${data.is_follower})`);
                 } else {
-                    this.canMessage = false;
-                    console.warn('ChatWindow: Failed to fetch profile for follow status check');
+                    console.warn('ChatWindow: Failed to fetch profile for follow status check, status:', res.status);
+                    // Don't set canMessage to false immediately, try a fallback approach
+                    await this.fallbackFollowStatusCheck(userId, currentUserId);
                 }
             } catch (e) {
-                console.warn('Error checking follow status:', e);
-                this.canMessage = false;
+                console.warn('ChatWindow: Error checking follow status:', e);
+                // Try fallback approach
+                await this.fallbackFollowStatusCheck(userId, currentUserId);
+            } finally {
+                this._fetchingFollowStatus = false;
+            }
+        },
+        
+        async fallbackFollowStatusCheck(userId, currentUserId) {
+            try {
+                // Try a simpler endpoint or check if we can at least send a message
+                const res = await fetch(`/api/user?id=${userId}`, { credentials: 'include' });
+                if (res.ok) {
+                    // If we can fetch user data, allow messaging (fallback to permissive)
+                    this.canMessage = true;
+                    console.log('ChatWindow: Using fallback follow status check - allowing messaging');
+                } else {
+                    this.canMessage = false;
+                    console.warn('ChatWindow: Fallback follow status check failed');
+                }
+            } catch (e) {
+                console.warn('ChatWindow: Fallback follow status check error:', e);
+                // Default to allowing messaging if all checks fail
+                this.canMessage = true;
             }
         },
         sendMessage() {
@@ -197,8 +227,23 @@ const ChatWindow = {
         }
     },
     mounted() {
+        // Mark component as not ready initially
+        if (this.$root && this.$root.setComponentReady) {
+            this.$root.setComponentReady('ChatWindow', false);
+        }
+        
         this.fetchHistory();
         this.fetchFollowStatus();
+        
+        // Mark component as ready after initial data is loaded
+        this.$nextTick(() => {
+            setTimeout(() => {
+                if (this.$root && this.$root.setComponentReady) {
+                    this.$root.setComponentReady('ChatWindow', true);
+                }
+            }, 1000); // Give time for data to load
+        });
+        
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
             const msg = e.detail;
             const userId = this.user.ID || this.user.id;

@@ -373,45 +373,61 @@ func BroadcastGroupMessage(groupID int, senderID int, content string) {
 // GetGroupMembersHandler returns all members of a group
 func GetGroupMembersHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("🔍 GetGroupMembersHandler: Request received")
+
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
+			log.Printf("🔍 GetGroupMembersHandler: Failed to get user ID from session: %v", err)
 			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
+		log.Printf("🔍 GetGroupMembersHandler: User ID = %d", userID)
 
 		groupIDStr := r.URL.Query().Get("group_id")
 		if groupIDStr == "" {
+			log.Printf("🔍 GetGroupMembersHandler: Group ID is missing from query")
 			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
 			return
 		}
+		log.Printf("🔍 GetGroupMembersHandler: Group ID string = %s", groupIDStr)
 
 		groupID, err := strconv.Atoi(groupIDStr)
 		if err != nil {
+			log.Printf("🔍 GetGroupMembersHandler: Invalid group ID: %v", err)
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
 			return
 		}
+		log.Printf("🔍 GetGroupMembersHandler: Group ID = %d", groupID)
 
 		// Check if user has access to the group
 		hasAccess, err := database.CheckUserGroupAccess(db, userID, groupID)
 		if err != nil {
+			log.Printf("🔍 GetGroupMembersHandler: Failed to check group access: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check group access")
 			return
 		}
+		log.Printf("🔍 GetGroupMembersHandler: User has access = %v", hasAccess)
+
 		if !hasAccess {
+			log.Printf("🔍 GetGroupMembersHandler: User %d doesn't have access to group %d", userID, groupID)
 			utils.WriteJSONError(w, http.StatusForbidden, "You don't have access to this group")
 			return
 		}
 
 		members, err := database.GetGroupMembers(db, groupID)
 		if err != nil {
+			log.Printf("🔍 GetGroupMembersHandler: Failed to fetch group members: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch group members")
 			return
 		}
+		log.Printf("🔍 GetGroupMembersHandler: Fetched %d members", len(members))
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		response := map[string]interface{}{
 			"members": members,
-		})
+		}
+		log.Printf("🔍 GetGroupMembersHandler: Sending response: %+v", response)
+		json.NewEncoder(w).Encode(response)
 	}
 }
 

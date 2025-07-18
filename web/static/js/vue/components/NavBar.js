@@ -108,7 +108,8 @@ const NavBar = {
             notificationCount: 0, // Add this line
             notifications: [],
             allNotifications: [],
-            loading: false
+            loading: false,
+            _processingAction: false // Add this line
         };
     },
     mounted() {
@@ -283,8 +284,28 @@ const NavBar = {
         
         async handleNotificationAction({ notificationId, action }) {
             if (!this.currentUserValue.isLoggedIn) return;
+            
+            // Use sequential action system to ensure proper order
+            if (this.$root && this.$root.executeSequentialAction) {
+                await this.$root.executeSequentialAction(`notification-action-${notificationId}`, async () => {
+                    await this.processNotificationAction(notificationId, action);
+                });
+            } else {
+                // Fallback to direct processing
+                await this.processNotificationAction(notificationId, action);
+            }
+        },
+        
+        async processNotificationAction(notificationId, action) {
+            // Prevent multiple simultaneous actions
+            if (this._processingAction) {
+                console.log('NavBar: Action already in progress, skipping...');
+                return;
+            }
+            this._processingAction = true;
+            
             try {
-                console.log('NavBar: Handling notification action:', notificationId, action);
+                console.log('NavBar: Processing notification action:', notificationId, action);
                 
                 // Find the notification to get its type
                 const notification = this.notifications.find(n => n.id === notificationId);
@@ -293,11 +314,12 @@ const NavBar = {
                     return;
                 }
 
+                let response;
                 let success = false;
                 
                 if (notification.type === 'follow_request') {
                     // Handle follow request via user endpoint
-                    const response = await fetch(`/api/user/follow-request?follower_id=${notification.sender_id}`, {
+                    response = await fetch(`/api/user/follow-request?follower_id=${notification.sender_id}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
@@ -313,7 +335,7 @@ const NavBar = {
                     }
                 } else if (notification.type === 'group_invitation') {
                     // Handle group invitation via notifications/action endpoint
-                    const response = await fetch('/api/notifications/action', {
+                    response = await fetch('/api/notifications/action', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
@@ -325,14 +347,18 @@ const NavBar = {
                     success = response.ok;
                     
                     if (success) {
-                        // Refresh all data after group membership change
+                        console.log('NavBar: Group invitation action successful');
+                        // Wait for backend processing and WebSocket updates
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Refresh data after successful action
                         if (this.$root && this.$root.refreshAllData) {
                             await this.$root.refreshAllData();
                         }
                     }
                 } else {
                     // Handle other actionable notifications
-                    const response = await fetch('/api/notifications/action', {
+                    response = await fetch('/api/notifications/action', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
@@ -342,19 +368,30 @@ const NavBar = {
                 }
 
                 if (success) {
-                    console.log('NavBar: Notification action successful');
+                    console.log('NavBar: Notification action completed successfully');
                     // Remove the notification from the list
                     this.notifications = this.notifications.filter(n => n.id !== notificationId);
                     // Refresh notification count
-                    this.fetchNotificationCount();
+                    await this.fetchNotificationCount();
                 } else {
-                    console.error('NavBar: Notification action failed');
-                    // Show error to user
-                    alert('Failed to process notification action. Please try again.');
+                    console.error('NavBar: Notification action failed', response.status, response.statusText);
+                    const errorData = await response.text();
+                    console.error('NavBar: Error response:', errorData);
+                    
+                    // Show error to user with more specific message
+                    let errorMessage = 'Failed to process notification action. Please try again.';
+                    if (response.status === 400) {
+                        errorMessage = 'Invalid notification action. Please refresh and try again.';
+                    } else if (response.status === 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    }
+                    alert(errorMessage);
                 }
             } catch (error) {
                 console.error('NavBar: Error handling notification action:', error);
-                alert('Error processing notification action. Please try again.');
+                alert('Network error. Please check your connection and try again.');
+            } finally {
+                this._processingAction = false;
             }
         },
         

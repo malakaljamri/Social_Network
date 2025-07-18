@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -288,13 +289,17 @@ func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
 
 // GetGroupMembers returns all members of a group with their details, always including the group creator (admin)
 func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) {
+	log.Printf("🔍 GetGroupMembers: Starting for group ID %d", groupID)
+
 	// First, get the group creator
 	var creatorID int
 	var creatorUsername, creatorAvatar, creatorFirstName, creatorLastName string
 	err := db.QueryRow(`SELECT g.creator_id, u.username, u.avatar, u.first_name, u.last_name FROM groups g JOIN users u ON g.creator_id = u.id WHERE g.id = ?`, groupID).Scan(&creatorID, &creatorUsername, &creatorAvatar, &creatorFirstName, &creatorLastName)
 	if err != nil {
+		log.Printf("🔍 GetGroupMembers: Error getting creator info: %v", err)
 		return nil, err
 	}
+	log.Printf("🔍 GetGroupMembers: Creator ID = %d, Username = %s", creatorID, creatorUsername)
 
 	// Get all accepted members (including the creator if they're also a member)
 	query := `
@@ -306,8 +311,10 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 			CASE WHEN u.id = ? THEN 0 ELSE 1 END, -- Creator first
 			u.username ASC
 	`
+	log.Printf("🔍 GetGroupMembers: Executing query for group members")
 	rows, err := db.Query(query, groupID, creatorID)
 	if err != nil {
+		log.Printf("🔍 GetGroupMembers: Error querying group members: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -324,6 +331,7 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 
 		err := rows.Scan(&userID, &username, &avatar, &firstName, &lastName, &status, &lastChatTime)
 		if err != nil {
+			log.Printf("🔍 GetGroupMembers: Error scanning member row: %v", err)
 			continue
 		}
 
@@ -331,6 +339,7 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 		isAdmin := userID == creatorID
 		if isAdmin {
 			creatorInMembers = true
+			log.Printf("🔍 GetGroupMembers: Found creator in members list")
 		}
 
 		member["id"] = userID
@@ -345,10 +354,12 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 		}
 		member["last_chat_time"] = lastChatTime
 		members = append(members, member)
+		log.Printf("🔍 GetGroupMembers: Added member: ID=%d, Username=%s, Status=%s", userID, username, member["status"])
 	}
 
 	// If creator is not in the members list, add them as admin
 	if !creatorInMembers {
+		log.Printf("🔍 GetGroupMembers: Creator not in members list, adding as admin")
 		admin := map[string]interface{}{
 			"id":             creatorID,
 			"username":       creatorUsername,
@@ -360,8 +371,10 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]map[string]interface{}, error) 
 		}
 		// Insert admin at the beginning
 		members = append([]map[string]interface{}{admin}, members...)
+		log.Printf("🔍 GetGroupMembers: Added creator as admin: ID=%d, Username=%s", creatorID, creatorUsername)
 	}
 
+	log.Printf("🔍 GetGroupMembers: Returning %d total members", len(members))
 	return members, nil
 }
 

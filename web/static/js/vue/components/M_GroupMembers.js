@@ -31,19 +31,39 @@ const GroupMembersModal = {
     },
     watch: {
         show(newVal) {
-            if (newVal) {
-                this.fetchMembers();
+            console.log('🔍 M_GroupMembers: show watcher triggered, newVal =', newVal, 'groupId =', this.groupId);
+            if (newVal && this.groupId) {
+                // Use nextTick to ensure the modal is rendered before fetching
+                this.$nextTick(() => {
+                    console.log('🔍 M_GroupMembers: Calling fetchMembers from show watcher');
+                    this.fetchMembers();
+                });
             } else {
                 // Clear data when modal closes
                 this.members = [];
                 this.error = '';
                 this.searchQuery = '';
+                console.log('🔍 M_GroupMembers: Modal closed, cleared data');
             }
         },
         groupId(newVal) {
+            console.log('🔍 M_GroupMembers: groupId watcher triggered, newVal =', newVal, 'show =', this.show);
             if (newVal && this.show) {
-                this.fetchMembers();
+                this.$nextTick(() => {
+                    console.log('🔍 M_GroupMembers: Calling fetchMembers from groupId watcher');
+                    this.fetchMembers();
+                });
             }
+        }
+    },
+    mounted() {
+        console.log('🔍 M_GroupMembers: Component mounted, show =', this.show, 'groupId =', this.groupId);
+        // If the modal is already shown when mounted, fetch members
+        if (this.show && this.groupId) {
+            console.log('🔍 M_GroupMembers: Modal already shown on mount, fetching members');
+            this.$nextTick(() => {
+                this.fetchMembers();
+            });
         }
     },
     methods: {
@@ -52,32 +72,40 @@ const GroupMembersModal = {
             this.error = '';
 
             try {
-                console.log('Fetching members for group:', this.groupId);
+                console.log('🔍 M_GroupMembers: Starting fetchMembers');
+                console.log('🔍 M_GroupMembers: groupId =', this.groupId);
+                console.log('🔍 M_GroupMembers: groupName =', this.groupName);
+                console.log('🔍 M_GroupMembers: currentUser =', this.currentUser);
+                
                 const response = await fetch(`/api/groups/members?group_id=${this.groupId}`, {
                     credentials: 'include'
                 });
 
+                console.log('🔍 M_GroupMembers: Response status =', response.status);
+                console.log('🔍 M_GroupMembers: Response ok =', response.ok);
+
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('🔍 M_GroupMembers: Raw response data =', data);
+                    
                     this.members = data.members || [];
-                    console.log('Fetched members:', this.members);
+                    console.log('🔍 M_GroupMembers: Processed members =', this.members);
+                    console.log('🔍 M_GroupMembers: Members length =', this.members.length);
                 } else {
                     const errorData = await response.json();
+                    console.error('🔍 M_GroupMembers: Error response =', errorData);
                     this.error = errorData.error || 'Failed to fetch group members';
-                    console.error('Error fetching members:', errorData);
                 }
             } catch (error) {
-                console.error('Error fetching group members:', error);
+                console.error('🔍 M_GroupMembers: Exception during fetch =', error);
                 this.error = 'Failed to fetch group members: ' + error.message;
             } finally {
                 this.loading = false;
+                console.log('🔍 M_GroupMembers: Fetch completed, loading = false');
             }
         },
         closeModal() {
             this.$emit('close');
-        },
-        async refreshMembers() {
-            await this.fetchMembers();
         },
         goToUserProfile(userId) {
             // Emit event to parent instead of direct $root access
@@ -111,9 +139,6 @@ const GroupMembersModal = {
                     <div class="modal-header">
                         <h2>{{ groupName }} Members</h2>
                         <div class="modal-actions">
-                            <button class="refresh-button" @click="refreshMembers" :disabled="loading">
-                                <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
-                            </button>
                             <button class="close-button" @click="closeModal">&times;</button>
                         </div>
                     </div>

@@ -157,6 +157,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	// Initialize posts slice to prevent nil pointer issues
 	profile.Posts = []models.Post{}
 
+	// Only fetch posts if filters are provided or if this is a full profile request
 	if filtersJSON != "" {
 		var filters map[string]interface{}
 		if err := json.Unmarshal([]byte(filtersJSON), &filters); err == nil {
@@ -166,15 +167,17 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 				profile.Posts = posts
 			} else {
 				log.Printf("Error fetching filtered posts: %v", err)
+				// Don't fail the entire request, just log the error
 			}
 		}
-	} else {
-		// Fetch all posts by the user if no filters are applied
+	} else if r.URL.Query().Get("include_posts") == "true" {
+		// Only fetch posts if explicitly requested
 		posts, err := database.GetPostsByUserID(targetUserID)
 		if err == nil {
 			profile.Posts = posts
 		} else {
 			log.Printf("Error fetching user posts: %v", err)
+			// Don't fail the entire request, just log the error
 		}
 	}
 
@@ -182,40 +185,36 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	if currentUserID > 0 && currentUserID != targetUserID {
 		log.Printf("Checking follow status for currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
 
+		// Set default values first
+		profile.IsFollowing = false
+		profile.IsFollower = false
+
+		// Check if current user follows target user
 		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
-		profile.IsFollowing = false // Always set the field, default to false
 		if err == nil {
 			profile.IsFollowing = isFollowing
 			log.Printf("IsFollowing set to: %v", isFollowing)
 		} else {
-			log.Printf("ERROR: Failed to check IsFollowing: %v", err)
+			log.Printf("WARNING: Failed to check IsFollowing: %v", err)
+			// Don't fail the request, just log the warning
 		}
 
-		// Check if profile user follows current user
+		// Check if target user follows current user
 		isFollower, err := database.IsFollowing(targetUserID, currentUserID)
-		profile.IsFollower = false // Always set the field, default to false
 		if err == nil {
 			profile.IsFollower = isFollower
 			log.Printf("IsFollower set to: %v", isFollower)
 		} else {
-			log.Printf("ERROR: Failed to check IsFollower: %v", err)
-		}
-
-		// Check if there is a pending follow request
-		isPending, err := database.IsPendingFollowRequest(currentUserID, targetUserID)
-		if err == nil {
-			profile.IsPending = isPending
-			log.Printf("IsPending set to: %v", isPending)
-		} else {
-			log.Printf("ERROR: Failed to check IsPending: %v", err)
+			log.Printf("WARNING: Failed to check IsFollower: %v", err)
+			// Don't fail the request, just log the warning
 		}
 	} else {
-		log.Printf("Skipping follow status check - currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
+		// Set default values for non-logged in users or self-profile
+		profile.IsFollowing = false
+		profile.IsFollower = false
 	}
 
-	// Remove sensitive information before sending
-	profile.User.Password = ""
-
+	// Always return a successful response, even if some data couldn't be fetched
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(profile)
 }

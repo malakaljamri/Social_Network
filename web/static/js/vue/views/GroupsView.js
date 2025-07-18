@@ -11,6 +11,11 @@ const GroupsView = {
             categories: []
         };
     },
+    computed: {
+        currentUserValue() {
+            return this.$root.currentUser.value;
+        }
+    },
     methods: {
         handleGroupCreated() {
             this.fetchGroups();
@@ -131,6 +136,9 @@ const GroupsView = {
         },
         handleGroupCreatedEvent() {
             this.fetchGroups();
+        },
+        openChat(userId) {
+            this.$root.openChat(userId);
         }
     },
     mounted() {
@@ -191,7 +199,7 @@ const GroupsView = {
             <g-group-list
                 :groups="groups"
                 :selected-group-id="selectedGroupId"
-                :current-user="$root.currentUser.value"
+                :current-user="currentUserValue"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
                 class="sidebar layer-sidebar"
@@ -202,7 +210,7 @@ const GroupsView = {
                     :group-posts="groupPosts"
                     :group-events="groupEvents"
                     :categories="categories"
-                    :current-user="$root.currentUser.value"
+                    :current-user="currentUserValue"
                     @create-group-post="handleCreateGroupPost"
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
@@ -210,7 +218,7 @@ const GroupsView = {
                     @view-user-profile="handleViewUserProfile"
                 ></g-group-main>
             </div>
-            <users-list :users="$root.users" class="sidebar layer-sidebar" :current-user="$root.currentUser.value"></users-list>
+            <users-list :users="$root.users" class="sidebar layer-sidebar" @open-chat="openChat" :current-user="currentUserValue"></users-list>
         </div>
     `
 };

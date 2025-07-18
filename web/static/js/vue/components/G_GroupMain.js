@@ -30,7 +30,9 @@ const GroupMain = {
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            groupMembers: [], // Store group members for invite modal
+            groupAdminId: null // Store group admin ID for invite modal
         };
     },
     computed: {
@@ -92,7 +94,12 @@ const GroupMain = {
             this.showInviteUserModal = false;
         },
         openGroupMembersModal() {
+            console.log('🔍 G_GroupMain: openGroupMembersModal called');
+            console.log('🔍 G_GroupMain: selectedGroup =', this.selectedGroup);
+            console.log('🔍 G_GroupMain: selectedGroup.ID =', this.selectedGroup?.ID);
+            console.log('🔍 G_GroupMain: selectedGroup.Name =', this.selectedGroup?.Name);
             this.showGroupMembersModal = true;
+            console.log('🔍 G_GroupMain: showGroupMembersModal set to true');
         },
         closeGroupMembersModal() {
             this.showGroupMembersModal = false;
@@ -192,24 +199,24 @@ const GroupMain = {
                         
                         <!-- Show action buttons only if user has access -->
                         <div v-if="groupAccess">
-                        <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-plus-circle"></i> Create Group Post
-                        </button>
-                        <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-calendar-alt"></i> Group Events
-                        </button>
-                        <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-comments"></i> Group Chat
+                            <button @click="$emit('open-create-group-post-modal', selectedGroup.ID)" class="create-group-post-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-plus-circle"></i> Create Group Post
+                            </button>
+                            <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-calendar-alt"></i> Group Events
+                            </button>
+                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-comments"></i> Group Chat
                                 <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
-                        </button>
-                        <!-- Show Invite User button only for private groups -->
-                        <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openInviteUserModal" class="invite-user-btn" style="margin-bottom: 16px; margin-right: 10px;">
-                            <i class="fas fa-user-plus"></i> Invite User
-                        </button>
-                        <!-- Show Group Members button only for private groups -->
-                        <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openGroupMembersModal" class="group-members-btn" style="margin-bottom: 16px;">
-                            <i class="fas fa-users"></i> Group Members
-                        </button>
+                            </button>
+                            <!-- Show Invite User button only for private groups -->
+                            <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openInviteUserModal" class="invite-user-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-user-plus"></i> Invite User
+                            </button>
+                            <!-- Show Group Members button only for private groups -->
+                            <button v-if="selectedGroup.PrivacySetting === 'private'" @click="openGroupMembersModal" class="group-members-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-users"></i> Group Members
+                            </button>
                         </div>
                         
                         <!-- Show join button if user doesn't have access and hasn't requested to join -->
@@ -237,6 +244,7 @@ const GroupMain = {
                 @refresh-events="$emit('refresh-group-events')"
                 @event-click="$emit('event-click', $event)"
             />
+            
             <!-- Group Chat Modal -->
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
@@ -259,6 +267,7 @@ const GroupMain = {
             <!-- Group Members Modal -->
             <group-members-modal
                 v-if="showGroupMembersModal && selectedGroup"
+                :key="'group-members-' + selectedGroup.ID"
                 :show="showGroupMembersModal"
                 :group-id="selectedGroup.ID"
                 :group-name="selectedGroup.Name"
@@ -266,6 +275,7 @@ const GroupMain = {
                 @close="closeGroupMembersModal"
                 @view-user-profile="handleViewUserProfile"
             />
+            
             <!-- Group Posts Section -->
             <div class="group-posts layer-content">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
@@ -275,27 +285,27 @@ const GroupMain = {
                 <div v-else>
                     <!-- Show posts only if user has access -->
                     <div v-if="groupAccess">
-                    <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
-                    <div v-for="post in groupPosts" :key="post.ID" class="post-card layer-card">
-                        <div class="post-header">
-                            <h3>{{ post.Title }}</h3>
-                            <div class="post-meta">
-                                <span class="post-author">Posted by {{ post.Author }}</span>
-                                <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
+                        <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
+                        <div v-for="post in groupPosts" :key="post.ID" class="post-card layer-card">
+                            <div class="post-header">
+                                <h3>{{ post.Title }}</h3>
+                                <div class="post-meta">
+                                    <span class="post-author">Posted by {{ post.Author }}</span>
+                                    <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="post-content">
-                            <div v-if="post.Image" class="post-image">
-                                <img 
-                                    :src="getImageUrl(post.Image)" 
-                                    :alt="post.Title"
-                                    loading="lazy"
-                                >
+                            <div class="post-content">
+                                <div v-if="post.Image" class="post-image">
+                                    <img 
+                                        :src="getImageUrl(post.Image)" 
+                                        :alt="post.Title"
+                                        loading="lazy"
+                                    >
+                                </div>
+                                <div class="post-text">{{ post.Content }}</div>
                             </div>
-                            <div class="post-text">{{ post.Content }}</div>
+                            <comment-section :post-id="post.ID" :current-user="currentUser"></comment-section>
                         </div>
-                        <comment-section :post-id="post.ID" :current-user="currentUser"></comment-section>
-                    </div>
                     </div>
                     <!-- Show message if user doesn't have access -->
                     <div v-else>

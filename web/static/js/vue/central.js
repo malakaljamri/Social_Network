@@ -58,6 +58,9 @@ const app = Vue.createApp({
             pastEvents: [],
             _userInterval: null,
             loggingOut: false,
+            _actionQueue: [], // Track sequential actions
+            // Loading state management system
+            _componentStates: {},
         };
     },
     watch: {
@@ -540,9 +543,12 @@ const app = Vue.createApp({
             this._fetchingUsers = true;
             
             try {
-                const response = await fetch('/api/users', { credentials: 'include' });
-                if (!response.ok) throw new Error('Failed to fetch users');
-                const users = await response.json();
+                const users = await this.retryApiCall(async () => {
+                    const response = await fetch('/api/users', { credentials: 'include' });
+                    if (!response.ok) throw new Error('Failed to fetch users');
+                    return await response.json();
+                });
+                
                 this.users = users || [];
                 console.log('Users fetched successfully:', this.users.length);
             } catch (error) {
@@ -611,6 +617,114 @@ const app = Vue.createApp({
                 return base;
             }
             return base;
+        },
+        // Event sequencing system to ensure proper order of operations
+        async executeSequentialAction(actionName, actionFunction) {
+            if (this._actionQueue.includes(actionName)) {
+                console.log(`🔄 Action ${actionName} already in queue, skipping...`);
+                return;
+            }
+            
+            this._actionQueue.push(actionName);
+            console.log(`🔄 Starting sequential action: ${actionName}`);
+            
+            try {
+                // Wait for any ongoing data fetches to complete
+                if (this._fetchingUsers || this._fetchingGroups || this._refreshingData) {
+                    console.log(`⏳ Waiting for ongoing data fetches to complete...`);
+                    await this.waitForDataFetches();
+                }
+                
+                // Execute the action
+                await actionFunction();
+                console.log(`✅ Sequential action completed: ${actionName}`);
+            } catch (error) {
+                console.error(`❌ Sequential action failed: ${actionName}`, error);
+            } finally {
+                // Remove from queue
+                const index = this._actionQueue.indexOf(actionName);
+                if (index > -1) {
+                    this._actionQueue.splice(index, 1);
+                }
+            }
+        },
+        
+        // Wait for ongoing data fetches to complete
+        async waitForDataFetches() {
+            const maxWaitTime = 10000; // 10 seconds max wait
+            const checkInterval = 100; // Check every 100ms
+            let waited = 0;
+            
+            while ((this._fetchingUsers || this._fetchingGroups || this._refreshingData) && waited < maxWaitTime) {
+                await new Promise(resolve => setTimeout(resolve, checkInterval));
+                waited += checkInterval;
+            }
+            
+            if (waited >= maxWaitTime) {
+                console.warn('⚠️ Timeout waiting for data fetches to complete');
+            }
+        },
+        // Loading state management system
+        setComponentReady(componentName, isReady = true) {
+            if (!this._componentStates) {
+                this._componentStates = {};
+            }
+            this._componentStates[componentName] = isReady;
+            console.log(`📊 Component ${componentName} ready state: ${isReady}`);
+        },
+        
+        isComponentReady(componentName) {
+            if (!this._componentStates) {
+                return false;
+            }
+            return this._componentStates[componentName] === true;
+        },
+        
+        waitForComponent(componentName, maxWaitTime = 5000) {
+            return new Promise((resolve) => {
+                if (this.isComponentReady(componentName)) {
+                    resolve();
+                    return;
+                }
+                
+                const checkInterval = 100;
+                let waited = 0;
+                
+                const check = () => {
+                    if (this.isComponentReady(componentName)) {
+                        resolve();
+                        return;
+                    }
+                    
+                    waited += checkInterval;
+                    if (waited >= maxWaitTime) {
+                        console.warn(`⚠️ Timeout waiting for component ${componentName} to be ready`);
+                        resolve(); // Resolve anyway to prevent blocking
+                        return;
+                    }
+                    
+                    setTimeout(check, checkInterval);
+                };
+                
+                check();
+            });
+        },
+        // Retry mechanism for failed API calls
+        async retryApiCall(apiCall, maxRetries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await apiCall();
+                } catch (error) {
+                    console.warn(`API call failed (attempt ${attempt}/${maxRetries}):`, error);
+                    
+                    if (attempt === maxRetries) {
+                        throw error; // Re-throw on final attempt
+                    }
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, delay * attempt));
+                }
+            }
         },
     },
     mounted() {
