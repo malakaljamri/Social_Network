@@ -202,33 +202,48 @@ const WebSocketPlugin = {
         }
 
         // Handle chat messages
-        function handleChatMessage(data, message) {
-            console.log("Handling chat message:", message);
-            if (data.Receiver_id === 0) { // Public chat message
+        function handleChatMessage(data) {
+            console.log("Handling chat message:", data);
+            
+            // Extract the actual message data from the WebSocket message structure
+            const messageData = data.content || data;
+            
+            // Structure the message properly for the ChatWindow component
+            const chatMessage = {
+                sender_id: messageData.sender_id || messageData.user_id,
+                Receiver_id: messageData.Receiver_id,
+                content: messageData.content,
+                timestamp: messageData.timestamp || new Date().toISOString(),
+                username: messageData.username || messageData.sender_username
+            };
+            
+            console.log("Structured chat message:", chatMessage);
+            
+            if (chatMessage.Receiver_id === 0) { // Public chat message
                 window.dispatchEvent(new CustomEvent('public-chat-message', { 
                     detail: {
-                        sender: data.sender_username || `User ${data.sender_id}`,
-                        content: data.content,
-                        timestamp: data.timestamp
+                        sender: chatMessage.username || `User ${chatMessage.sender_id}`,
+                        content: chatMessage.content,
+                        timestamp: chatMessage.timestamp
                     }
                 }));
             } else { // Private chat message
-                if (!wsState.chatWindows.has(data.sender_id)) {
-                    wsState.chatWindows.set(data.sender_id, []);
+                if (!wsState.chatWindows.has(chatMessage.sender_id)) {
+                    wsState.chatWindows.set(chatMessage.sender_id, []);
                 }
-                wsState.chatWindows.get(data.sender_id).push({
-                    from: data.sender_id,
-                    message: data.content,
-                    timestamp: data.timestamp,
+                wsState.chatWindows.get(chatMessage.sender_id).push({
+                    from: chatMessage.sender_id,
+                    message: chatMessage.content,
+                    timestamp: chatMessage.timestamp,
                     isRead: false
                 });
                 
                 // Notify about new message
-                notifyNewMessage(data);
+                notifyNewMessage(chatMessage);
                 
-                // Dispatch event for Vue components
+                // Dispatch event for Vue components with properly structured data
                 window.dispatchEvent(new CustomEvent('chat-message', { 
-                    detail: data 
+                    detail: chatMessage 
                 }));
             }
         }

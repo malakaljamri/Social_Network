@@ -181,9 +181,14 @@ const app = Vue.createApp({
         },
 
         closeChat(userId) {
+            // Remove from open chats
+            this.openChats = this.openChats.filter(chat => 
+                chat.ID !== userId && chat.id !== userId
+            );
+            
+            // Also clean up old chat window system
             this.chatWindows.delete(userId);
             this.minimizedChats.delete(userId);
-            this.openChats = this.openChats.filter(u => u.ID !== userId);
         },
 
         getNextChatPosition() {
@@ -263,30 +268,36 @@ const app = Vue.createApp({
             // if (this.$refs.usersList && this.$refs.usersList.resetSearch) this.$refs.usersList.resetSearch();
         },
         async onLogin(data) {
-            if (this.loggingOut) return; // Prevent login during logout
-            // Called when login-form emits 'login' with user data
-            const id = data.id || data.ID || data.userID;
-            const username = data.username || data.Username;
-            this.currentUser.value = {
-                isLoggedIn: true,
-                id: id,
-                ID: id,
-                username: username,
-                Username: username,
-                email: data.email
-            };
-            this.currentView = 'home';
-            
-            // Initialize unread count service
-            if (window.unreadCountService) {
-                await window.unreadCountService.init();
-            }
-            
-            await this.fetchUsers(); // Ensure user list is loaded after login
-            await this.fetchGroups(); // Ensure groups are loaded after login
-            await this.fetchNotificationCount(); // Ensure notifications are loaded after login
-            if (this.websocket && typeof this.websocket.init === 'function') {
-                this.websocket.init();
+            try {
+                this.currentUser.value = {
+                    isLoggedIn: true,
+                    id: data.id,
+                    ID: data.id,
+                    username: data.username,
+                    Username: data.username,
+                    email: data.email
+                };
+                
+                // Initialize WebSocket connection after successful login
+                console.log('Login successful, checking WebSocket...', {
+                    websocket: !!this.websocket,
+                    websocketInit: !!this.websocket?.init,
+                    currentUser: this.currentUser.value
+                });
+                
+                if (this.websocket && this.websocket.init) {
+                    console.log('Initializing WebSocket connection after login...');
+                    this.websocket.init();
+                } else {
+                    console.error('WebSocket not available after login');
+                }
+                
+                this.currentView = 'home';
+                await this.fetchUsers();
+                await this.fetchGroups();
+                await this.fetchNotificationCount();
+            } catch (error) {
+                console.error('Error in onLogin:', error);
             }
         },
         async onRegistered(data) {
@@ -347,8 +358,33 @@ const app = Vue.createApp({
             return response;
         },
         openChat(user) {
-            // Close all other chat windows before opening a new one
-            this.openChats = [user];
+            // Normalize user object to ensure consistent ID and Username properties
+            const normalizedUser = {
+                ...user,
+                ID: user.ID || user.id,
+                id: user.id || user.ID,
+                Username: user.Username || user.username,
+                username: user.username || user.Username
+            };
+            
+            // Check if chat is already open
+            const existingChatIndex = this.openChats.findIndex(chat => 
+                chat.ID === normalizedUser.ID || chat.id === normalizedUser.id
+            );
+            
+            if (existingChatIndex === -1) {
+                // Add new chat to open chats
+                this.openChats.push(normalizedUser);
+            }
+            
+            // Ensure chat window is visible
+            this.$nextTick(() => {
+                // Scroll to the chat window if needed
+                const chatWindow = document.querySelector('.chat-window-fixed');
+                if (chatWindow) {
+                    chatWindow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
         },
         async checkUserStatus() {
             try {
@@ -530,6 +566,22 @@ const app = Vue.createApp({
                     this.handleLogout();
                 }
             }
+            
+            // Initialize WebSocket connection after user status check completes
+            if (this.currentUser.value.isLoggedIn) {
+                console.log('User is logged in, initializing WebSocket...', {
+                    websocket: !!this.websocket,
+                    websocketInit: !!this.websocket?.init,
+                    currentUser: this.currentUser.value
+                });
+                
+                if (this.websocket && this.websocket.init) {
+                    console.log('Initializing WebSocket connection...');
+                    this.websocket.init();
+                } else {
+                    console.error('WebSocket not available or init method missing');
+                }
+            }
         };
         checkAndFetch();
 
@@ -538,6 +590,14 @@ const app = Vue.createApp({
             this.fetchUsers();
             this._userInterval = setInterval(this.fetchUsers, 30000);
         }
+
+        // Fallback WebSocket initialization after 2 seconds
+        setTimeout(() => {
+            if (this.currentUser.value.isLoggedIn && this.websocket && this.websocket.init && !this.websocket.state.connected) {
+                console.log('Fallback WebSocket initialization...');
+                this.websocket.init();
+            }
+        }, 2000);
 
         // Listen for chat window events
         window.addEventListener('show-chat', (event) => {
@@ -645,7 +705,7 @@ const app = Vue.createApp({
                     :key="user.ID"
                     :user="user"
                     :currentUser="currentUser.value || { isLoggedIn: false }"
-                    @close="openChats = []"
+                    @close="closeChat(user.ID)"
                 ></chat-window>
             </div>
         </div>

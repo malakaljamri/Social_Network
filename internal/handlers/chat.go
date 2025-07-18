@@ -109,10 +109,22 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 		if chatMessage.SenderID != chatMessage.ReceiverID {
 			isFollowing1, err1 := database.IsFollowing(chatMessage.SenderID, chatMessage.ReceiverID)
 			isFollowing2, err2 := database.IsFollowing(chatMessage.ReceiverID, chatMessage.SenderID)
+
+			// Debug logging
+			log.Printf("🔍 Chat permission check - SenderID: %d, ReceiverID: %d", chatMessage.SenderID, chatMessage.ReceiverID)
+			log.Printf("🔍 IsFollowing(Sender->Receiver): %v, error: %v", isFollowing1, err1)
+			log.Printf("🔍 IsFollowing(Receiver->Sender): %v, error: %v", isFollowing2, err2)
+
 			if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
 				canSend = true
+				log.Printf("✅ Chat permission granted - canSend: %v", canSend)
+			} else {
+				log.Printf("❌ Chat permission denied - canSend: %v", canSend)
 			}
+		} else {
+			log.Printf("❌ Cannot send message to yourself")
 		}
+
 		if !canSend {
 			errorMsg := websocket.Message{
 				Type:    "error",

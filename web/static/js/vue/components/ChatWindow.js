@@ -106,30 +106,48 @@ const ChatWindow = {
                 this.canMessage = false;
                 return;
             }
-            // Fetch if current user follows chat user and if chat user follows current user
-            let canMessage = false;
+            
+            // Use the profile endpoint which already includes follow status
             try {
-                const res1 = await fetch(`/api/user/profile?id=${userId}`);
-                const data1 = await res1.json();
-                if (data1.is_following || data1.is_follower) {
-                    canMessage = true;
+                const res = await fetch(`/api/user/profile?id=${userId}`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Can message if current user follows the chat user OR if chat user follows current user
+                    this.canMessage = data.is_following || data.is_follower;
+                    console.log(`ChatWindow: canMessage set to ${this.canMessage} for users ${currentUserId} and ${userId} (is_following: ${data.is_following}, is_follower: ${data.is_follower})`);
+                } else {
+                    this.canMessage = false;
+                    console.warn('ChatWindow: Failed to fetch profile for follow status check');
                 }
-            } catch {}
-            try {
-                const res2 = await fetch(`/api/user/profile?id=${currentUserId}`);
-                const data2 = await res2.json();
-                if (data2.is_following || data2.is_follower) {
-                    canMessage = true;
-                }
-            } catch {}
-            this.canMessage = canMessage;
+            } catch (e) {
+                console.warn('Error checking follow status:', e);
+                this.canMessage = false;
+            }
         },
         sendMessage() {
             const userId = this.user.ID || this.user.id;
-            if (!this.input.trim() || !userId) return;
+            if (!this.input.trim() || !userId) {
+                console.log('ChatWindow: Cannot send message - input empty or userId missing', { input: this.input, userId });
+                return;
+            }
+            
+            console.log('ChatWindow: Attempting to send message', {
+                userId,
+                input: this.input,
+                websocket: !!this.websocket,
+                websocketState: this.websocket?.state,
+                connected: this.websocket?.state?.connected
+            });
+            
             if (this.websocket && this.websocket.state.connected) {
+                console.log('ChatWindow: Sending message via WebSocket');
                 this.websocket.sendMessage(userId, this.input, 'chat');
                 this.input = '';
+            } else {
+                console.error('ChatWindow: Cannot send message - WebSocket not connected', {
+                    websocket: !!this.websocket,
+                    state: this.websocket?.state
+                });
             }
         },
         handleTyping() {
