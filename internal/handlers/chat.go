@@ -365,24 +365,18 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate chat permission
-	canChat := false
-	isFollowing1, err1 := database.IsFollowing(userID, otherUserID)
-	isFollowing2, err2 := database.IsFollowing(otherUserID, userID)
-	if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
-		canChat = true
-	}
+	// Note: Chat history is accessible regardless of follow relationship
+	// Follow relationship is only checked when sending messages
+	// This allows users to view historical conversations even if they unfollowed each other
 
-	if !canChat {
-		utils.WriteJSONError(w, http.StatusForbidden, "You can only view chat history with users you follow or who follow you")
-		return
-	}
-
-	messages, err := database.GetChatHistory(userID, otherUserID, offset, 50)
+	log.Printf("Fetching chat history: userID=%d, otherUserID=%d, offset=%d, limit=50", userID, otherUserID, offset)
+	messages, err := database.GetChatHistory(userID, otherUserID, 50, offset)
 	if err != nil {
+		log.Printf("Error fetching chat history: %v", err)
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching chat history")
 		return
 	}
+	log.Printf("Found %d chat messages", len(messages))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
@@ -419,7 +413,7 @@ func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	messages, err := database.GetGroupChatHistory(groupID, offset, 50)
+	messages, err := database.GetGroupChatHistory(groupID, 50, offset)
 	if err != nil {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching group chat history")
 		return

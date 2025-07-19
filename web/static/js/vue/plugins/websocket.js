@@ -317,8 +317,14 @@ const WebSocketPlugin = {
             console.log('WebSocket Plugin: Current user:', currentUser);
             
             // Check connection state to prevent multiple connections
-            if (wsState.connectionState === 'connecting' || wsState.connectionState === 'connected') {
-                console.log('WebSocket already connecting or connected, skipping init');
+            if (wsState.connectionState === 'connecting') {
+                console.log('WebSocket already connecting, skipping init');
+                return;
+            }
+            
+            // If already connected, don't reinitialize unless there's an issue
+            if (wsState.connectionState === 'connected' && wsState.connected) {
+                console.log('WebSocket already connected, skipping init');
                 return;
             }
 
@@ -342,13 +348,30 @@ const WebSocketPlugin = {
                 connecting: true,
                 error: null,
                 connectionAttempts: wsState.reconnectAttempts
-            });
+            }).catch(err => console.warn('Failed to update central state:', err));
             
             const wsUrl = `ws://${window.location.host}/ws`;
+            console.log('WebSocket Plugin: Connecting to:', wsUrl);
             socket = new WebSocket(wsUrl);
+            
+            // Add connection timeout
+            const connectionTimeout = setTimeout(() => {
+                if (wsState.connectionState === 'connecting') {
+                    console.warn('WebSocket Plugin: Connection timeout, resetting state');
+                    wsState.connectionState = 'disconnected';
+                    wsState.connected = false;
+                    updateCentralWebSocketState({
+                        connected: false,
+                        connecting: false,
+                        error: 'Connection timeout',
+                        connectionAttempts: wsState.reconnectAttempts
+                    }).catch(err => console.warn('Failed to update central state:', err));
+                }
+            }, 10000); // 10 second timeout
 
             socket.onopen = function(event) {
-                console.log('WebSocket connected');
+                clearTimeout(connectionTimeout); // Clear the connection timeout
+                console.log('WebSocket Plugin: Connection established successfully');
                 wsState.connected = true;
                 wsState.connectionState = 'connected';
                 wsState.reconnectAttempts = 0;
@@ -361,7 +384,7 @@ const WebSocketPlugin = {
                     error: null,
                     lastConnected: Date.now(),
                     connectionAttempts: wsState.reconnectAttempts
-                });
+                }).catch(err => console.warn('Failed to update central state:', err));
                 
                 // Start heartbeat
                 startHeartbeat();
@@ -374,6 +397,8 @@ const WebSocketPlugin = {
                 
                 // Process any queued events
                 eventSequencer.processQueue();
+                
+                console.log('WebSocket Plugin: Connection setup completed');
             };
 
             socket.onmessage = function(event) {
@@ -393,7 +418,8 @@ const WebSocketPlugin = {
             };
 
             socket.onclose = function(event) {
-                console.log('WebSocket connection closed:', event.code, event.reason);
+                clearTimeout(connectionTimeout); // Clear the connection timeout
+                console.log('WebSocket Plugin: Connection closed - Code:', event.code, 'Reason:', event.reason);
                 wsState.connected = false;
                 wsState.connectionState = 'disconnected';
                 
@@ -403,7 +429,7 @@ const WebSocketPlugin = {
                     connecting: false,
                     error: event.reason || 'Connection closed',
                     connectionAttempts: wsState.reconnectAttempts
-                });
+                }).catch(err => console.warn('Failed to update central state:', err));
                 
                 // Stop heartbeat
                 stopHeartbeat();
@@ -416,19 +442,20 @@ const WebSocketPlugin = {
                     
                     wsState.connectionState = 'reconnecting';
                     wsState.reconnectAttempts++;
-                    console.log(`Attempting to reconnect... (${wsState.reconnectAttempts}/${wsState.MAX_RECONNECT_ATTEMPTS})`);
+                    console.log(`WebSocket Plugin: Attempting to reconnect... (${wsState.reconnectAttempts}/${wsState.MAX_RECONNECT_ATTEMPTS})`);
                     setTimeout(initWebSocket, wsState.RECONNECT_DELAY);
                 } else if (event.code === 1000) {
-                    console.log('WebSocket closed normally (logout or user action)');
+                    console.log('WebSocket Plugin: Connection closed normally (logout or user action)');
                 } else {
-                    console.log('WebSocket reconnection stopped - user may have logged out');
+                    console.log('WebSocket Plugin: Reconnection stopped - user may have logged out or max attempts reached');
                 }
             };
 
             socket.onerror = function(error) {
+                clearTimeout(connectionTimeout); // Clear the connection timeout
                 const root = app._instance?.proxy;
                 if (root?.currentUser?.value?.isLoggedIn) {
-                    console.error('WebSocket error:', error);
+                    console.error('WebSocket Plugin: Connection error:', error);
                 }
                 wsState.connected = false;
                 wsState.connectionState = 'disconnected';
@@ -439,7 +466,9 @@ const WebSocketPlugin = {
                     connecting: false,
                     error: 'WebSocket connection error',
                     connectionAttempts: wsState.reconnectAttempts
-                });
+                }).catch(err => console.warn('Failed to update central state:', err));
+                
+                console.log('WebSocket Plugin: Connection error occurred, will attempt reconnection if needed');
             };
         }
 
@@ -500,12 +529,51 @@ const WebSocketPlugin = {
             }
         }
 
+        // Wait for central state to be ready
+        function waitForCentralState(maxAttempts = 10) {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const check = () => {
+                    const root = app._instance?.proxy;
+                    if (root && root.websocketState && root.websocketState.value) {
+                        resolve(true);
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(check, 100);
+                    } else {
+                        resolve(false);
+                    }
+                };
+                check();
+            });
+        }
+
         // Update central.js WebSocket state
-        function updateCentralWebSocketState(newState) {
+        async function updateCentralWebSocketState(newState) {
             const root = app._instance?.proxy;
-            if (root && root.websocketState) {
-                Object.assign(root.websocketState.value, newState);
-                console.log('WebSocket Plugin: Updated central state:', newState);
+            if (root && root.websocketState && root.websocketState.value) {
+                try {
+                    Object.assign(root.websocketState.value, newState);
+                    console.log('WebSocket Plugin: Updated central state:', newState);
+                } catch (error) {
+                    console.warn('WebSocket Plugin: Failed to update central state:', error);
+                }
+            } else {
+                // Try to wait for central state to be ready
+                const stateReady = await waitForCentralState();
+                if (stateReady) {
+                    try {
+                        Object.assign(app._instance.proxy.websocketState.value, newState);
+                        console.log('WebSocket Plugin: Updated central state (delayed):', newState);
+                    } catch (error) {
+                        console.warn('WebSocket Plugin: Failed to update central state after waiting:', error);
+                    }
+                } else {
+                    // Don't warn during initial setup - this is expected
+                    if (wsState.connectionState !== 'connecting' || !wsState.connected) {
+                        console.debug('WebSocket Plugin: Central state not ready yet (this is normal during initialization)');
+                    }
+                }
             }
         }
 
@@ -525,9 +593,23 @@ const WebSocketPlugin = {
             sendMessage(message, 'high');
         }
 
-        function sendMessage(to, message, caller) {
+        // FIXED: Renamed from sendMessage to sendChatMessage to avoid function name conflict
+        function sendChatMessage(to, message, caller) {
             const root = app._instance?.proxy;
-            if (!root?.currentUser?.value?.isLoggedIn) return;
+            if (!root?.currentUser?.value?.isLoggedIn) {
+                console.warn('Cannot send chat message: user not logged in');
+                return false;
+            }
+
+            if (!wsState.connected) {
+                console.warn('Cannot send chat message: WebSocket not connected');
+                return false;
+            }
+
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                console.warn('Cannot send chat message: WebSocket socket not ready');
+                return false;
+            }
 
             const chatMessage = {
                 type: 'chat',
@@ -537,7 +619,19 @@ const WebSocketPlugin = {
                     content: message
                 }
             };
-            sendMessage(chatMessage);
+            
+            try {
+                const success = sendMessage(chatMessage);
+                if (success) {
+                    console.log(`Chat message sent successfully to user ${to}`);
+                } else {
+                    console.error(`Failed to send chat message to user ${to} - message queued`);
+                }
+                return success;
+            } catch (error) {
+                console.error(`Error sending chat message to user ${to}:`, error);
+                return false;
+            }
         }
 
         function sendTyping(to, isTyping) {
@@ -545,7 +639,7 @@ const WebSocketPlugin = {
             if (!root?.currentUser?.value?.isLoggedIn) return;
 
             const message = {
-                type: 'typing_status',
+                type: 'typing',
                 Receiver_id: to,
                 content: {
                     Receiver_id: to,
@@ -610,7 +704,17 @@ const WebSocketPlugin = {
                 error: null,
                 lastConnected: null,
                 connectionAttempts: 0
-            });
+            }).catch(err => console.warn('Failed to update central state:', err));
+        }
+
+        // Function to check WebSocket connection status
+        function getConnectionStatus() {
+            return {
+                connected: wsState.connected,
+                connectionState: wsState.connectionState,
+                socketReadyState: socket ? socket.readyState : null,
+                reconnectAttempts: wsState.reconnectAttempts
+            };
         }
 
         // Watch for changes in currentUser.isLoggedIn and initialize websocket
@@ -621,9 +725,13 @@ const WebSocketPlugin = {
                 root.$watch('currentUser.isLoggedIn', (isLoggedIn) => {
                     console.log('WebSocket Plugin: User login status changed:', isLoggedIn);
                     if (isLoggedIn) {
-                        // Small delay to ensure user data is loaded
-                        setTimeout(initWebSocket, 100);
+                        // Longer delay to ensure central state is ready
+                        setTimeout(() => {
+                            console.log('WebSocket Plugin: Initializing WebSocket after login...');
+                            initWebSocket();
+                        }, 500);
                     } else {
+                        console.log('WebSocket Plugin: User logged out, cleaning up...');
                         cleanup();
                     }
                 });
@@ -631,7 +739,10 @@ const WebSocketPlugin = {
                 // Also check if user is already logged in
                 if (root.currentUser.value?.isLoggedIn) {
                     console.log('WebSocket Plugin: User already logged in, initializing...');
-                    setTimeout(initWebSocket, 100);
+                    setTimeout(() => {
+                        console.log('WebSocket Plugin: Initializing WebSocket for already logged-in user...');
+                        initWebSocket();
+                    }, 500);
                 }
             } else {
                 // Retry after a short delay if root is not ready
@@ -647,12 +758,13 @@ const WebSocketPlugin = {
             state: wsState,
             eventBus,
             sendMessage,
+            sendChatMessage,
             sendTyping,
             sendGroupMessage,
             sendUserStatus,
+            getConnectionStatus,
             init: initWebSocket,
-            close: cleanup,
-            sendMessage: sendMessage
+            close: cleanup
         });
 
         // Make WebSocket available globally
@@ -660,15 +772,65 @@ const WebSocketPlugin = {
             state: wsState,
             eventBus,
             sendMessage,
+            sendChatMessage,
             sendTyping,
             sendGroupMessage,
             sendUserStatus,
+            getConnectionStatus,
             init: initWebSocket,
-            close: cleanup,
-            sendMessage: sendMessage
+            close: cleanup
         };
     }
 };
 
 // Export for use
-window.WebSocketPlugin = WebSocketPlugin; 
+window.WebSocketPlugin = WebSocketPlugin;
+
+// Global debug function for checking WebSocket status
+window.checkWebSocketStatus = function() {
+    const app = document.querySelector('#app')?.__vue_app__;
+    if (app && app._instance?.proxy?.websocket) {
+        return app._instance.proxy.websocket.getConnectionStatus();
+    } else {
+        console.log('WebSocket not available');
+        return null;
+    }
+};
+
+// Global function to manually initialize WebSocket
+window.initWebSocket = function() {
+    const app = document.querySelector('#app')?.__vue_app__;
+    if (app && app._instance?.proxy?.websocket?.init) {
+        console.log('Manually initializing WebSocket...');
+        app._instance.proxy.websocket.init();
+    } else {
+        console.log('WebSocket not available');
+    }
+};
+
+// Global function to reset WebSocket state
+window.resetWebSocket = function() {
+    const app = document.querySelector('#app')?.__vue_app__;
+    if (app && app._instance?.proxy?.websocket) {
+        console.log('Resetting WebSocket state...');
+        // Force reset the connection state
+        app._instance.proxy.websocket.state.connectionState = 'disconnected';
+        app._instance.proxy.websocket.state.connected = false;
+        app._instance.proxy.websocket.state.reconnectAttempts = 0;
+        
+        // Update central state
+        if (app._instance.proxy.websocketState) {
+            app._instance.proxy.websocketState.value = {
+                connected: false,
+                connecting: false,
+                error: null,
+                lastConnected: null,
+                connectionAttempts: 0
+            };
+        }
+        
+        console.log('WebSocket state reset, you can now call initWebSocket()');
+    } else {
+        console.log('WebSocket not available');
+    }
+}; 

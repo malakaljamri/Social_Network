@@ -347,10 +347,12 @@ const app = Vue.createApp({
                     currentUser: this.currentUser.value
                 });
                 
-                // Trigger WebSocket initialization after login
+                // Trigger WebSocket initialization after login with a delay to ensure user data is set
                 if (this.websocket && this.websocket.init) {
                     console.log('Central: Triggering WebSocket initialization after login...');
-                    this.websocket.init();
+                    setTimeout(() => {
+                        this.websocket.init();
+                    }, 300);
                 }
                 
                 this.currentView = 'home';
@@ -742,6 +744,20 @@ const app = Vue.createApp({
                 }
             }
         },
+
+        // Debug method to check WebSocket status
+        checkWebSocketStatus() {
+            if (this.websocket && this.websocket.getConnectionStatus) {
+                const status = this.websocket.getConnectionStatus();
+                console.log('WebSocket Status:', status);
+                console.log('WebSocket State:', this.websocket.state);
+                console.log('Central WebSocket State:', this.websocketState.value);
+                return status;
+            } else {
+                console.log('WebSocket not available');
+                return null;
+            }
+        },
     },
     mounted() {
         // Initialize data fetching with proper error handling
@@ -759,11 +775,14 @@ const app = Vue.createApp({
                         this.fetchNotificationCount()
                     ]);
                     
-                    // Trigger WebSocket initialization if user is already logged in
-                    if (this.websocket && this.websocket.init && this.currentUser.value?.isLoggedIn) {
-                        console.log('Central: Triggering WebSocket initialization for already logged-in user...');
+                                    // Trigger WebSocket initialization if user is already logged in
+                if (this.websocket && this.websocket.init && this.currentUser.value?.isLoggedIn) {
+                    console.log('Central: Triggering WebSocket initialization for already logged-in user...');
+                    // Add a small delay to ensure all components are ready
+                    setTimeout(() => {
                         this.websocket.init();
-                    }
+                    }, 200);
+                }
 
                     // Set up periodic user refresh (less frequent to reduce load)
                     this._userInterval = setInterval(() => {
