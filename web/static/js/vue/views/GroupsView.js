@@ -8,7 +8,9 @@ const GroupsView = {
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
-            categories: []
+            categories: [],
+            openChats: [], // Track open private chats
+            chatTimestamps: {} // Optional: for z-index or ordering
         };
     },
     methods: {
@@ -90,6 +92,21 @@ const GroupsView = {
         },
         handleEventClick(event) {
             this.$emit('event-click', event);
+        },
+        openChat(user) {
+            if (!user || !user.ID) return;
+            if (!this.openChats.some(u => u.ID === user.ID)) {
+                this.openChats.push(user);
+            }
+            // Optionally update chatTimestamps for z-index
+            this.chatTimestamps[user.ID] = Date.now();
+        },
+        closeChat(userId) {
+            this.openChats = this.openChats.filter(u => u.ID !== userId);
+            // Optionally clean up chatTimestamps
+            if (this.chatTimestamps[userId]) {
+                delete this.chatTimestamps[userId];
+            }
         }
     },
     mounted() {
@@ -119,7 +136,10 @@ const GroupsView = {
                     @event-click="handleEventClick"
                 ></g-group-main>
             </div>
-            <users-list class="sidebar"></users-list>
+            <users-list class="sidebar" @open-chat="openChat"></users-list>
+            <div id="chat-section chat-window-fixed">
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="$root.currentUser.value" :onClose="() => closeChat(user.ID)" :style="{ zIndex: chatTimestamps[user.ID] || 1 }"></chat-window>
+            </div>
             <m-group-create
                 v-if="showCreateGroupModal"
                 @created="handleGroupCreated"
