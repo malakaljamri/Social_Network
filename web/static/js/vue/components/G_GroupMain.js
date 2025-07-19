@@ -114,6 +114,11 @@ const GroupMain = {
                 });
                 if (response.ok) {
                     this.groupMembership = 'pending';
+                    // Emit event to notify parent component about membership status change
+                    this.$emit('group-membership-changed', {
+                        groupId: this.selectedGroup.ID,
+                        membershipStatus: 'pending'
+                    });
                 }
             } catch (error) {
                 console.error('Error requesting to join group:', error);

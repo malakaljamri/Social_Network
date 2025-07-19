@@ -87,9 +87,9 @@ const GroupList = {
             this.$emit('show-create-group-modal');
         },
         getPrivacyIndicator(group) {
+            const hasAccess = this.groupAccess.get(group.ID);
+            const membershipStatus = this.groupMembership.get(group.ID);
             if (group.PrivacySetting === 'private') {
-                const hasAccess = this.groupAccess.get(group.ID);
-                const membershipStatus = this.groupMembership.get(group.ID);
                 if (hasAccess) {
                     return '🔒✅'; // Private group, has access
                 } else if (membershipStatus === 'pending') {
@@ -98,11 +98,22 @@ const GroupList = {
                     return '🔒❌'; // Private group, no access
                 }
             }
+            // if (hasAccess) return '✅';
+            if (membershipStatus === 'accepted') return '✅';
             return ''; // Public group, no indicator needed
         },
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
+        },
+        updateGroupMembershipStatus(groupId, membershipStatus) {
+            // Update the membership status for a specific group immediately
+            this.groupMembership.set(groupId, membershipStatus);
+            
+            // If membership is pending, update access status to false (no access yet)
+            if (membershipStatus === 'pending') {
+                this.groupAccess.set(groupId, false);
+            }
         }
     },
     beforeUnmount() {

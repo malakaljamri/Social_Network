@@ -107,6 +107,10 @@ const GroupsView = {
             if (this.chatTimestamps[userId]) {
                 delete this.chatTimestamps[userId];
             }
+        },
+        handleGroupMembershipChanged(data) {
+            // Pass the membership change to the group list component
+            this.$refs.groupList?.updateGroupMembershipStatus(data.groupId, data.membershipStatus);
         }
     },
     mounted() {
@@ -121,6 +125,8 @@ const GroupsView = {
                 :current-user="$root.currentUser.value"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
+                @group-membership-changed="handleGroupMembershipChanged"
+                ref="groupList"
                 class="sidebar"
             ></g-group-list>
             <div class="main-content">
@@ -134,6 +140,7 @@ const GroupsView = {
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                     @event-click="handleEventClick"
+                    @group-membership-changed="handleGroupMembershipChanged"
                 ></g-group-main>
             </div>
             <users-list class="sidebar" @open-chat="openChat"></users-list>
