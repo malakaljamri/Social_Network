@@ -35,10 +35,13 @@ func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &websocket.Client{
-		Hub:    h.hub, // Set the hub
-		Conn:   conn,
-		UserID: userID,
-		Send:   make(chan []byte, 256),
+		Hub:         h.hub,
+		Conn:        conn,
+		UserID:      userID,
+		Send:        make(chan []byte, 256),
+		ConnectedAt: time.Now(),
+		LastPing:    time.Now(),
+		IsAlive:     true,
 	}
 
 	// Register client directly with the hub
@@ -50,7 +53,6 @@ func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byte) {
-	// log.Printf("Received raw message (handleChatMessage): %s", string(message))
 	var baseMessage struct {
 		Type        string          `json:"type"`
 		Content     json.RawMessage `json:"content"`
@@ -60,206 +62,274 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 	err := json.Unmarshal(message, &baseMessage)
 	if err != nil {
 		log.Printf("Error parsing message base: %v", err)
-		errorMsg := websocket.Message{
-			Type:    "error",
-			Content: "Failed to parse message base",
-			UserID:  client.UserID,
-		}
-		client.Send <- messageToJSON(errorMsg)
+		websocket.SendError(h.hub, client.UserID, "Failed to parse message")
 		return
 	}
 
 	switch baseMessage.Type {
-	case "chat":
-		var chatContent struct {
-			// Receiver_id int    `json:"Receiver_id"`
-			Receiver_id int    `json:"Receiver_id"`
-			Content     string `json:"content"`
-		}
-		log.Printf("Raw chat Receiver_id and content: %d %s", baseMessage.Receiver_id, string(baseMessage.Content))
+	case websocket.MessageTypeChat:
+		h.handleChatMessageContent(client, baseMessage)
+	case websocket.MessageTypeUserStatus:
+		// User status is managed by the hub
+		log.Printf("User status message received from client %d", client.UserID)
+	case websocket.MessageTypeTyping:
+		h.handleTypingStatus(client, baseMessage)
+	case websocket.MessageTypeGroupChat:
+		h.handleGroupChatMessage(client, baseMessage)
+	case websocket.MessageTypePing:
+		h.handlePing(client, baseMessage)
+	default:
+		log.Printf("Unknown message type: %s from client %d", baseMessage.Type, client.UserID)
+		websocket.SendError(h.hub, client.UserID, "Unknown message type")
+	}
+}
 
-		if err := json.Unmarshal(baseMessage.Content, &chatContent); err != nil {
-			// If direct parsing fails, try treating it as a string
-			var contentStr string
-			if strErr := json.Unmarshal(baseMessage.Content, &contentStr); strErr == nil {
-				chatContent.Content = contentStr
-			} else {
-				log.Printf("Error parsing chat content: %v", err)
-				errorMsg := websocket.Message{
-					Type:    "error",
-					Content: "Failed to parse chat content",
-					UserID:  client.UserID,
-				}
-				client.Send <- messageToJSON(errorMsg)
-				return
-			}
-		}
+func (h *ChatHandlers) handleChatMessageContent(client *websocket.Client, baseMessage struct {
+	Type        string          `json:"type"`
+	Content     json.RawMessage `json:"content"`
+	Receiver_id int             `json:"Receiver_id"`
+}) {
+	var chatContent struct {
+		Receiver_id int    `json:"Receiver_id"`
+		Content     string `json:"content"`
+	}
 
-		chatMessage := models.ChatMessage{
-			SenderID: client.UserID,
-			// ReceiverID: chatContent.Receiver_id,
-			ReceiverID: baseMessage.Receiver_id,
-			Content:    chatContent.Content,
-			Timestamp:  time.Now(),
-		}
+	log.Printf("Processing chat message from client %d to %d", client.UserID, baseMessage.Receiver_id)
 
-		// Save the message to the database
-		// ENFORCE PRIVATE MESSAGE RULE
-		canSend := false
-		if chatMessage.SenderID != chatMessage.ReceiverID {
-			isFollowing1, err1 := database.IsFollowing(chatMessage.SenderID, chatMessage.ReceiverID)
-			isFollowing2, err2 := database.IsFollowing(chatMessage.ReceiverID, chatMessage.SenderID)
-
-			// Debug logging
-			log.Printf("🔍 Chat permission check - SenderID: %d, ReceiverID: %d", chatMessage.SenderID, chatMessage.ReceiverID)
-			log.Printf("🔍 IsFollowing(Sender->Receiver): %v, error: %v", isFollowing1, err1)
-			log.Printf("🔍 IsFollowing(Receiver->Sender): %v, error: %v", isFollowing2, err2)
-
-			if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
-				canSend = true
-				log.Printf("✅ Chat permission granted - canSend: %v", canSend)
-			} else {
-				log.Printf("❌ Chat permission denied - canSend: %v", canSend)
-			}
+	if err := json.Unmarshal(baseMessage.Content, &chatContent); err != nil {
+		// If direct parsing fails, try treating it as a string
+		var contentStr string
+		if strErr := json.Unmarshal(baseMessage.Content, &contentStr); strErr == nil {
+			chatContent.Content = contentStr
 		} else {
-			log.Printf("❌ Cannot send message to yourself")
-		}
-
-		if !canSend {
-			errorMsg := websocket.Message{
-				Type:    "error",
-				Content: "You can only message users you follow or who follow you",
-				UserID:  client.UserID,
-			}
-			client.Send <- messageToJSON(errorMsg)
+			log.Printf("Error parsing chat content: %v", err)
+			websocket.SendError(h.hub, client.UserID, "Failed to parse chat content")
 			return
 		}
-		if err := database.SaveChatMessage(&chatMessage); err != nil {
-			log.Printf("Error saving chat message: %v", err)
-			errorMsg := websocket.Message{
-				Type:    "error",
-				Content: "Failed to save message",
-				UserID:  client.UserID,
-			}
-			client.Send <- messageToJSON(errorMsg)
-			return
-		}
-		// Broadcast the message to both sender and receiver
-		for _, userID := range []int{chatMessage.SenderID, chatMessage.ReceiverID} {
-			msg := websocket.Message{
-				Type:    "chat",
-				Content: chatMessage,
-				UserID:  userID,
-			}
-			jsonMessage, _ := json.Marshal(msg)
-			h.hub.Broadcast <- jsonMessage
-		}
-		// END: ENFORCE PRIVATE MESSAGE RULE
-		// Broadcast unread count to recipient
-		unreadCount := database.CountUnreadMessages(chatMessage.ReceiverID, chatMessage.SenderID)
-		unreadMsg := websocket.Message{
-			Type:    "unread-count-update",
-			Content: map[string]interface{}{"userId": chatMessage.SenderID, "count": unreadCount},
-			UserID:  chatMessage.ReceiverID,
-		}
-		unreadJson, _ := json.Marshal(unreadMsg)
-		h.hub.Broadcast <- unreadJson
-	case "user_status":
-		// managed by the hub
-	case "typing_status":
-		var typingStatus struct {
-			Receiver_id int    `json:"Receiver_id"`
-			IsTyping    bool   `json:"is_typing"`
-			Username    string `json:"username"`
-		}
+	}
 
-		if err := json.Unmarshal(baseMessage.Content, &typingStatus); err != nil {
-			log.Printf("Error parsing typing status: %v", err)
-			return
-		}
+	chatMessage := models.ChatMessage{
+		SenderID:   client.UserID,
+		ReceiverID: baseMessage.Receiver_id,
+		Content:    chatContent.Content,
+		Timestamp:  time.Now(),
+	}
 
-		// Broadcast the typing status
-		msg := websocket.Message{
-			Type:    "typing_status",
-			Content: typingStatus,
-			UserID:  typingStatus.Receiver_id,
-		}
+	// Validate message permissions
+	if !h.validateChatPermission(chatMessage) {
+		websocket.SendError(h.hub, client.UserID, "You can only message users you follow or who follow you")
+		return
+	}
+
+	// Save the message to the database
+	if err := database.SaveChatMessage(&chatMessage); err != nil {
+		log.Printf("Error saving chat message: %v", err)
+		websocket.SendError(h.hub, client.UserID, "Failed to save message")
+		return
+	}
+
+	// Broadcast the message to both sender and receiver
+	h.broadcastChatMessage(chatMessage)
+
+	// Send unread count update to recipient
+	h.sendUnreadCountUpdate(chatMessage.ReceiverID, chatMessage.SenderID)
+}
+
+func (h *ChatHandlers) handleTypingStatus(client *websocket.Client, baseMessage struct {
+	Type        string          `json:"type"`
+	Content     json.RawMessage `json:"content"`
+	Receiver_id int             `json:"Receiver_id"`
+}) {
+	var typingStatus struct {
+		Receiver_id int    `json:"Receiver_id"`
+		IsTyping    bool   `json:"is_typing"`
+		Username    string `json:"username"`
+	}
+
+	if err := json.Unmarshal(baseMessage.Content, &typingStatus); err != nil {
+		log.Printf("Error parsing typing status: %v", err)
+		return
+	}
+
+	// Validate typing permission
+	if !h.validateChatPermission(models.ChatMessage{
+		SenderID:   client.UserID,
+		ReceiverID: typingStatus.Receiver_id,
+	}) {
+		return // Silently ignore typing from unauthorized users
+	}
+
+	// Broadcast the typing status
+	msg := websocket.Message{
+		Type: websocket.MessageTypeTyping,
+		Content: map[string]interface{}{
+			"sender_id":   client.UserID,
+			"receiver_id": typingStatus.Receiver_id,
+			"is_typing":   typingStatus.IsTyping,
+			"username":    typingStatus.Username,
+		},
+		UserID:    typingStatus.Receiver_id,
+		Timestamp: time.Now(),
+		Priority:  websocket.PriorityLow,
+	}
+	jsonMessage, _ := json.Marshal(msg)
+	h.hub.Broadcast <- jsonMessage
+}
+
+func (h *ChatHandlers) handleGroupChatMessage(client *websocket.Client, baseMessage struct {
+	Type        string          `json:"type"`
+	Content     json.RawMessage `json:"content"`
+	Receiver_id int             `json:"Receiver_id"`
+}) {
+	var groupChatContent struct {
+		GroupID int    `json:"group_id"`
+		Content string `json:"content"`
+	}
+
+	if err := json.Unmarshal(baseMessage.Content, &groupChatContent); err != nil {
+		log.Printf("Error parsing group chat content: %v", err)
+		websocket.SendError(h.hub, client.UserID, "Failed to parse group chat content")
+		return
+	}
+
+	// Validate group access
+	hasAccess, err := database.CheckUserGroupAccess(nil, client.UserID, groupChatContent.GroupID)
+	if err != nil || !hasAccess {
+		log.Printf("User %d attempted to send message to group %d without access", client.UserID, groupChatContent.GroupID)
+		websocket.SendError(h.hub, client.UserID, "You don't have access to this group")
+		return
+	}
+
+	// Save group chat message
+	groupMessage := models.GroupChatMessage{
+		GroupID:        groupChatContent.GroupID,
+		SenderID:       client.UserID,
+		SenderUsername: "", // Will be filled by database
+		Content:        groupChatContent.Content,
+		Timestamp:      time.Now(),
+	}
+
+	if err := database.SaveGroupChatMessage(&groupMessage); err != nil {
+		log.Printf("Error saving group chat message: %v", err)
+		websocket.SendError(h.hub, client.UserID, "Failed to save group message")
+		return
+	}
+
+	// Broadcast to all group members
+	h.broadcastGroupChatMessage(groupMessage)
+}
+
+func (h *ChatHandlers) handlePing(client *websocket.Client, baseMessage struct {
+	Type        string          `json:"type"`
+	Content     json.RawMessage `json:"content"`
+	Receiver_id int             `json:"Receiver_id"`
+}) {
+	// Respond with pong
+	pongMessage := websocket.Message{
+		Type: websocket.MessageTypePong,
+		Content: map[string]interface{}{
+			"timestamp": time.Now().Unix(),
+		},
+		UserID:    client.UserID,
+		Timestamp: time.Now(),
+		Priority:  websocket.PriorityLow,
+	}
+	jsonMessage, _ := json.Marshal(pongMessage)
+	client.Send <- jsonMessage
+}
+
+func (h *ChatHandlers) validateChatPermission(chatMessage models.ChatMessage) bool {
+	// Cannot send message to yourself
+	if chatMessage.SenderID == chatMessage.ReceiverID {
+		log.Printf("User %d attempted to send message to themselves", chatMessage.SenderID)
+		return false
+	}
+
+	// Check if either user follows the other
+	isFollowing1, err1 := database.IsFollowing(chatMessage.SenderID, chatMessage.ReceiverID)
+	isFollowing2, err2 := database.IsFollowing(chatMessage.ReceiverID, chatMessage.SenderID)
+
+	log.Printf("Chat permission check - SenderID: %d, ReceiverID: %d", chatMessage.SenderID, chatMessage.ReceiverID)
+	log.Printf("IsFollowing(Sender->Receiver): %v, error: %v", isFollowing1, err1)
+	log.Printf("IsFollowing(Receiver->Sender): %v, error: %v", isFollowing2, err2)
+
+	if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
+		log.Printf("✅ Chat permission granted")
+		return true
+	}
+
+	log.Printf("❌ Chat permission denied")
+	return false
+}
+
+func (h *ChatHandlers) broadcastChatMessage(chatMessage models.ChatMessage) {
+	// Create standardized chat message
+	msg := websocket.Message{
+		Type: websocket.MessageTypeChat,
+		Content: map[string]interface{}{
+			"sender_id":   chatMessage.SenderID,
+			"receiver_id": chatMessage.ReceiverID,
+			"content":     chatMessage.Content,
+			"timestamp":   chatMessage.Timestamp,
+		},
+		Timestamp: time.Now(),
+		Priority:  websocket.PriorityNormal,
+	}
+
+	// Send to both sender and receiver
+	for _, userID := range []int{chatMessage.SenderID, chatMessage.ReceiverID} {
+		msg.UserID = userID
 		jsonMessage, _ := json.Marshal(msg)
 		h.hub.Broadcast <- jsonMessage
-	case "group_chat":
-		var groupChatContent struct {
-			GroupID int    `json:"group_id"`
-			Content string `json:"content"`
-		}
-		if err := json.Unmarshal(baseMessage.Content, &groupChatContent); err != nil {
-			log.Printf("Error parsing group chat content: %v", err)
-			errorMsg := websocket.Message{
-				Type:    "error",
-				Content: "Failed to parse group chat content",
-				UserID:  client.UserID,
-			}
-			client.Send <- messageToJSON(errorMsg)
-			return
-		}
-		// Fetch sender's username
-		user, err := database.GetUserByID(client.UserID)
-		if err != nil {
-			log.Printf("Error fetching sender username: %v", err)
-			errorMsg := websocket.Message{
-				Type:    "error",
-				Content: "Failed to fetch sender username",
-				UserID:  client.UserID,
-			}
-			client.Send <- messageToJSON(errorMsg)
-			return
-		}
-		groupChatMessage := models.GroupChatMessage{
-			GroupID:        groupChatContent.GroupID,
-			SenderID:       client.UserID,
-			SenderUsername: user.Username,
-			SenderAvatar:   user.Avatar,
-			Content:        groupChatContent.Content,
-			Timestamp:      time.Now(),
-		}
-		if err := database.SaveGroupChatMessage(&groupChatMessage); err != nil {
-			log.Printf("Error saving group chat message: %v", err)
-			errorMsg := websocket.Message{
-				Type:    "error",
-				Content: "Failed to save group chat message",
-				UserID:  client.UserID,
-			}
-			client.Send <- messageToJSON(errorMsg)
-			return
-		}
-		// Broadcast the group chat message to all group members
-		memberIDs := database.GetGroupMemberIDs(groupChatMessage.GroupID)
-		for _, memberID := range memberIDs {
-			msg := websocket.Message{
-				Type:    "group_chat",
-				Content: groupChatMessage,
-				UserID:  memberID,
-			}
+	}
+}
+
+func (h *ChatHandlers) broadcastGroupChatMessage(groupMessage models.GroupChatMessage) {
+	// Get group members
+	members, err := database.GetGroupMembers(nil, groupMessage.GroupID)
+	if err != nil {
+		log.Printf("Error getting group members for broadcast: %v", err)
+		return
+	}
+
+	// Create group chat message
+	msg := websocket.Message{
+		Type: websocket.MessageTypeGroupChat,
+		Content: map[string]interface{}{
+			"group_id":        groupMessage.GroupID,
+			"sender_id":       groupMessage.SenderID,
+			"sender_username": groupMessage.SenderUsername,
+			"content":         groupMessage.Content,
+			"timestamp":       groupMessage.Timestamp,
+		},
+		Timestamp: time.Now(),
+		Priority:  websocket.PriorityNormal,
+	}
+
+	// Send to all group members
+	for _, member := range members {
+		if memberID, ok := member["id"].(int); ok {
+			msg.UserID = memberID
 			jsonMessage, _ := json.Marshal(msg)
 			h.hub.Broadcast <- jsonMessage
 		}
-
-		// Broadcast unread count to all group members except sender
-		for _, memberID := range memberIDs {
-			if memberID == client.UserID {
-				continue
-			}
-			unreadCount := database.CountUnreadGroupMessages(groupChatMessage.GroupID, memberID)
-			unreadMsg := websocket.Message{
-				Type:    "unread-group-count-update",
-				Content: map[string]interface{}{"groupId": groupChatMessage.GroupID, "count": unreadCount},
-				UserID:  memberID,
-			}
-			unreadJson, _ := json.Marshal(unreadMsg)
-			h.hub.Broadcast <- unreadJson
-		}
-	default:
-		log.Printf("Unknown message type (handleChatMessage): %s", baseMessage.Type)
 	}
+}
+
+func (h *ChatHandlers) sendUnreadCountUpdate(receiverID, senderID int) {
+	unreadCount := database.CountUnreadMessages(receiverID, senderID)
+	unreadMsg := websocket.Message{
+		Type: websocket.MessageTypeNotificationCountUpdate,
+		Content: map[string]interface{}{
+			"user_id": senderID,
+			"count":   unreadCount,
+		},
+		UserID:    receiverID,
+		Timestamp: time.Now(),
+		Priority:  websocket.PriorityHigh,
+	}
+	jsonMessage, _ := json.Marshal(unreadMsg)
+	h.hub.Broadcast <- jsonMessage
 }
 
 func messageToJSON(message websocket.Message) []byte {
@@ -274,46 +344,44 @@ func messageToJSON(message websocket.Message) []byte {
 func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to view chat history")
 		return
 	}
 
-	otherUserID := r.URL.Query().Get("user_id")
-	limit := 10 // Default limit
+	otherUserIDStr := r.URL.Query().Get("user_id")
+	otherUserID, err := strconv.Atoi(otherUserIDStr)
+	if err != nil {
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid user ID")
+		return
+	}
+
+	offsetStr := r.URL.Query().Get("offset")
 	offset := 0
-
-	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-		offset, _ = strconv.Atoi(offsetStr)
+	if offsetStr != "" {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid offset")
+			return
+		}
 	}
 
-	otherUserIDInt, err := strconv.Atoi(otherUserID)
-	if err != nil {
-		http.Error(w, "Invalid user_id parameter", http.StatusBadRequest)
+	// Validate chat permission
+	canChat := false
+	isFollowing1, err1 := database.IsFollowing(userID, otherUserID)
+	isFollowing2, err2 := database.IsFollowing(otherUserID, userID)
+	if (err1 == nil && isFollowing1) || (err2 == nil && isFollowing2) {
+		canChat = true
+	}
+
+	if !canChat {
+		utils.WriteJSONError(w, http.StatusForbidden, "You can only view chat history with users you follow or who follow you")
 		return
 	}
 
-	// Mark messages as read when user opens chat
-	database.MarkMessagesAsRead(userID, otherUserIDInt)
-
-	// Always broadcast unread count to user after marking as read
-	unreadCount := database.CountUnreadMessages(userID, otherUserIDInt)
-	unreadMsg := websocket.Message{
-		Type:    "unread-count-update",
-		Content: map[string]interface{}{"userId": otherUserIDInt, "count": unreadCount},
-		UserID:  userID,
-	}
-	unreadJson, _ := json.Marshal(unreadMsg)
-	websocket.MainHub.Broadcast <- unreadJson
-
-	messages, err := database.GetChatHistory(userID, otherUserIDInt, limit, offset)
+	messages, err := database.GetChatHistory(userID, otherUserID, offset, 50)
 	if err != nil {
-		http.Error(w, "Error fetching chat history", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching chat history")
 		return
-	}
-
-	// Reverse messages to send oldest first
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -323,88 +391,74 @@ func GetChatHistory(w http.ResponseWriter, r *http.Request) {
 func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to view group chat history")
 		return
 	}
+
 	groupIDStr := r.URL.Query().Get("group_id")
-	if groupIDStr == "" {
-		http.Error(w, "Group ID is required", http.StatusBadRequest)
-		return
-	}
 	groupID, err := strconv.Atoi(groupIDStr)
 	if err != nil {
-		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
 		return
 	}
-	// Update last_group_chat_open_time
-	database.UpdateLastGroupChatOpenTime(groupID, userID)
-	// Broadcast unread count to user
-	unreadCount := database.CountUnreadGroupMessages(groupID, userID)
-	unreadMsg := websocket.Message{
-		Type:    "unread-group-count-update",
-		Content: map[string]interface{}{"groupId": groupID, "count": unreadCount},
-		UserID:  userID,
+
+	// Validate group access
+	hasAccess, err := database.CheckUserGroupAccess(nil, userID, groupID)
+	if err != nil || !hasAccess {
+		utils.WriteJSONError(w, http.StatusForbidden, "You don't have access to this group")
+		return
 	}
-	unreadJson, _ := json.Marshal(unreadMsg)
-	if h, ok := w.(interface{ Hub() *websocket.Hub }); ok {
-		h.Hub().Broadcast <- unreadJson
-	}
-	// Support limit and offset
-	limit := 10
+
+	offsetStr := r.URL.Query().Get("offset")
 	offset := 0
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
+	if offsetStr != "" {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid offset")
+			return
 		}
 	}
-	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-			offset = o
-		}
-	}
-	messages, err := database.GetGroupChatHistory(groupID, limit, offset)
+
+	messages, err := database.GetGroupChatHistory(groupID, offset, 50)
 	if err != nil {
-		http.Error(w, "Error fetching group chat history", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching group chat history")
 		return
 	}
-	// Reverse messages to send oldest first (like private chat)
-	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-		messages[i], messages[j] = messages[j], messages[i]
-	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
 
-// Handler to return unread counts for the current user
 func GetUnreadCounts(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to view unread counts")
 		return
 	}
-	counts, err := database.GetUnreadCountsForUser(userID)
+
+	unreadCounts, err := database.GetUnreadCountsForUser(userID)
 	if err != nil {
-		// Added detailed error logging
-		log.Printf("[GetUnreadCounts] Error fetching unread counts for userID %d: %v", userID, err)
-		http.Error(w, "Error fetching unread counts", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching unread counts")
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(counts)
+	json.NewEncoder(w).Encode(unreadCounts)
 }
 
-// Handler to return unread group chat counts for the current user
 func GetUnreadGroupCounts(w http.ResponseWriter, r *http.Request) {
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, http.StatusUnauthorized, "You must be logged in to view unread group counts")
 		return
 	}
-	counts, err := database.GetUnreadGroupCountsForUser(userID)
+
+	unreadCounts, err := database.GetUnreadGroupCountsForUser(userID)
 	if err != nil {
-		http.Error(w, "Error fetching unread group counts", http.StatusInternalServerError)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Error fetching unread group counts")
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(counts)
+	json.NewEncoder(w).Encode(unreadCounts)
 }

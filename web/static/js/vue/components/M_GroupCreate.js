@@ -170,7 +170,7 @@ const CreateGroupModal = {
     computed: {
         filteredUserList() {
             // Exclude the signed-in user
-            return this.users.filter(u => (u.id || u.ID) !== this.currentUser.id && (u.username || u.Username));
+            return this.users.filter(u => (u.userId || u.ID) !== this.currentUser.userId && (u.username || u.Username));
         }
     },
     methods: {

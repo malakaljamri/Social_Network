@@ -54,7 +54,7 @@ const ChatWindow = {
     },
     methods: {
         async fetchHistory(loadOlder = false) {
-            const userId = this.user.ID || this.user.id;
+            const userId = this.user.ID || this.user.userId;
             if (!userId) {
                 console.warn('ChatWindow: user ID is missing, cannot fetch history');
                 return;
@@ -68,7 +68,7 @@ const ChatWindow = {
             }
             try {
                 let url = `/api/chat-history?user_id=${userId}&offset=${this.offset}`;
-                const res = await fetch(url);
+                const res = await fetch(url, { credentials: 'include' });
                 const data = await res.json();
                 const msgs = Array.isArray(data) ? data : [];
                 if (loadOlder) {
@@ -100,8 +100,8 @@ const ChatWindow = {
             }
         },
         async fetchFollowStatus() {
-            const userId = this.user.ID || this.user.id;
-            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            const userId = this.user.ID || this.user.userId;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.userId;
             if (!userId || !currentUserId) {
                 console.warn('ChatWindow: user ID or current user ID is missing, cannot fetch follow status');
                 this.canMessage = false;
@@ -155,7 +155,7 @@ const ChatWindow = {
             }
         },
         sendMessage() {
-            const userId = this.user.ID || this.user.id;
+            const userId = this.user.ID || this.user.userId;
             if (!this.input.trim() || !userId) {
                 console.log('ChatWindow: Cannot send message - input empty or userId missing', { input: this.input, userId });
                 return;
@@ -181,7 +181,7 @@ const ChatWindow = {
             }
         },
         handleTyping() {
-            const userId = this.user.ID || this.user.id;
+            const userId = this.user.ID || this.user.userId;
             if (this.websocket && this.websocket.state.connected && userId) {
                 this.websocket.sendTyping(userId, true);
                 clearTimeout(this.typingTimeout);
@@ -246,8 +246,8 @@ const ChatWindow = {
         
         window.addEventListener('chat-message', this._onChatMessage = (e) => {
             const msg = e.detail;
-            const userId = this.user.ID || this.user.id;
-            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            const userId = this.user.ID || this.user.userId;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.userId;
             if ((msg.sender_id === userId && msg.Receiver_id === currentUserId) ||
                 (msg.sender_id === currentUserId && msg.Receiver_id === userId)) {
                 this.receiveMessage(msg);
@@ -255,8 +255,8 @@ const ChatWindow = {
         });
         window.addEventListener('chat-typing', this._onChatTyping = (e) => {
             const { sender_id, Receiver_id, is_typing } = e.detail;
-            const userId = this.user.ID || this.user.id;
-            const currentUserId = this.currentUserValue.ID || this.currentUserValue.id;
+            const userId = this.user.ID || this.user.userId;
+            const currentUserId = this.currentUserValue.ID || this.currentUserValue.userId;
             if (sender_id === userId && Receiver_id === currentUserId) {
                 this.receiveTyping(is_typing);
             }

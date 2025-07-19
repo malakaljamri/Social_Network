@@ -37,10 +37,11 @@ const GroupChat = {
         async fetchHistory() {
             this.loading = true;
             try {
-                const res = await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
+                const res = await fetch(`/api/groups/chat-history?group_id=${this.groupId}`, { credentials: 'include' });
                 const data = await res.json();
                 this.messages = Array.isArray(data) ? data : [];
             } catch (e) {
+                console.error('GroupChat: Error fetching history:', e);
                 this.messages = [];
             }
             this.loading = false;
@@ -49,7 +50,7 @@ const GroupChat = {
         sendMessage() {
             if (!this.input.trim()) return;
             if (this.websocket && this.websocket.state.connected) {
-                this.websocket.sendGroupChatMessage(this.groupId, this.input);
+                this.websocket.sendGroupMessage(this.groupId, this.input);
                 this.input = '';
             }
         },

@@ -31,7 +31,7 @@ type Comment struct {
 
 type ChatMessage struct {
 	SenderID   int       `json:"sender_id"`
-	ReceiverID int       `json:"Receiver_id"`
+	ReceiverID int       `json:"receiver_id"`
 	Content    string    `json:"content"`
 	Timestamp  time.Time `json:"timestamp"`
 	IsRead     int       `json:"is_read"` // 0 = unread, 1 = read
@@ -44,11 +44,11 @@ type Category struct {
 }
 
 type LikeDislike struct {
-	ID        int  `json:"ID"`
-	UserID    int  `json:"UserID"`
-	PostID    int  `json:"PostID"`
-	CommentID int  `json:"CommentID"`
-	IsLike    bool `json:"IsLike"`
+	ID        int  `json:"id"`
+	UserID    int  `json:"user_id"`
+	PostID    int  `json:"post_id"`
+	CommentID int  `json:"comment_id"`
+	IsLike    bool `json:"is_like"`
 }
 
 type GroupChatMessage struct {

@@ -37,7 +37,7 @@ const GroupMain = {
     },
     computed: {
         myId() {
-            return this.currentUser?.id || null;
+            return this.currentUser?.userId || null;
         }
     },
     mounted() {

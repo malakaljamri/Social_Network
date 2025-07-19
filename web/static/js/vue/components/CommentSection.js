@@ -107,7 +107,7 @@ const CommentSection = {
             this.submitError = '';
 
             const formData = new FormData();
-            formData.append('PostID', this.postId);
+            formData.append('post_id', this.postId);
             formData.append('Text', this.newComment.text);
             if (this.newComment.file) {
                 formData.append('Image', this.newComment.file);

@@ -306,7 +306,7 @@ func PostLikeDislikeRouter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Prepare a fake request body with post ID
-	r.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"PostID":%d}`, postID)))
+	r.Body = io.NopCloser(strings.NewReader(fmt.Sprintf(`{"post_id":%d}`, postID)))
 	r.Header.Set("Content-Type", "application/json")
 	switch action {
 	case "like":

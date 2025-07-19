@@ -24,19 +24,52 @@ type Client struct {
 	Conn   *websocket.Conn
 	UserID int
 	Send   chan []byte
+	// New: Connection metadata
+	ConnectedAt time.Time
+	LastPing    time.Time
+	IsAlive     bool
 }
 
 type Message struct {
 	Type    string      `json:"type"`
 	Content interface{} `json:"content"`
 	UserID  int         `json:"user_id"`
+	// New: Message metadata
+	Timestamp time.Time `json:"timestamp,omitempty"`
+	Priority  int       `json:"priority,omitempty"`
 }
+
+// New: Message types for better organization
+const (
+	MessageTypeChat                    = "chat"
+	MessageTypeUserStatus              = "user_status"
+	MessageTypeTyping                  = "typing"
+	MessageTypeNotification            = "notification"
+	MessageTypeNotificationCountUpdate = "notification_count_update"
+	MessageTypeGroupChat               = "group_chat"
+	MessageTypeGroupCreated            = "group_created"
+	MessageTypeGroupUpdated            = "group_updated"
+	MessageTypePing                    = "ping"
+	MessageTypePong                    = "pong"
+	MessageTypeError                   = "error"
+)
+
+// New: Message priorities
+const (
+	PriorityLow    = 1
+	PriorityNormal = 2
+	PriorityHigh   = 3
+	PriorityUrgent = 4
+)
 
 var (
 	maxMessageSize = int64(512)
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
 	writeWait      = 10 * time.Second
+	// New: Connection management
+	heartbeatInterval = 30 * time.Second
+	maxIdleTime       = 5 * time.Minute
 )
 
 func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request, messageHandler func(*Client, []byte)) {
@@ -54,18 +87,29 @@ func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request, messageHa
 		return
 	}
 
-	client := &Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256), UserID: userID}
-	// log.Printf("Client connected with User 🆔: %d", userID)
+	client := &Client{
+		Hub:         hub,
+		Conn:        conn,
+		Send:        make(chan []byte, 256),
+		UserID:      userID,
+		ConnectedAt: time.Now(),
+		LastPing:    time.Now(),
+		IsAlive:     true,
+	}
+
+	// Register client with the hub
 	client.Hub.Register <- client
 
 	// Send online status
 	message := Message{
-		Type: "user_status",
+		Type: MessageTypeUserStatus,
 		Content: map[string]interface{}{
 			"user_id":  userID,
 			"username": "",
 			"status":   "online",
 		},
+		Timestamp: time.Now(),
+		Priority:  PriorityHigh,
 	}
 	jsonMessage, _ := json.Marshal(message)
 	hub.Broadcast <- jsonMessage
@@ -73,16 +117,19 @@ func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request, messageHa
 	// Start the pump goroutines
 	go client.WritePump()
 	go client.ReadPump(messageHandler)
+	go client.HeartbeatPump()
 
 	// Handle disconnection
 	defer func() {
 		message := Message{
-			Type: "user_status",
+			Type: MessageTypeUserStatus,
 			Content: map[string]interface{}{
 				"user_id":  userID,
 				"username": "might_need_to_fetch_the_username",
 				"status":   "offline",
 			},
+			Timestamp: time.Now(),
+			Priority:  PriorityHigh,
 		}
 		jsonMessage, _ := json.Marshal(message)
 		hub.Broadcast <- jsonMessage
@@ -105,9 +152,6 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			// // Log the message being sent (for debugging)
-			// log.Printf("Sending message to client %d: %s", c.UserID, string(message))
-
 			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				log.Printf("Error writing message: %v", err)
 				return
@@ -120,6 +164,7 @@ func (c *Client) WritePump() {
 		}
 	}
 }
+
 func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 	defer func() {
 		c.Hub.Unregister <- c
@@ -130,6 +175,8 @@ func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error {
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		c.LastPing = time.Now()
+		c.IsAlive = true
 		return nil
 	})
 
@@ -143,13 +190,51 @@ func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 			}
 			break
 		}
+
+		// Update last ping time
+		c.LastPing = time.Now()
+		c.IsAlive = true
+
 		messageHandler(c, message)
-		// Print_userIDs("ReadPump")
+	}
+}
+
+// New: Heartbeat pump to monitor client health
+func (c *Client) HeartbeatPump() {
+	ticker := time.NewTicker(heartbeatInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// Check if client is still alive
+			if time.Since(c.LastPing) > maxIdleTime {
+				log.Printf("Client %d is idle for too long, disconnecting", c.UserID)
+				c.Conn.Close()
+				return
+			}
+
+			// Send heartbeat if needed
+			if time.Since(c.LastPing) > heartbeatInterval {
+				pingMessage := Message{
+					Type:      MessageTypePing,
+					Content:   map[string]interface{}{"timestamp": time.Now().Unix()},
+					Timestamp: time.Now(),
+					Priority:  PriorityLow,
+				}
+				jsonMessage, _ := json.Marshal(pingMessage)
+				select {
+				case c.Send <- jsonMessage:
+					// Heartbeat sent successfully
+				default:
+					log.Printf("Failed to send heartbeat to client %d", c.UserID)
+				}
+			}
+		}
 	}
 }
 
 var (
-	// OnlineUsers = make(map[int]bool)
 	userMutex = &sync.Mutex{}
 )
 
@@ -160,7 +245,7 @@ func UpdateUserStatus(hub *Hub, userID int, online bool) {
 	if !online {
 		delete(database.OnlineUsers, userID)
 	}
-	go BroadcastUserStatus(hub, userID, online) // Pass the hub to BroadcastUserStatus
+	go BroadcastUserStatus(hub, userID, online)
 }
 
 func BroadcastUserStatus(hub *Hub, userID int, online bool) {
@@ -170,13 +255,13 @@ func BroadcastUserStatus(hub *Hub, userID int, online bool) {
 	}
 
 	message := Message{
-		Type: "user_status",
+		Type: MessageTypeUserStatus,
 		Content: map[string]interface{}{
 			"user_id": userID,
 			"status":  status,
-			// "username": username,
 		},
-		UserID: 0,
+		Timestamp: time.Now(),
+		Priority:  PriorityHigh,
 	}
 
 	jsonMessage, err := json.Marshal(message)
@@ -192,7 +277,7 @@ func GetOnlineUsers() []int {
 	defer userMutex.Unlock()
 	var users []int
 	for userID, online := range database.OnlineUsers {
-		if online || !online {
+		if online {
 			users = append(users, userID)
 		}
 	}
@@ -208,14 +293,17 @@ type Hub struct {
 	Broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
+	// New: Hub metadata
+	mutex sync.RWMutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+		Broadcast:  make(chan []byte, 100), // Increased buffer size
+		Register:   make(chan *Client, 10),
+		Unregister: make(chan *Client, 10),
+		mutex:      sync.RWMutex{},
 	}
 }
 
@@ -223,110 +311,149 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
+			h.mutex.Lock()
 			h.clients[client] = true
+			h.mutex.Unlock()
 			client.SetOnlineStatus(true)
+			log.Printf("Client %d registered, total clients: %d", client.UserID, len(h.clients))
+
 		case client := <-h.Unregister:
+			h.mutex.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.Send)
 				client.SetOnlineStatus(false)
 			}
+			h.mutex.Unlock()
+			log.Printf("Client %d unregistered, total clients: %d", client.UserID, len(h.clients))
+
 		case message := <-h.Broadcast:
-			// Parse the message to get the target UserID
+			// Parse the message to get the target UserID and priority
 			var msgData map[string]interface{}
 			if err := json.Unmarshal(message, &msgData); err == nil {
 				if userID, ok := msgData["user_id"].(float64); ok {
 					// Send only to the specific user
 					targetUserID := int(userID)
+					h.mutex.RLock()
 					for client := range h.clients {
 						if client.UserID == targetUserID {
 							select {
 							case client.Send <- message:
-								// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+								// Message sent successfully
 							default:
-								log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
-								close(client.Send)
+								log.Printf("Failed to send message to client %d, removing client", client.UserID)
+								h.mutex.RUnlock()
+								h.mutex.Lock()
 								delete(h.clients, client)
+								close(client.Send)
+								h.mutex.Unlock()
+								h.mutex.RLock()
 							}
 						}
 					}
+					h.mutex.RUnlock()
 				} else {
-					// If no specific user_id, broadcast to all (for general messages)
+					// Broadcast to all clients
+					h.mutex.RLock()
 					for client := range h.clients {
 						select {
 						case client.Send <- message:
-							// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+							// Message sent successfully
 						default:
-							log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
-							close(client.Send)
+							log.Printf("Failed to send message to client %d, removing client", client.UserID)
+							h.mutex.RUnlock()
+							h.mutex.Lock()
 							delete(h.clients, client)
+							close(client.Send)
+							h.mutex.Unlock()
+							h.mutex.RLock()
 						}
 					}
+					h.mutex.RUnlock()
 				}
 			} else {
 				// Fallback: broadcast to all if message parsing fails
+				h.mutex.RLock()
 				for client := range h.clients {
 					select {
 					case client.Send <- message:
-						// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+						// Message sent successfully
 					default:
-						log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
-						close(client.Send)
+						log.Printf("Failed to send message to client %d, removing client", client.UserID)
+						h.mutex.RUnlock()
+						h.mutex.Lock()
 						delete(h.clients, client)
+						close(client.Send)
+						h.mutex.Unlock()
+						h.mutex.RLock()
 					}
 				}
+				h.mutex.RUnlock()
 			}
 		}
-		// Print_userIDs("Run")
 	}
 }
 
-// func Print_userIDs(caller string) {
-// 	userIDs := GetOnlineUsers()
-// 	log.Printf("Online User 🆔s (%s): %v", caller, userIDs)
-// }
-
-/*func SendPostsViaWebSocket(client *Client) {
-	posts, _, err := database.GetPosts(1, 10) // Get the first 10 posts
-	if err != nil {
-		log.Printf("❌ Error fetching posts: %v", err)
-		return
-	}
-
+// New: Utility functions for sending specific message types
+func SendNotification(hub *Hub, userID int, notificationType string, content map[string]interface{}) {
 	message := Message{
-		Type:    "posts",
-		Content: posts,
+		Type: MessageTypeNotification,
+		Content: map[string]interface{}{
+			"type":    notificationType,
+			"content": content,
+		},
+		UserID:    userID,
+		Timestamp: time.Now(),
+		Priority:  PriorityHigh,
 	}
 
-	client.Send <- messageToJSON(message)
-}*/
+	jsonMessage, _ := json.Marshal(message)
+	hub.Broadcast <- jsonMessage
+}
 
-/*func messageToJSON(message Message) []byte {
-	json, err := json.Marshal(message)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return []byte{}
+func SendNotificationCountUpdate(hub *Hub, userID int, count int) {
+	message := Message{
+		Type: MessageTypeNotificationCountUpdate,
+		Content: map[string]interface{}{
+			"count": count,
+		},
+		UserID:    userID,
+		Timestamp: time.Now(),
+		Priority:  PriorityHigh,
 	}
-	return json
-}*/
 
-func BroadcastTime(hub *Hub) { // This function is only for testing purposes
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	jsonMessage, _ := json.Marshal(message)
+	hub.Broadcast <- jsonMessage
+}
 
-	for range ticker.C {
-		currentTime := time.Now().Format("15:04:05")
-		message := Message{
-			Type:    "time",
-			Content: currentTime,
-		}
-		jsonMessage, err := json.Marshal(message)
-		if err != nil {
-			log.Printf("Error marshalling time message: %v", err)
-			continue
-		}
-		hub.Broadcast <- jsonMessage
+func SendGroupEvent(hub *Hub, groupID int, eventType string, content map[string]interface{}) {
+	message := Message{
+		Type: eventType,
+		Content: map[string]interface{}{
+			"group_id": groupID,
+			"content":  content,
+		},
+		Timestamp: time.Now(),
+		Priority:  PriorityNormal,
 	}
+
+	jsonMessage, _ := json.Marshal(message)
+	hub.Broadcast <- jsonMessage
+}
+
+func SendError(hub *Hub, userID int, errorMessage string) {
+	message := Message{
+		Type: MessageTypeError,
+		Content: map[string]interface{}{
+			"error": errorMessage,
+		},
+		UserID:    userID,
+		Timestamp: time.Now(),
+		Priority:  PriorityUrgent,
+	}
+
+	jsonMessage, _ := json.Marshal(message)
+	hub.Broadcast <- jsonMessage
 }
 
 var MainHub = NewHub()

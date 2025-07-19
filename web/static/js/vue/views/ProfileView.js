@@ -205,18 +205,18 @@ const ProfileView = {
             if (this.userId) {
                 return this.userId;
             }
-            return this.currentUserValue?.id || this.currentUserValue?.ID;
+            return this.currentUserValue?.userId || this.currentUserValue?.ID;
         },
         isOwnProfile() {
-            const currentId = this.currentUserValue?.id || this.currentUserValue?.ID;
-            const profileId = this.profile.user?.id || this.profile.user?.ID;
+            const currentId = this.currentUserValue?.userId || this.currentUserValue?.ID;
+            const profileId = this.profile.user?.userId || this.profile.user?.ID;
             return currentId && profileId && currentId === profileId;
         },
         isViewingOwnProfile() {
             return this.isOwnProfile;
         },
         isFollower() {
-            return this.followers.some(u => u.id === this.currentUserValue?.id || u.ID === this.currentUserValue?.ID);
+            return this.followers.some(u => u.userId === this.currentUserValue?.userId || u.ID === this.currentUserValue?.ID);
         },
         canViewPosts() {
             const isPrivate = (this.profile.user.IsPrivate !== undefined ? this.profile.user.IsPrivate : this.profile.user.is_private);
@@ -453,10 +453,10 @@ const ProfileView = {
             this.openChats.push(user);
         },
         closeChat(userId) {
-            this.openChats = this.openChats.filter(user => user.ID !== userId);
+            this.openChats = this.openChats.filter(user => user.ID !== userId && user.userId !== userId);
         },
         getChatZIndex(userId) {
-            return this.openChats.length - this.openChats.indexOf(this.openChats.find(user => user.ID === userId));
+            return this.openChats.length - this.openChats.indexOf(this.openChats.find(user => user.ID === userId || user.userId === userId));
         },
         onPasswordChangeSuccess() {
             this.showChangePassword = false;

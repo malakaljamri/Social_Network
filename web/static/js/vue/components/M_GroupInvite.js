@@ -34,7 +34,7 @@ const GroupInviteModal = {
             // Get IDs of group members
             const memberIds = new Set(this.groupMembers.map(m => m.id || m.ID));
             const adminId = this.groupAdminId;
-            const currentUserId = this.currentUser.id;
+            const currentUserId = this.currentUser.userId;
             const filtered = this.users.filter(user => {
                 const userId = user.id || user.ID;
                 // Exclude self, admin, and existing members
@@ -155,7 +155,7 @@ const GroupInviteModal = {
         },
         isAlreadyMember(user) {
             const userId = user.id || user.ID;
-            return this.groupMembers.some(m => (m.id || m.ID) === userId) || userId === this.groupAdminId || userId === this.currentUser.id;
+            return this.groupMembers.some(m => (m.userId || m.ID) === userId) || userId === this.groupAdminId || userId === this.currentUser.userId;
         }
     },
     template: `

@@ -174,7 +174,7 @@ const HomeView = {
             return parseInt(timestamp.toString().slice(-6)); // Get last 6 digits of timestamp
         },
         closeChat(userId) {
-            this.openChats = this.openChats.filter(u => u.ID !== userId);
+            this.openChats = this.openChats.filter(u => u.ID !== userId && u.userId !== userId);
             delete this.chatTimestamps[userId];
         }
     },

@@ -87,7 +87,7 @@ const NavBar = {
             return this.currentUser || { isLoggedIn: false, username: '' };
         },
         myId() {
-            return this.currentUserValue.id || null;
+            return this.currentUserValue.userId || null;
         },
         totalUnreadGroupCount() {
             if (!this.myId) return 0;
@@ -163,7 +163,7 @@ const NavBar = {
         goToProfile() {
             this.$root.selectedProfileUserId = null;
             this.$emit('navigate', 'profile');
-            this.$root.viewUserProfile(this.currentUserValue.id);
+            this.$root.viewUserProfile(this.currentUserValue.userId);
         },
         showCreateGroupModal() {
             this.$emit('show-modal', 'createGroup');

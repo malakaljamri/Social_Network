@@ -6,7 +6,7 @@ const app = Vue.createApp({
             currentView: 'home',
             currentUser: Vue.ref({
                 isLoggedIn: false,
-                id: null,
+                userId: null,
                 username: null,
                 email: null
             }),
@@ -61,6 +61,14 @@ const app = Vue.createApp({
             _actionQueue: [], // Track sequential actions
             // Loading state management system
             _componentStates: {},
+            // Global WebSocket state
+            websocketState: Vue.ref({
+                connected: false,
+                connecting: false,
+                error: null,
+                lastConnected: null,
+                connectionAttempts: 0
+            }),
         };
     },
     watch: {
@@ -76,8 +84,8 @@ const app = Vue.createApp({
         },
         goToProfile() {
             // Always set selectedProfileUserId to current user's ID
-            const id = this.currentUser.value.id || this.currentUser.value.ID;
-            this.selectedProfileUserId = id;
+            const userId = this.currentUser.value.userId || this.currentUser.value.ID;
+            this.selectedProfileUserId = userId;
             if (this.currentView !== 'profile') {
                 this.currentView = 'profile';
             } else {
@@ -111,11 +119,20 @@ const app = Vue.createApp({
                 // Reset user state
                 this.currentUser.value = {
                     isLoggedIn: false,
-                    id: null,
+                    userId: null,
                     ID: null,
                     username: null,
                     Username: null,
                     email: null
+                };
+                
+                // Reset WebSocket state
+                this.websocketState.value = {
+                    connected: false,
+                    connecting: false,
+                    error: null,
+                    lastConnected: null,
+                    connectionAttempts: 0
                 };
                 // Clear all other state
                 this.users = [];
@@ -223,7 +240,7 @@ const app = Vue.createApp({
         closeChat(userId) {
             // Remove from open chats
             this.openChats = this.openChats.filter(chat => 
-                chat.ID !== userId && chat.id !== userId
+                chat.ID !== userId && chat.userId !== userId
             );
             
             // Also clean up old chat window system
@@ -316,7 +333,7 @@ const app = Vue.createApp({
             try {
                 this.currentUser.value = {
                     isLoggedIn: true,
-                    id: data.id,
+                    userId: data.id,
                     ID: data.id,
                     username: data.username,
                     Username: data.username,
@@ -330,11 +347,10 @@ const app = Vue.createApp({
                     currentUser: this.currentUser.value
                 });
                 
+                // Trigger WebSocket initialization after login
                 if (this.websocket && this.websocket.init) {
-                    console.log('Initializing WebSocket connection after login...');
+                    console.log('Central: Triggering WebSocket initialization after login...');
                     this.websocket.init();
-                } else {
-                    console.error('WebSocket not available after login');
                 }
                 
                 this.currentView = 'home';
@@ -366,7 +382,7 @@ const app = Vue.createApp({
                 if (isLoggedIn) {
                     this.currentUser.value = {
                         isLoggedIn: true,
-                        id: userId,
+                        userId: userId,
                         username: userData.username,
                         email: userData.email || ''
                     };
@@ -374,7 +390,7 @@ const app = Vue.createApp({
                 } else {
                     this.currentUser.value = {
                         isLoggedIn: false,
-                        id: null,
+                        userId: null,
                         username: null,
                         email: null
                     };
@@ -384,7 +400,7 @@ const app = Vue.createApp({
                 console.error('Error fetching user status:', e);
                 this.currentUser.value = {
                     isLoggedIn: false,
-                    id: null,
+                    userId: null,
                     username: null,
                     email: null
                 };
@@ -406,8 +422,8 @@ const app = Vue.createApp({
             // Normalize user object to ensure consistent ID and Username properties
             const normalizedUser = {
                 ...user,
-                ID: user.ID || user.id,
-                id: user.id || user.ID,
+                ID: user.ID || user.userId,
+                userId: user.userId || user.ID,
                 Username: user.Username || user.username,
                 username: user.username || user.Username
             };
@@ -436,13 +452,13 @@ const app = Vue.createApp({
                 const response = await fetch('/api/user', { credentials: 'include' });
                 const userData = await response.json();
                 const isLoggedIn = userData && (userData.id || userData.ID || userData.userID);
-                const id = userData.id || userData.ID || userData.userID;
+                const userId = userData.id || userData.ID || userData.userID;
                 const username = userData.username || userData.Username;
                 if (isLoggedIn) {
                     this.currentUser.value = {
                         isLoggedIn: true,
-                        id: id,
-                        ID: id,
+                        userId: userId,
+                        ID: userId,
                         username: username,
                         Username: username,
                         email: userData.email
@@ -451,7 +467,7 @@ const app = Vue.createApp({
                 } else {
                     this.currentUser.value = {
                         isLoggedIn: false,
-                        id: null,
+                        userId: null,
                         ID: null,
                         username: null,
                         Username: null,
@@ -463,7 +479,7 @@ const app = Vue.createApp({
                 console.error('Error fetching user status:', e);
                 this.currentUser.value = {
                     isLoggedIn: false,
-                    id: null,
+                    userId: null,
                     ID: null,
                     username: null,
                     Username: null,
@@ -480,7 +496,7 @@ const app = Vue.createApp({
                 if (isLoggedIn) {
                     this.currentUser.value = {
                         isLoggedIn: true,
-                        id: userId,
+                        userId: userId,
                         username: data.username,
                         email: data.email
                     };
@@ -488,7 +504,7 @@ const app = Vue.createApp({
                 } else {
                     this.currentUser.value = {
                         isLoggedIn: false,
-                        id: null,
+                        userId: null,
                         username: null,
                         email: null
                     };
@@ -498,7 +514,7 @@ const app = Vue.createApp({
                 console.error('Error parsing user response:', e);
                 this.currentUser.value = {
                     isLoggedIn: false,
-                    id: null,
+                    userId: null,
                     username: null,
                     email: null
                 };
@@ -513,7 +529,7 @@ const app = Vue.createApp({
                 console.error('Error fetching user status:', error);
                 this.currentUser.value = {
                     isLoggedIn: false,
-                    id: null,
+                    userId: null,
                     username: null,
                     email: null
                 };
@@ -603,7 +619,7 @@ const app = Vue.createApp({
         },
         getViewProps(view) {
             // Centralize prop passing for all main views
-            const base = { currentUser: this.currentUser.value || { id: null } };
+            const base = { currentUser: this.currentUser.value || { userId: null } };
             if (view === 'profile') {
                 return { ...base, userId: this.selectedProfileUserId };
             }
@@ -743,11 +759,11 @@ const app = Vue.createApp({
                         this.fetchNotificationCount()
                     ]);
                     
-                    // Initialize WebSocket connection
-                if (this.websocket && this.websocket.init) {
-                    console.log('Initializing WebSocket connection...');
-                    this.websocket.init();
-                }
+                    // Trigger WebSocket initialization if user is already logged in
+                    if (this.websocket && this.websocket.init && this.currentUser.value?.isLoggedIn) {
+                        console.log('Central: Triggering WebSocket initialization for already logged-in user...');
+                        this.websocket.init();
+                    }
 
                     // Set up periodic user refresh (less frequent to reduce load)
                     this._userInterval = setInterval(() => {
@@ -834,7 +850,8 @@ const app = Vue.createApp({
     },
     provide() {
         return {
-            currentUser: this.currentUser
+            currentUser: this.currentUser,
+            websocketState: this.websocketState
         };
     },
     template: `
