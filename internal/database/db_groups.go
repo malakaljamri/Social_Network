@@ -81,12 +81,7 @@ func CheckUserGroupAccess(db *sql.DB, userID, groupID int) (bool, error) {
 	query := `
 		SELECT 
 			CASE 
-				WHEN COALESCE(g.privacy_setting, 'private') = 'public' THEN 1
 				WHEN g.creator_id = ? THEN 1
-				WHEN COALESCE(g.privacy_setting, 'private') = 'private' AND EXISTS (
-					SELECT 1 FROM followers 
-					WHERE follower_id = ? AND followed_id = g.creator_id AND status = 'accepted'
-				) THEN 1
 				WHEN EXISTS (
 					SELECT 1 FROM group_members 
 					WHERE group_id = ? AND user_id = ? AND status = 'accepted'
@@ -98,7 +93,7 @@ func CheckUserGroupAccess(db *sql.DB, userID, groupID int) (bool, error) {
 	`
 
 	var hasAccess int
-	err := db.QueryRow(query, userID, userID, groupID, userID, groupID).Scan(&hasAccess)
+	err := db.QueryRow(query, userID, groupID, userID, groupID).Scan(&hasAccess)
 	if err != nil {
 		return false, err
 	}

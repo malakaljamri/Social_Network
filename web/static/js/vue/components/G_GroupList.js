@@ -97,10 +97,16 @@ const GroupList = {
                 } else {
                     return '🔒❌'; // Private group, no access
                 }
+            } else {
+                // Public group
+                if (hasAccess) {
+                    return '✅'; // Public group, has access
+                } else if (membershipStatus === 'pending') {
+                    return '⏳'; // Public group, pending approval
+                } else {
+                    return '❌'; // Public group, no access
+                }
             }
-            // if (hasAccess) return '✅';
-            if (membershipStatus === 'accepted') return '✅';
-            return ''; // Public group, no indicator needed
         },
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
