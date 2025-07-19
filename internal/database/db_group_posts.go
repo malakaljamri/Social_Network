@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 type GroupPost struct {
@@ -14,6 +16,7 @@ type GroupPost struct {
 	Content        string `json:"content"`
 	PrivacySetting string `json:"privacy_setting"`
 	CategoryID     *int   `json:"category_id"`
+	CategoryIDs    []int  `json:"category_ids,omitempty"`
 	FilePath       string `json:"file_path"`
 	CreatedAt      string `json:"created_at"`
 	Username       string `json:"username"`
@@ -107,12 +110,14 @@ func CreateGroupPost(db *sql.DB, post *GroupPost) error {
 func GetGroupPosts(db *sql.DB, groupID int) ([]GroupPost, error) {
 	query := `
 		SELECT p.id, p.group_id, p.user_id, p.title, p.content, 
-			   p.privacy, pc.category_id, p.image, p.created_at,
-			   u.username
+			   p.privacy, p.image, p.created_at,
+			   u.username,
+			   GROUP_CONCAT(pc.category_id) as category_ids
 		FROM posts p
 		JOIN users u ON p.user_id = u.id
 		LEFT JOIN post_categories pc ON p.id = pc.post_id
 		WHERE p.group_id = ?
+		GROUP BY p.id, p.group_id, p.user_id, p.title, p.content, p.privacy, p.image, p.created_at, u.username
 		ORDER BY p.created_at DESC
 	`
 
@@ -125,7 +130,7 @@ func GetGroupPosts(db *sql.DB, groupID int) ([]GroupPost, error) {
 	var posts []GroupPost
 	for rows.Next() {
 		var post GroupPost
-		var categoryID sql.NullInt64
+		var categoryIDs sql.NullString
 		err := rows.Scan(
 			&post.ID,
 			&post.GroupID,
@@ -133,18 +138,29 @@ func GetGroupPosts(db *sql.DB, groupID int) ([]GroupPost, error) {
 			&post.Title,
 			&post.Content,
 			&post.PrivacySetting,
-			&categoryID,
 			&post.FilePath,
 			&post.CreatedAt,
 			&post.Username,
+			&categoryIDs,
 		)
 		if err != nil {
 			return nil, err
 		}
-		if categoryID.Valid {
-			catID := int(categoryID.Int64)
-			post.CategoryID = &catID
+
+		// Handle categories - parse all category IDs
+		if categoryIDs.Valid && categoryIDs.String != "" {
+			catIDStrs := strings.Split(categoryIDs.String, ",")
+			for _, catIDStr := range catIDStrs {
+				if catID, err := strconv.Atoi(strings.TrimSpace(catIDStr)); err == nil {
+					post.CategoryIDs = append(post.CategoryIDs, catID)
+				}
+			}
+			// Set the first category as the primary category for backward compatibility
+			if len(post.CategoryIDs) > 0 {
+				post.CategoryID = &post.CategoryIDs[0]
+			}
 		}
+
 		posts = append(posts, post)
 	}
 

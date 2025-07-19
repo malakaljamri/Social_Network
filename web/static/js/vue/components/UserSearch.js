@@ -65,7 +65,6 @@ const UserSearch = {
             return `/web/${avatar}`;
         },
         goToProfile(userId) {
-            this.$root.currentView = 'profile';
             this.$root.viewUserProfile(userId);
         }
     }

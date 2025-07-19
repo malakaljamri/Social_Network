@@ -37,9 +37,13 @@ const GroupsView = {
                     Content: post.content,
                     Author: post.username,
                     CreatedAt: post.created_at,
-                    // add other fields as needed
+                    file_path: post.file_path,
+                    UserID: post.user_id,
+                    Categories: post.category_ids || [],
+                    Privacy: post.privacy_setting
                 }));
             } catch (e) {
+                console.error('❌ Error fetching group posts:', e);
                 this.groupPosts = [];
             }
         },
@@ -69,14 +73,16 @@ const GroupsView = {
         },
         async handleCreateGroupPost(postData) {
             try {
-                const payload = {
-                    ...postData,
-                    group_id: this.selectedGroupId
-                };
-                const response = await this.$root.apiFetch('/api/groups/posts/create', {
+                const formData = new FormData();
+                formData.append('Title', postData.title);
+                formData.append('Text', postData.content);
+                formData.append('CategoryIDs', JSON.stringify([postData.category_id]));
+                formData.append('Privacy', postData.privacy_setting);
+                formData.append('GroupID', this.selectedGroupId.toString());
+                
+                const response = await this.$root.apiFetch('/api/posts', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: formData
                 });
                 if (!response.ok) throw new Error('Failed to create group post');
                 this.fetchGroupPosts(this.selectedGroupId);

@@ -89,6 +89,18 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	privacy := r.FormValue("Privacy")
 
+	// Handle group ID for group posts
+	var groupID *int
+	groupIDStr := r.FormValue("GroupID")
+	if groupIDStr != "" {
+		groupIDInt, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid GroupID format")
+			return
+		}
+		groupID = &groupIDInt
+	}
+
 	// Validate the fields
 	if len(title) < 3 || len(title) > 100 {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Title must be between 3 and 100 characters")
@@ -107,6 +119,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		UserID:     userID,
 		Privacy:    privacy,
 		Image:      imagePath,
+		GroupID:    groupID,
 	}
 	// Validate the post using PostValidation
 	err = PostValidation(&post)

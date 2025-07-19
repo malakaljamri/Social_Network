@@ -17,6 +17,7 @@ type Post struct {
 	Dislikes   int
 	Privacy    string
 	Image      string
+	GroupID    *int
 }
 
 type Comment struct {

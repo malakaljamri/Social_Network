@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-//mux = as a traffic cop that directs incoming HTTP requests to the correct handler function, based on the request's URL path.
+// mux = as a traffic cop that directs incoming HTTP requests to the correct handler function, based on the request's URL path.
 var migrate = false
 
 func main() {
@@ -104,7 +104,6 @@ func main() {
 	mux.HandleFunc("/api/groups", handlers.GetAllGroupsHandler(db))
 	mux.HandleFunc("/api/groups/access", handlers.CheckGroupAccessHandler(db))
 	mux.HandleFunc("/api/groups/join", handlers.RequestGroupJoinHandler(db))
-	mux.HandleFunc("/api/groups/posts/create", handlers.CreateGroupPostHandler(db))
 	mux.HandleFunc("/api/groups/posts", handlers.GetGroupPostsHandler(db))
 	mux.HandleFunc("/api/groups/events", handlers.GetGroupEventsHandler(db))
 	mux.HandleFunc("/api/groups/events/create", handlers.CreateGroupEventHandler(db))

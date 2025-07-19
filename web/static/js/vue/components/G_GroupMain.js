@@ -73,11 +73,7 @@ const GroupMain = {
             this.closeCreateGroupPostModal();
         },
         formatDate(dateStr) {
-            if (!dateStr) return '';
-            // SQLite returns "YYYY-MM-DD HH:MM:SS", replace space with T for JS Date
-            const iso = dateStr.replace(' ', 'T');
-            const d = new Date(iso);
-            return isNaN(d) ? dateStr : d.toLocaleString();
+            return window.formatDate(dateStr, "YYYY-MM-DD HH:MM");
         },
         async checkGroupAccess() {
             if (!this.selectedGroup || !this.currentUser || !this.currentUser.isLoggedIn) {
@@ -129,6 +125,9 @@ const GroupMain = {
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
+        },
+        viewUserProfile(userId) {
+            this.$emit('view-user-profile', userId);
         }
     },
     beforeUnmount() {
@@ -238,16 +237,19 @@ const GroupMain = {
                     <!-- Show posts only if user has access -->
                     <div v-if="groupAccess">
                         <div v-if="groupPosts.length === 0" class="no-posts">No posts in this group yet</div>
-                        <div v-for="post in groupPosts" :key="post.ID" class="post-card">
-                            <div class="post-header">
-                                <h3>{{ post.Title }}</h3>
-                                <div class="post-meta">
-                                    <span class="post-author">Posted by {{ post.Author }}</span>
-                                    <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                                </div>
-                            </div>
-                            <div class="post-content">{{ post.Content }}</div>
-                        </div>
+                        <post-card 
+                            v-for="post in groupPosts" 
+                            :key="post.ID" 
+                            :post="post"
+                            :categories="categories"
+                            :current-user="currentUser"
+                            :show-comments="true"
+                            :show-categories="true"
+                            :show-author="true"
+                            :show-date="true"
+                            :show-post-id="true"
+                            @view-user-profile="viewUserProfile"
+                        ></post-card>
                     </div>
                     <!-- Show message if user doesn't have access -->
                     <div v-else>

@@ -204,3 +204,28 @@ func BatchGroupAccessHandler(db *sql.DB) http.HandlerFunc {
 		json.NewEncoder(w).Encode(result)
 	}
 }
+
+func GetGroupPostsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		groupIDStr := r.URL.Query().Get("group_id")
+		if groupIDStr == "" {
+			http.Error(w, "Group ID is required", http.StatusBadRequest)
+			return
+		}
+
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			http.Error(w, "Invalid group ID", http.StatusBadRequest)
+			return
+		}
+
+		posts, err := database.GetGroupPosts(db, groupID)
+		if err != nil {
+			http.Error(w, "Failed to fetch group posts", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(posts)
+	}
+}

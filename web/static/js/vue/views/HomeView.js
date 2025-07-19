@@ -151,7 +151,6 @@ const HomeView = {
             }
         },
         viewPostsByUser(userId) {
-            this.$root.currentView = 'profile';
             this.$root.viewUserProfile(userId);
         },
         getCategoryName(catId) {
@@ -159,7 +158,7 @@ const HomeView = {
             return category ? category.Name || category.name : catId; // Fallback to ID if name not found
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleString();
+            return window.formatDate(dateStr, "YYYY-MM-DD HH:MM");
         },
         openChat(user) {
             if (!this.openChats.some(u => u.ID === user.ID)) {
