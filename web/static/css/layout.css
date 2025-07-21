@@ -267,3 +267,7 @@
 .text-secondary { color: var(--text-secondary); }
 .text-muted { color: var(--text-muted); }
 .text-light { color: var(--text-light); }
+
+.users-list.card * {
+	position: unset !important; /* to let Notifications div to be on top */
+}

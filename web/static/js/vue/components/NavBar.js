@@ -8,26 +8,23 @@ const NavBar = {
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications
                     </button>
-                    <div v-if="showDropdown" class="notifications-dropdown" @click.stop style="position: absolute; left: 0; top: 40px; width: 320px; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1000;">
-                        <div class="dropdown-header" style="position: sticky; top: 0; background: #fff; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
-                            <a href="#" @click.prevent="openModal" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
+                </div>
+                <div v-if="showModal" class="modal-overlay post-card" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.2); z-index: 99999; display: flex; align-items: center; justify-content: center;">
+                    <div class="modal-content" @click.stop style="border-radius: 10px; padding: 32px; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+                        <h2>All Notifications</h2>
+                        <!-- <div v-for="n in 10" :key="n" style="padding: 12px 0; border-bottom: 1px solid #eee;">
+                            <span style="font-weight: 500;">Notification {{ n }}</span><br>
+                            <span style="font-size: 12px; color: #888;">This is a placeholder notification in the modal.</span>
+                        </div> -->
+                        <div v-if="!notifications || notifications.length === 0">
+                            <p>No notifications</p>
                         </div>
-                        <div class="dropdown-list" style="max-height: 220px; overflow-y: auto;">
-                            <div v-for="n in 5" :key="n" class="dropdown-item" style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
-                                <span style="font-weight: 500;">Notification {{ n }}</span><br>
-                                <span style="font-size: 12px; color: #888;">This is a placeholder notification.</span>
+                        <div v-else>
+                            <div v-for="notification in notifications" :key="notification.id">
+                                <p>{{ notification.message }}</p>
                             </div>
                         </div>
-                    </div>
-                    <div v-if="showModal" class="modal-overlay" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.2); z-index: 2000; display: flex; align-items: center; justify-content: center;">
-                        <div class="modal-content" @click.stop style="background: #fff; border-radius: 10px; padding: 32px; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
-                            <h2>All Notifications</h2>
-                            <div v-for="n in 10" :key="n" style="padding: 12px 0; border-bottom: 1px solid #eee;">
-                                <span style="font-weight: 500;">Notification {{ n }}</span><br>
-                                <span style="font-size: 12px; color: #888;">This is a placeholder notification in the modal.</span>
-                            </div>
-                            <button class="button" @click="closeModal" style="margin-top: 20px;">Close</button>
-                        </div>
+                        <button class="button" @click="closeModal" style="margin-top: 20px;">Close</button>
                     </div>
                 </div>
             </div>
@@ -80,7 +77,9 @@ const NavBar = {
         return {
             showDropdown: false,
             showModal: false,
-            unreadCounts: {} // Track unread group counts
+            unreadCounts: {}, // Track unread group counts
+            dropdownPosition: { x: 0, y: 0 },
+            notifications: [] // Initialize notifications as empty array
         };
     },
     mounted() {
@@ -115,20 +114,97 @@ const NavBar = {
         toggleDropdown() {
             this.showDropdown = !this.showDropdown;
             if (this.showDropdown) {
+                this.calculateDropdownPosition();
                 document.addEventListener('click', this.handleOutsideClick);
+                // Create and append dropdown to body
+                this.$nextTick(() => {
+                    this.createDropdownElement();
+                });
             } else {
                 document.removeEventListener('click', this.handleOutsideClick);
+                this.removeDropdownElement();
+            }
+        },
+        calculateDropdownPosition() {
+            const button = this.$el.querySelector('.notification-bell');
+            if (button) {
+                const rect = button.getBoundingClientRect();
+                this.dropdownPosition = {
+                    x: rect.left,
+                    y: rect.bottom + 10
+                };
+            }
+        },
+        createDropdownElement() {
+            // Remove existing dropdown if any
+            this.removeDropdownElement();
+            
+            // Create dropdown container
+            const dropdown = document.createElement('div');
+            dropdown.id = 'notifications-dropdown';
+            dropdown.className = 'notifications-dropdown';
+            dropdown.style.cssText = `
+                position: fixed;
+                left: ${this.dropdownPosition.x}px;
+                top: ${this.dropdownPosition.y}px;
+                width: 320px;
+                background: var(--card-color);
+                border-radius: 8px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+                z-index: 99999;
+                border: 1px solid #e0e0e0;
+            `;
+            
+            // Build notifications content based on actual data
+            let notificationsContent = '';
+            if (!this.notifications || this.notifications.length === 0) {
+                notificationsContent = '<div style="padding: 12px 16px;"><p>No notifications</p></div>';
+            } else {
+                notificationsContent = this.notifications.map(notification => 
+                    `<div style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
+                        <p>${notification.message || 'Notification'}</p>
+                    </div>`
+                ).join('');
+            }
+            
+            dropdown.innerHTML = `
+                <div class="dropdown-header" style="position: sticky; top: 0; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
+                    <a href="#" id="all-notifications-link" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
+                </div>
+                <div class="dropdown-list" style="max-height: 220px; overflow-y: auto;">
+                    ${notificationsContent}
+                </div>
+            `;
+            
+            document.body.appendChild(dropdown);
+            
+            // Add event listener for "All Notifications" link
+            const allNotificationsLink = dropdown.querySelector('#all-notifications-link');
+            if (allNotificationsLink) {
+                allNotificationsLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openModal();
+                });
+            }
+        },
+        removeDropdownElement() {
+            const existingDropdown = document.getElementById('notifications-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
             }
         },
         handleOutsideClick(e) {
-            if (!this.$el.contains(e.target)) {
+            const dropdown = document.getElementById('notifications-dropdown');
+            if (dropdown && !dropdown.contains(e.target) && !this.$el.contains(e.target)) {
                 this.showDropdown = false;
                 document.removeEventListener('click', this.handleOutsideClick);
+                this.removeDropdownElement();
             }
         },
         openModal() {
             this.showModal = true;
             this.showDropdown = false;
+            this.removeDropdownElement();
         },
         closeModal() {
             this.showModal = false;
@@ -156,6 +232,7 @@ const NavBar = {
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick);
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        this.removeDropdownElement();
     }
 };
 // No mount here, will be registered globally. 
