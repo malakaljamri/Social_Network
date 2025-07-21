@@ -166,6 +166,21 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Get group creator ID to send notification
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", request.GroupID).Scan(&creatorID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get group creator for notification: %v", err)
+		} else {
+			// Create notification for group creator
+			err = database.CreateNotification(db, creatorID, "group_join_request", request.GroupID)
+			if err != nil {
+				log.Printf("WARNING: Failed to create group join request notification: %v", err)
+			} else {
+				log.Printf("SUCCESS: Created group join request notification for group creator %d", creatorID)
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",

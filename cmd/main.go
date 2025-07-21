@@ -75,8 +75,8 @@ func main() {
 	mux.HandleFunc("/api/user/posts", handlers.GetUserPosts)
 	mux.HandleFunc("/api/user/followers", handlers.GetUserFollowers)
 	mux.HandleFunc("/api/user/following", handlers.GetUserFollowing)
-	mux.HandleFunc("/api/user/follow", handlers.FollowUser)
-	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
+	mux.HandleFunc("/api/user/follow", handlers.FollowUser(db))
+	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser(db))
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 	mux.HandleFunc("/api/user/change_password", handlers.ChangePasswordHandler)
 
@@ -121,6 +121,12 @@ func main() {
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 	mux.HandleFunc("/api/unread-counts", handlers.GetUnreadCounts)
 	mux.HandleFunc("/api/unread-group-counts", handlers.GetUnreadGroupCounts)
+	
+	// Notification routes
+	mux.HandleFunc("/api/notifications", handlers.GetNotificationsHandler(db))
+	mux.HandleFunc("/api/notifications/mark-read", handlers.MarkNotificationAsReadHandler(db))
+	mux.HandleFunc("/api/notifications/unread-count", handlers.GetUnreadNotificationCountHandler(db))
+	mux.HandleFunc("/api/notifications/delete", handlers.DeleteNotificationHandler(db))
 
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads

@@ -7,6 +7,7 @@ const NavBar = {
                 <div v-if="currentUser.isLoggedIn" class="notifications-wrapper" style="display: inline-block; position: relative;">
                     <button class="button notification-bell" @click="toggleDropdown" style="font-size: 16px; position: relative;">
                         Notifications
+                        <span v-if="unreadNotificationCount > 0" class="unread-badge right-badge">{{ unreadNotificationCount }}</span>
                     </button>
                 </div>
                 <div v-if="showModal" class="modal-overlay post-card" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.2); z-index: 99999; display: flex; align-items: center; justify-content: center;">
@@ -20,8 +21,16 @@ const NavBar = {
                             <p>No notifications</p>
                         </div>
                         <div v-else>
-                            <div v-for="notification in notifications" :key="notification.id">
-                                <p>{{ notification.message }}</p>
+                            <div v-for="notification in notifications" :key="notification.id" 
+                                 @click="markNotificationAsRead(notification.id)"
+                                 :style="{ 
+                                     padding: '12px 0', 
+                                     borderBottom: '1px solid #eee', 
+                                     cursor: 'pointer',
+                                     backgroundColor: notification.is_read ? 'transparent' : '#f8f9fa'
+                                 }">
+                                <p style="margin: 0; font-weight: 500;">{{ notification.message }}</p>
+                                <small style="font-size: 12px; color: #888;">{{ new Date(notification.created_at).toLocaleString() }}</small>
                             </div>
                         </div>
                         <button class="button" @click="closeModal" style="margin-top: 20px;">Close</button>
@@ -79,14 +88,26 @@ const NavBar = {
             showModal: false,
             unreadCounts: {}, // Track unread group counts
             dropdownPosition: { x: 0, y: 0 },
-            notifications: [] // Initialize notifications as empty array
+            notifications: [], // Initialize notifications as empty array
+            unreadNotificationCount: 0
         };
     },
     mounted() {
         // Fetch unread group counts on page load only if user is logged in
         this.fetchUnreadCountsIfLoggedIn();
+        
+        // Fetch notifications on page load
+        this.fetchNotifications();
+        this.fetchUnreadNotificationCount();
 
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        
+        // Set up periodic refresh of notifications (every 30 seconds)
+        this.notificationRefreshInterval = setInterval(() => {
+            if (this.currentUserValue.isLoggedIn) {
+                this.fetchUnreadNotificationCount();
+            }
+        }, 30000);
     },
     watch: {
         currentUser: {
@@ -160,9 +181,10 @@ const NavBar = {
             if (!this.notifications || this.notifications.length === 0) {
                 notificationsContent = '<div style="padding: 12px 16px;"><p>No notifications</p></div>';
             } else {
-                notificationsContent = this.notifications.map(notification => 
-                    `<div style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
-                        <p>${notification.message || 'Notification'}</p>
+                notificationsContent = this.notifications.slice(0, 5).map(notification => 
+                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; ${!notification.is_read ? 'background-color: #f8f9fa;' : ''}">
+                        <p style="margin: 0; font-size: 14px;">${notification.message || 'Notification'}</p>
+                        <small style="color: #888; font-size: 12px;">${new Date(notification.created_at).toLocaleDateString()}</small>
                     </div>`
                 ).join('');
             }
@@ -186,6 +208,19 @@ const NavBar = {
                     this.openModal();
                 });
             }
+            
+            // Add event listeners for notification items
+            const notificationItems = dropdown.querySelectorAll('.notification-item');
+            notificationItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const notificationId = parseInt(item.dataset.notificationId);
+                    if (notificationId) {
+                        this.markNotificationAsRead(notificationId);
+                        // Add visual feedback
+                        item.style.backgroundColor = '#e8f5e8';
+                    }
+                });
+            });
         },
         removeDropdownElement() {
             const existingDropdown = document.getElementById('notifications-dropdown');
@@ -227,12 +262,68 @@ const NavBar = {
                         this.unreadCounts = {};
                     });
             }
+        },
+        
+        fetchNotifications() {
+            if (this.currentUserValue.isLoggedIn) {
+                fetch('/api/notifications', { credentials: 'include' })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('NavBar: Received notifications:', data);
+                        this.notifications = data || [];
+                    })
+                    .catch((error) => {
+                        console.error('NavBar: Error fetching notifications:', error);
+                        this.notifications = [];
+                    });
+            }
+        },
+        
+        fetchUnreadNotificationCount() {
+            if (this.currentUserValue.isLoggedIn) {
+                fetch('/api/notifications/unread-count', { credentials: 'include' })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('NavBar: Received unread notification count:', data);
+                        this.unreadNotificationCount = data.count || 0;
+                    })
+                    .catch((error) => {
+                        console.error('NavBar: Error fetching unread notification count:', error);
+                        this.unreadNotificationCount = 0;
+                    });
+            }
+        },
+        
+        markNotificationAsRead(notificationId) {
+            fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ notification_id: notificationId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('NavBar: Marked notification as read:', data);
+                // Refresh notifications and count
+                this.fetchNotifications();
+                this.fetchUnreadNotificationCount();
+            })
+            .catch((error) => {
+                console.error('NavBar: Error marking notification as read:', error);
+            });
         }
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick);
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
         this.removeDropdownElement();
+        
+        // Clear notification refresh interval
+        if (this.notificationRefreshInterval) {
+            clearInterval(this.notificationRefreshInterval);
+        }
     }
 };
 // No mount here, will be registered globally. 

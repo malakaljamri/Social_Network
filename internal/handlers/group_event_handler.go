@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"social_network/internal/database"
 	"social_network/internal/utils"
@@ -72,11 +73,44 @@ func CreateGroupEventHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Event date must be today or in the future")
 			return
 		}
+		// Create the event
 		err = database.CreateGroupEvent(db, req.GroupID, req.Title, req.Description, req.EventDate, userID)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create event")
 			return
 		}
+
+		// Get the created event ID
+		var eventID int
+		err = db.QueryRow("SELECT id FROM events WHERE group_id = ? AND title = ? AND created_by = ? ORDER BY id DESC LIMIT 1",
+			req.GroupID, req.Title, userID).Scan(&eventID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get created event ID for notification: %v", err)
+		} else {
+			// Get all group members and create notifications for them
+			rows, err := db.Query("SELECT user_id FROM group_members WHERE group_id = ? AND status = 'accepted'", req.GroupID)
+			if err != nil {
+				log.Printf("WARNING: Failed to get group members for notification: %v", err)
+			} else {
+				defer rows.Close()
+				for rows.Next() {
+					var memberID int
+					if err := rows.Scan(&memberID); err != nil {
+						continue
+					}
+					// Don't notify the event creator
+					if memberID != userID {
+						err = database.CreateNotification(db, memberID, "group_event", eventID)
+						if err != nil {
+							log.Printf("WARNING: Failed to create group event notification for user %d: %v", memberID, err)
+						} else {
+							log.Printf("SUCCESS: Created group event notification for user %d", memberID)
+						}
+					}
+				}
+			}
+		}
+
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	}

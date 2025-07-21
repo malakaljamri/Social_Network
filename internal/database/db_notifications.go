@@ -1,0 +1,156 @@
+package database
+
+import (
+	"database/sql"
+	"log"
+	"time"
+)
+
+// Notification represents a notification in the database
+type Notification struct {
+	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
+	Type        string    `json:"type"`
+	ReferenceID int       `json:"reference_id"`
+	IsRead      bool      `json:"is_read"`
+	CreatedAt   time.Time `json:"created_at"`
+	Message     string    `json:"message"` // Computed field for display
+}
+
+// CreateNotification creates a new notification
+func CreateNotification(db *sql.DB, userID int, notificationType string, referenceID int) error {
+	query := `INSERT INTO notifications (user_id, type, reference_id) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, userID, notificationType, referenceID)
+	if err != nil {
+		log.Printf("Error creating notification: %v", err)
+		return err
+	}
+	return nil
+}
+
+// GetUserNotifications retrieves all notifications for a user
+func GetUserNotifications(db *sql.DB, userID int) ([]Notification, error) {
+	query := `
+		SELECT n.id, n.user_id, n.type, n.reference_id, n.is_read, n.created_at
+		FROM notifications n
+		WHERE n.user_id = ?
+		ORDER BY n.created_at DESC
+		LIMIT 50
+	`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		log.Printf("Error getting user notifications: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var notifications []Notification
+	for rows.Next() {
+		var n Notification
+		err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning notification: %v", err)
+			continue
+		}
+
+		// Generate message based on notification type
+		n.Message = generateNotificationMessage(db, n.Type, n.ReferenceID)
+		notifications = append(notifications, n)
+	}
+
+	return notifications, nil
+}
+
+// MarkNotificationAsRead marks a notification as read
+func MarkNotificationAsRead(db *sql.DB, notificationID int) error {
+	query := `UPDATE notifications SET is_read = 1 WHERE id = ?`
+	_, err := db.Exec(query, notificationID)
+	if err != nil {
+		log.Printf("Error marking notification as read: %v", err)
+		return err
+	}
+	return nil
+}
+
+// GetUnreadNotificationCount gets the count of unread notifications for a user
+func GetUnreadNotificationCount(db *sql.DB, userID int) (int, error) {
+	query := `SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0`
+	var count int
+	err := db.QueryRow(query, userID).Scan(&count)
+	if err != nil {
+		log.Printf("Error getting unread notification count: %v", err)
+		return 0, err
+	}
+	return count, nil
+}
+
+// generateNotificationMessage creates a human-readable message based on notification type
+func generateNotificationMessage(db *sql.DB, notificationType string, referenceID int) string {
+	switch notificationType {
+	case "follow_request":
+		// Get follower name
+		var username string
+		query := `SELECT username FROM users WHERE id = ?`
+		err := db.QueryRow(query, referenceID).Scan(&username)
+		if err != nil {
+			return "Someone sent you a follow request"
+		}
+		return username + " sent you a follow request"
+
+	case "group_invitation":
+		// Get group name
+		var groupName string
+		query := `SELECT name FROM groups WHERE id = ?`
+		err := db.QueryRow(query, referenceID).Scan(&groupName)
+		if err != nil {
+			return "You received a group invitation"
+		}
+		return "You were invited to join " + groupName
+
+	case "group_join_request":
+		// Get group name and requester name
+		var groupName, requesterName string
+		query := `
+			SELECT g.name, u.username 
+			FROM groups g 
+			JOIN group_members gm ON g.id = gm.group_id 
+			JOIN users u ON gm.user_id = u.id 
+			WHERE g.id = ? AND gm.status = 'pending'
+		`
+		err := db.QueryRow(query, referenceID).Scan(&groupName, &requesterName)
+		if err != nil {
+			return "Someone requested to join your group"
+		}
+		return requesterName + " requested to join " + groupName
+
+	case "group_event":
+		// Get event title and group name
+		var eventTitle, groupName string
+		query := `
+			SELECT e.title, g.name 
+			FROM events e 
+			JOIN groups g ON e.group_id = g.id 
+			WHERE e.id = ?
+		`
+		err := db.QueryRow(query, referenceID).Scan(&eventTitle, &groupName)
+		if err != nil {
+			return "A new event was created in your group"
+		}
+		return "New event '" + eventTitle + "' created in " + groupName
+
+	default:
+		return "You have a new notification"
+	}
+}
+
+// DeleteNotification deletes a notification
+func DeleteNotification(db *sql.DB, notificationID int) error {
+	query := `DELETE FROM notifications WHERE id = ?`
+	_, err := db.Exec(query, notificationID)
+	if err != nil {
+		log.Printf("Error deleting notification: %v", err)
+		return err
+	}
+	return nil
+}
