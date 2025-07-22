@@ -315,7 +315,7 @@ const ProfileView = {
             this.fetchProfile();
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleString();
+            return window.formatDate(dateStr, "YYYY-MM-DD HH:MM");
         },
         onProfileUpdated() {
             this.showEditForm = false;

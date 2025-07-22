@@ -1,10 +1,16 @@
 // CreatePostModal Component
 const CreatePostModal = {
+    props: {
+        groupId: {
+            type: Number,
+            default: null
+        }
+    },
     template: `
         <teleport to="body">
             <div class="modal-overlay" @click.self="close">
                 <div class="modal-content">
-                    <h2>Create Post</h2>
+                    <h2>{{ groupId ? 'Create Group Post' : 'Create Post' }}</h2>
                     <form @submit.prevent="submitPost">
                         <input type="text" v-model="form.title" placeholder="Title" required minlength="3" maxlength="100">
                         <textarea v-model="form.content" placeholder="Content" required minlength="10" maxlength="5000"></textarea>
@@ -38,14 +44,17 @@ const CreatePostModal = {
                             </div>
                         </div>
 
+                        <!-- Privacy settings - different for group vs regular posts -->
                         <select v-model="form.privacy" required>
-                            <option value="public">Public</option>
-                            <option value="almost_private">Followers</option>
-                            <option value="private">Chosen followers</option>
+                            <option v-if="!groupId" value="public">Public</option>
+                            <option v-if="!groupId" value="almost_private">Followers</option>
+                            <option v-if="!groupId" value="private">Chosen followers</option>
+                            <option v-if="groupId" value="public">Public</option>
+                            <option v-if="groupId" value="private">Private</option>
                         </select>
 
-                        <!-- Private Viewers Selection -->
-                        <div v-if="form.privacy === 'private'" class="private-viewers-section">
+                        <!-- Private Viewers Selection - only for regular posts -->
+                        <div v-if="!groupId && form.privacy === 'private'" class="private-viewers-section">
                             <input 
                                 type="text" 
                                 v-model="followerSearch" 
@@ -102,7 +111,9 @@ const CreatePostModal = {
                             <div v-if="form.imageError" class="error">{{ form.imageError }}</div>
                         </div>
 
-                        <button type="submit" class="button" :disabled="form.loading">Create Post</button>
+                        <button type="submit" class="button" :disabled="form.loading">
+                            {{ groupId ? 'Create Group Post' : 'Create Post' }}
+                        </button>
                         <div v-if="form.error" class="error">{{ form.error }}</div>
                     </form>
                     <button class="button secondary-button" @click="close">Cancel</button>
@@ -246,7 +257,7 @@ const CreatePostModal = {
             }
         },
         async fetchFollowers() {
-            if (this.form.privacy !== 'private') return;
+            if (this.form.privacy !== 'private' || this.groupId) return;
             
             this.loadingFollowers = true;
             this.followersError = '';
@@ -275,7 +286,7 @@ const CreatePostModal = {
                 return;
             }
 
-            if (this.form.privacy === 'private' && this.form.chosen_followers.length === 0) {
+            if (!this.groupId && this.form.privacy === 'private' && this.form.chosen_followers.length === 0) {
                 this.form.error = 'Please select at least one follower for private posts';
                 return;
             }
@@ -288,8 +299,11 @@ const CreatePostModal = {
                 formData.append('Text', this.form.content);
                 formData.append('CategoryIDs', JSON.stringify(this.form.category_ids));
                 formData.append('Privacy', this.form.privacy);
-                if (this.form.privacy === 'private') {
+                if (!this.groupId && this.form.privacy === 'private') {
                     formData.append('ChosenFollowers', JSON.stringify(this.form.chosen_followers));
+                }
+                if (this.groupId) {
+                    formData.append('GroupID', this.groupId.toString());
                 }
                 if (this.form.file) {
                     formData.append('Image', this.form.file);
@@ -339,7 +353,7 @@ const CreatePostModal = {
     },
     watch: {
         'form.privacy'(newValue) {
-            if (newValue === 'private') {
+            if (newValue === 'private' && !this.groupId) {
                 this.fetchFollowers();
             }
         }

@@ -185,15 +185,7 @@ const app = Vue.createApp({
             // Optionally refresh group posts here
         },
         handleNavigate(view) {
-            if (this.currentView === view) {
-                // Force a re-render by temporarily setting to null
-                this.currentView = null;
-                this.$nextTick(() => {
-                    this.currentView = view;
-                });
-            } else {
-                this.currentView = view;
-            }
+            this.currentView = view;
         },
         async onLogin(data) {
             // Called when login-form emits 'login' with user data
@@ -440,7 +432,7 @@ const app = Vue.createApp({
     template: `
         <div>
             <nav-bar 
-                :state="currentView" 
+                :state="currentView || 'home'" 
                 :currentUser="currentUser.value || { isLoggedIn: false, username: '' }"
                 @navigate="handleNavigate"
                 @logout="handleLogout"
@@ -466,12 +458,12 @@ const app = Vue.createApp({
                 @close="showCreatePostModal = false"
                 @created="onPostCreated"
             ></m-create-post>
-            <m-group-create-post
+            <m-create-post
                 v-if="showCreateGroupPostModal"
                 :groupId="selectedGroupIdForModal"
                 @close="closeCreateGroupPostModal"
                 @created="onGroupPostCreated"
-            ></m-group-create-post>
+            ></m-create-post>
             <m-group-create
                 v-if="showCreateGroupModal"
                 @close="showCreateGroupModal = false"
@@ -535,12 +527,12 @@ app.component('comment-section', CommentSection);
 app.component('m-register', M_Register);
 app.component('m-create-post', M_CreatePost);
 app.component('m-group-create', M_GroupCreate);
-app.component('m-group-create-post', M_GroupCreatePost);
 app.component('m-group-create-event', M_GroupCreateEvent);
 app.component('g-group-events-modal', G_GroupEventsModal);
 app.component('p-profile-edit-form', P_ProfileEditForm);
 app.component('p-follow-request-list', P_FollowRequestList);
 app.component('feed-main', FeedMain);
+app.component('post-card', PostCard);
 // Stub components for missing group features
 app.component('group-posts', { template: '<div>Group Posts (stub)</div>' });
 app.component('group-events', { template: '<div>Group Events (stub)</div>' });

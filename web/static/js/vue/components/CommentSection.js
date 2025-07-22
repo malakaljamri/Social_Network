@@ -137,7 +137,7 @@ const CommentSection = {
             }
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleString();
+            return window.formatDate(dateStr, "YYYY-MM-DD HH:MM:SS");
         },
         getImageUrl(imagePath) {
             if (imagePath && imagePath.String) {

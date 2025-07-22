@@ -57,7 +57,8 @@
   
 }
 
-.post-category span {
+.post-category span,
+.category-tag {
   background-color: var(--surface-alt-color);
   border: 1px solid rgba(var(--primary-color-rgb), 0.2);
   border-radius: 15px;
@@ -66,6 +67,12 @@
   color: var(--text-color) !important;
   font-weight: var(--font-weight-medium);
   transition: var(--transition-colors);
+}
+
+.category-tag:hover {
+  background-color: var(--primary-color);
+  color: white !important;
+  transform: translateY(-1px);
 }
 
 .user-info {

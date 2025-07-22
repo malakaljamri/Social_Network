@@ -8,7 +8,9 @@ const GroupsView = {
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
-            categories: []
+            categories: [],
+            openChats: [], // Track open private chats
+            chatTimestamps: {} // Optional: for z-index or ordering
         };
     },
     methods: {
@@ -35,9 +37,13 @@ const GroupsView = {
                     Content: post.content,
                     Author: post.username,
                     CreatedAt: post.created_at,
-                    // add other fields as needed
+                    file_path: post.file_path,
+                    UserID: post.user_id,
+                    Categories: post.category_ids || [],
+                    Privacy: post.privacy_setting
                 }));
             } catch (e) {
+                console.error('❌ Error fetching group posts:', e);
                 this.groupPosts = [];
             }
         },
@@ -67,14 +73,16 @@ const GroupsView = {
         },
         async handleCreateGroupPost(postData) {
             try {
-                const payload = {
-                    ...postData,
-                    group_id: this.selectedGroupId
-                };
-                const response = await this.$root.apiFetch('/api/groups/posts/create', {
+                const formData = new FormData();
+                formData.append('Title', postData.title);
+                formData.append('Text', postData.content);
+                formData.append('CategoryIDs', JSON.stringify([postData.category_id]));
+                formData.append('Privacy', postData.privacy_setting);
+                formData.append('GroupID', this.selectedGroupId.toString());
+                
+                const response = await this.$root.apiFetch('/api/posts', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: formData
                 });
                 if (!response.ok) throw new Error('Failed to create group post');
                 this.fetchGroupPosts(this.selectedGroupId);
@@ -90,6 +98,25 @@ const GroupsView = {
         },
         handleEventClick(event) {
             this.$emit('event-click', event);
+        },
+        openChat(user) {
+            if (!user || !user.ID) return;
+            if (!this.openChats.some(u => u.ID === user.ID)) {
+                this.openChats.push(user);
+            }
+            // Optionally update chatTimestamps for z-index
+            this.chatTimestamps[user.ID] = Date.now();
+        },
+        closeChat(userId) {
+            this.openChats = this.openChats.filter(u => u.ID !== userId);
+            // Optionally clean up chatTimestamps
+            if (this.chatTimestamps[userId]) {
+                delete this.chatTimestamps[userId];
+            }
+        },
+        handleGroupMembershipChanged(data) {
+            // Pass the membership change to the group list component
+            this.$refs.groupList?.updateGroupMembershipStatus(data.groupId, data.membershipStatus);
         }
     },
     mounted() {
@@ -104,6 +131,8 @@ const GroupsView = {
                 :current-user="$root.currentUser.value"
                 @group-selected="handleGroupSelected"
                 @show-create-group-modal="handleOpenCreateGroupModal"
+                @group-membership-changed="handleGroupMembershipChanged"
+                ref="groupList"
                 class="sidebar"
             ></g-group-list>
             <div class="main-content">
@@ -117,9 +146,13 @@ const GroupsView = {
                     @open-create-group-post-modal="handleOpenCreateGroupPostModal"
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                     @event-click="handleEventClick"
+                    @group-membership-changed="handleGroupMembershipChanged"
                 ></g-group-main>
             </div>
-            <users-list class="sidebar"></users-list>
+            <users-list class="sidebar" @open-chat="openChat"></users-list>
+            <div id="chat-section chat-window-fixed">
+                <chat-window v-for="user in openChats" :key="user.ID" :user="user" :currentUser="$root.currentUser.value" :onClose="() => closeChat(user.ID)" :style="{ zIndex: chatTimestamps[user.ID] || 1 }"></chat-window>
+            </div>
             <m-group-create
                 v-if="showCreateGroupModal"
                 @created="handleGroupCreated"

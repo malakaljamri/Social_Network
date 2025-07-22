@@ -45,7 +45,7 @@ const FeedMain = {
             return `${window.location.origin}/web${imagePath.startsWith('/') ? '' : '/'}${imagePath.replace(/\\/g, '/')}`;
         },
         formatDate(dateStr) {
-            return new Date(dateStr).toLocaleString();
+            return window.formatDate(dateStr, "YYYY-MM-DD HH:MM");
         },
         getCategoryNameLocal(catId) {
             if (this.getCategoryName) {
@@ -61,33 +61,20 @@ const FeedMain = {
     template: `
         <div class="feed-main main-content">
             <div v-if="posts.length === 0" class="no-posts">No posts to show.</div>
-            <div v-for="post in posts" :key="post.ID" class="post-card" :data-post-id="post.ID">
-                <div class="post-header">
-                    <h2>{{ post.Title }}</h2>
-                    <div class="post-meta">
-                        <span class="post-author">Posted by <span class="user-clickable" @click="viewUserProfile(post.UserID)">{{ post.Author || profileUserName }}</span>
-                            <span class="post-id">  Post ID: {{ post.ID }}</span>
-                        </span>
-                        <span class="post-date">{{ formatDate(post.CreatedAt) }}</span>
-                    </div>
-                </div>
-                <div class="post-content">
-                    <div v-if="post.Image" class="post-image">
-                        <img 
-                            :src="getImageUrl(post.Image)" 
-                            :alt="post.Title"
-                            loading="lazy"
-                        >
-                    </div>
-                    <div class="post-text">{{ post.Text }}</div>
-                </div>
-                <div class="post-footer">
-                    <div class="post-category" v-if="post.Categories && post.Categories.length">
-                        <span v-for="catId in post.Categories" :key="catId">{{ getCategoryNameLocal(catId) }}</span>
-                    </div>
-                </div>
-                <comment-section :post-id="post.ID" :current-user="currentUser"></comment-section>
-            </div>
+            <post-card 
+                v-for="post in posts" 
+                :key="post.ID" 
+                :post="post"
+                :categories="categories"
+                :current-user="currentUser"
+                :show-comments="true"
+                :show-categories="true"
+                :show-author="true"
+                :show-date="true"
+                :show-post-id="true"
+                :profile-user-name="profileUserName"
+                @view-user-profile="viewUserProfile"
+            ></post-card>
             <div class="pagination-controls" v-if="totalPages > 1">
                 <button 
                     @click="onPrevPage && onPrevPage()" 

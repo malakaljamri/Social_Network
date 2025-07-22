@@ -11,8 +11,8 @@ import (
 )
 
 func CreatePost(post *models.Post) error {
-	query := `INSERT INTO posts (user_id, title, content, privacy, image) VALUES (?, ?, ?, ?, ?)`
-	result, err := ExecuteQuery(query, post.UserID, post.Title, post.Text, post.Privacy, post.Image)
+	query := `INSERT INTO posts (user_id, title, content, privacy, image, group_id) VALUES (?, ?, ?, ?, ?, ?)`
+	result, err := ExecuteQuery(query, post.UserID, post.Title, post.Text, post.Privacy, post.Image, post.GroupID)
 	if err != nil {
 		return err
 	}
