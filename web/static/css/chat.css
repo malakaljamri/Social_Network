@@ -387,7 +387,6 @@
 .user-item-flex, .group-item-flex {
   display: flex;
   align-items: center;
-  position: relative;
 }
 .right-badge {
   margin-left: auto;

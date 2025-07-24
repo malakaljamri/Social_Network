@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -27,6 +28,15 @@ type GroupWithCreator struct {
 
 type UserDetail struct {
 	Username string `json:"Username"`
+}
+
+// GroupMember represents a group member with user details
+type GroupMember struct {
+	ID       int    `json:"ID"`
+	Username string `json:"Username"`
+	Nickname string `json:"Nickname"`
+	Avatar   string `json:"Avatar"`
+	Online   bool   `json:"Online"`
 }
 
 func CreateGroup(db *sql.DB, group *Group) error {
@@ -209,4 +219,42 @@ func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
 		}
 	}
 	return counts, nil
+}
+
+// GetGroupMembers returns all members of a group with their user details
+func GetGroupMembers(db *sql.DB, groupID int) ([]GroupMember, error) {
+	log.Printf("🔍 GetGroupMembers called with groupID: %d", groupID)
+
+	query := `
+		SELECT u.id, u.username, u.nickname, u.avatar, 0 as online
+		FROM group_members gm
+		JOIN users u ON gm.user_id = u.id
+		WHERE gm.group_id = ? AND gm.status = 'accepted'
+		ORDER BY u.username
+	`
+
+	log.Printf("🔍 Executing query: %s", query)
+	rows, err := db.Query(query, groupID)
+	if err != nil {
+		log.Printf("❌ Database query error: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []GroupMember
+	for rows.Next() {
+		var member GroupMember
+		var online int
+		err := rows.Scan(&member.ID, &member.Username, &member.Nickname, &member.Avatar, &online)
+		if err != nil {
+			log.Printf("❌ Row scan error: %v", err)
+			continue
+		}
+		member.Online = online == 1
+		members = append(members, member)
+		log.Printf("✅ Added member: %s (ID: %d, Online: %t)", member.Username, member.ID, member.Online)
+	}
+
+	log.Printf("✅ GetGroupMembers completed. Found %d members", len(members))
+	return members, nil
 }

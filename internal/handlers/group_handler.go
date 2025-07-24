@@ -244,3 +244,63 @@ func GetGroupPostsHandler(db *sql.DB) http.HandlerFunc {
 		json.NewEncoder(w).Encode(posts)
 	}
 }
+
+func GetGroupMembersHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/members")
+
+		groupIDStr := r.URL.Query().Get("group_id")
+		log.Printf("🔍 Group ID from query: %s", groupIDStr)
+
+		if groupIDStr == "" {
+			log.Println("❌ Group ID is missing")
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
+			return
+		}
+
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			log.Printf("❌ Invalid group ID: %v", err)
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
+			return
+		}
+		log.Printf("✅ Parsed group ID: %d", groupID)
+
+		// Check if user has access to the group
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			log.Printf("❌ Failed to get user ID from session: %v", err)
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+		log.Printf("✅ User ID from session: %d", userID)
+
+		hasAccess, err := database.CheckUserGroupAccess(db, userID, groupID)
+		if err != nil {
+			log.Printf("❌ Failed to check group access: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check group access")
+			return
+		}
+		log.Printf("✅ Group access check result: %t", hasAccess)
+
+		if !hasAccess {
+			log.Println("❌ Access denied to group")
+			utils.WriteJSONError(w, http.StatusForbidden, "Access denied to group")
+			return
+		}
+
+		// Get group members
+		log.Println("🔍 Fetching group members...")
+		members, err := database.GetGroupMembers(db, groupID)
+		if err != nil {
+			log.Printf("❌ Failed to fetch group members: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch group members")
+			return
+		}
+		log.Printf("✅ Retrieved %d group members", len(members))
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(members)
+		log.Println("✅ Successfully sent group members response")
+	}
+}

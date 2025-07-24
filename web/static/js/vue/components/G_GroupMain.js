@@ -6,6 +6,9 @@ const GroupMain = {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
+            showGroupMembers: false,
+            groupMembers: [],
+            loadingMembers: false,
             newGroupPost: {
                 title: '',
                 content: '',
@@ -23,6 +26,18 @@ const GroupMain = {
     computed: {
         myId() {
             return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        },
+        sortedGroupMembers() {
+            if (!this.groupMembers.length) return [];
+            
+            // Sort members with current user at the top
+            return [...this.groupMembers].sort((a, b) => {
+                // Current user goes first
+                if (a.ID === this.myId) return -1;
+                if (b.ID === this.myId) return 1;
+                // Then sort by username
+                return a.Username.localeCompare(b.Username);
+            });
         }
     },
     mounted() {
@@ -127,7 +142,63 @@ const GroupMain = {
             this.unreadCounts[groupId] = count;
         },
         viewUserProfile(userId) {
+            console.log('🔍 viewUserProfile called with userId:', userId);
             this.$emit('view-user-profile', userId);
+        },
+        toggleGroupMembers() {
+            this.showGroupMembers = !this.showGroupMembers;
+            if (this.showGroupMembers && this.groupMembers.length === 0) {
+                this.fetchGroupMembers();
+            }
+        },
+        async fetchGroupMembers() {
+            if (!this.selectedGroup || !this.groupAccess) return;
+            
+            this.loadingMembers = true;
+            try {
+                const response = await fetch(`/api/groups/members?group_id=${this.selectedGroup.ID}`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    this.groupMembers = await response.json();
+                } else {
+                    console.error('Failed to fetch group members');
+                    this.groupMembers = [];
+                }
+            } catch (error) {
+                console.error('Error fetching group members:', error);
+                this.groupMembers = [];
+            } finally {
+                this.loadingMembers = false;
+            }
+        },
+        openPrivateChat(userId) {
+            console.log('🔍 openPrivateChat called with userId:', userId);
+            // Find the user in group members
+            const user = this.groupMembers.find(member => member.ID === userId);
+            if (user) {
+                console.log('🔍 Emitting open-chat event with user:', user);
+                this.$emit('open-chat', user);
+            } else {
+                console.log('❌ User not found in group members');
+            }
+        },
+        getAvatarUrl(avatar) {
+            if (!avatar) {
+                return '/static/images/default-avatar.png';
+            }
+            if (avatar.startsWith('http')) {
+                return avatar;
+            }
+            return `/web/${avatar}`;
+        },
+        getMemberTooltip(member) {
+            let tooltip = `Username: ${member.Username}`;
+            if (member.Nickname) {
+                tooltip += `\nNickname: ${member.Nickname}`;
+            }
+            tooltip += `\nStatus: ${member.Online ? 'Online' : 'Offline'}`;
+            return tooltip;
         }
     },
     beforeUnmount() {
@@ -137,6 +208,9 @@ const GroupMain = {
         selectedGroup: {
             handler() {
                 this.checkGroupAccess();
+                // Reset members when group changes
+                this.showGroupMembers = false;
+                this.groupMembers = [];
             },
             immediate: true
         }
@@ -162,9 +236,12 @@ const GroupMain = {
                             <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-calendar-alt"></i> Group Events
                             </button>
-                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-comments"></i> Group Chat
                                 <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
+                            </button>
+                            <button @click="toggleGroupMembers" class="group-members-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-users"></i> {{ showGroupMembers ? 'Hide' : 'Show' }} Members
                             </button>
                         </div>
                         
@@ -182,6 +259,65 @@ const GroupMain = {
                     </template>
                 </div>
             </div>
+            
+            <!-- Group Members Section -->
+            <div v-if="showGroupMembers && groupAccess" class="group-members">
+                <h2>{{ selectedGroup ? (selectedGroup.Name + ' Members') : 'Group Members' }}</h2>
+                <div class="card">
+                    <div v-if="loadingMembers" class="loading-members">
+                        <p>Loading members...</p>
+                    </div>
+                    <div v-else-if="groupMembers.length === 0" class="no-members">
+                        <p>No members found</p>
+                    </div>
+                    <div v-else class="members-container">
+                        <div v-if="sortedGroupMembers.some(m => m.ID === myId)" class="members-section-header">
+                            <span class="section-title">You</span>
+                        </div>
+                        <div v-for="member in sortedGroupMembers.filter(m => m.ID === myId)" :key="member.ID" class="member-item user-item-flex" :class="{ 'online-user': member.Online, 'current-user': member.ID === myId }">
+                            <img
+                                :src="getAvatarUrl(member.Avatar)"
+                                class="avatar-small profile-link-avatar"
+                                :style="member.ID === myId ? 'width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;opacity:0.7;' : 'width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;'"
+                                :alt="member.Username + ' avatar'"
+                                @click.stop="member.ID !== myId ? viewUserProfile(member.ID) : null"
+                            >
+                            <!-- <span class="status-dot" :class="{ 'online': member.Online }"></span> -->
+                            <strong 
+                                :style="member.ID === myId ? 'color: #666; font-style: italic;' : 'cursor:pointer;'" 
+                                @click="member.ID !== myId ? openPrivateChat(member.ID) : null" 
+                                :title="member.ID === myId ? 'You' : getMemberTooltip(member)"
+                            >
+                                {{ member.Username }}{{ member.ID === myId ? ' (You)' : '' }}
+                            </strong>
+                            <span v-if="member.Nickname && member.ID !== myId"> ({{ member.Nickname }})</span>
+                        </div>
+                        
+                        <div v-if="sortedGroupMembers.some(m => m.ID !== myId)" class="members-section-header">
+                            <span class="section-title">Other Members</span>
+                        </div>
+                        <div v-for="member in sortedGroupMembers.filter(m => m.ID !== myId)" :key="member.ID" class="member-item user-item-flex" :class="{ 'online-user': member.Online, 'current-user': member.ID === myId }">
+                            <img
+                                :src="getAvatarUrl(member.Avatar)"
+                                class="avatar-small profile-link-avatar"
+                                :style="member.ID === myId ? 'width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;opacity:0.7;' : 'width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;'"
+                                :alt="member.Username + ' avatar'"
+                                @click.stop="member.ID !== myId ? viewUserProfile(member.ID) : null"
+                            >
+                            <!-- <span class="status-dot" :class="{ 'online': member.Online }"></span> -->
+                            <strong 
+                                :style="member.ID === myId ? 'color: #666; font-style: italic;' : 'cursor:pointer;'" 
+                                @click="member.ID !== myId ? openPrivateChat(member.ID) : null" 
+                                :title="member.ID === myId ? 'You' : getMemberTooltip(member)"
+                            >
+                                {{ member.Username }}{{ member.ID === myId ? ' (You)' : '' }}
+                            </strong>
+                            <span v-if="member.Nickname && member.ID !== myId"> ({{ member.Nickname }})</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Create Group Post Modal -->
             <div v-if="showCreateGroupPostForm" class="modal-overlay" @click.self="closeCreateGroupPostModal">
                 <div class="modal-content" @click.stop>

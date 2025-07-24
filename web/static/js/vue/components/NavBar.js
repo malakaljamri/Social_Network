@@ -10,30 +10,36 @@ const NavBar = {
                         <span v-if="unreadNotificationCount > 0" class="unread-badge right-badge">{{ unreadNotificationCount }}</span>
                     </button>
                 </div>
-                <div v-if="showModal" class="modal-overlay post-card" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.2); z-index: 99999; display: flex; align-items: center; justify-content: center;">
-                    <div class="modal-content" @click.stop style="border-radius: 10px; padding: 32px; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
-                        <h2>All Notifications</h2>
+                <div v-if="showModal" class="modal-overlay post-card" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--overlay-color); z-index: var(--z-index-modal); display: flex; align-items: center; justify-content: center;">
+                    <div class="modal-content" @click.stop style="border-radius: var(--border-radius-lg); padding: var(--spacing-xl); min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto; background: var(--card-color); color: var(--text-color); box-shadow: var(--shadow-xl);">
+                        <h2 style="color: var(--text-color); margin-bottom: var(--spacing-lg);">All Notifications</h2>
                         <!-- <div v-for="n in 10" :key="n" style="padding: 12px 0; border-bottom: 1px solid #eee;">
                             <span style="font-weight: 500;">Notification {{ n }}</span><br>
                             <span style="font-size: 12px; color: #888;">This is a placeholder notification in the modal.</span>
                         </div> -->
-                        <div v-if="!notifications || notifications.length === 0">
+                        <div v-if="!notifications || notifications.length === 0" style="color: var(--text-secondary); text-align: center; padding: var(--spacing-xl);">
                             <p>No notifications</p>
                         </div>
                         <div v-else>
                             <div v-for="notification in notifications" :key="notification.id" 
                                  @click="markNotificationAsRead(notification.id)"
                                  :style="{ 
-                                     padding: '12px 0', 
-                                     borderBottom: '1px solid #eee', 
+                                     padding: 'var(--spacing-md) 0', 
+                                     borderBottom: '1px solid var(--surface-alt-color)', 
                                      cursor: 'pointer',
-                                     backgroundColor: notification.is_read ? 'transparent' : '#f8f9fa'
+                                     backgroundColor: notification.is_read ? 'transparent' : 'var(--sub-card-color)',
+                                     transition: 'var(--transition-colors)',
+                                     borderRadius: 'var(--border-radius-sm)',
+                                     marginBottom: 'var(--spacing-xs)'
                                  }">
-                                <p style="margin: 0; font-weight: 500;">{{ notification.message }}</p>
-                                <small style="font-size: 12px; color: #888;">{{ new Date(notification.created_at).toLocaleString() }}</small>
+                                <p style="margin: 0; font-weight: var(--font-weight-medium); color: var(--text-color);">{{ notification.message || 'Notification' }}</p>
+                                <small style="font-size: var(--font-size-xs); color: var(--text-muted);">{{ new Date(notification.created_at).toLocaleString() }}</small>
                             </div>
                         </div>
-                        <button class="button" @click="closeModal" style="margin-top: 20px;">Close</button>
+                        <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-sm);">
+                            <button class="button" @click="closeModal" style="background: var(--button-primary); color: var(--text-on-primary); border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); cursor: pointer; transition: var(--transition-colors);">Close</button>
+                            <button class="button secondary-button" @click="debugNotifications" style="background: var(--button-secondary); color: var(--button-secondary-text); border: 1px solid var(--surface-alt-color); padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); cursor: pointer; transition: var(--transition-colors);">Debug</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,28 +176,29 @@ const NavBar = {
                 top: ${this.dropdownPosition.y}px;
                 width: 320px;
                 background: var(--card-color);
-                border-radius: 8px;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-                z-index: 99999;
-                border: 1px solid #e0e0e0;
+                border-radius: var(--border-radius);
+                box-shadow: var(--shadow-lg);
+                z-index: var(--z-index-dropdown);
+                border: 1px solid var(--surface-alt-color);
+                color: var(--text-color);
             `;
             
             // Build notifications content based on actual data
             let notificationsContent = '';
             if (!this.notifications || this.notifications.length === 0) {
-                notificationsContent = '<div style="padding: 12px 16px;"><p>No notifications</p></div>';
+                notificationsContent = `<div style="padding: var(--spacing-md) var(--spacing-lg); color: var(--text-secondary); text-align: center;"><p>No notifications</p></div>`;
             } else {
                 notificationsContent = this.notifications.slice(0, 5).map(notification => 
-                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; ${!notification.is_read ? 'background-color: #f8f9fa;' : ''}">
-                        <p style="margin: 0; font-size: 14px;">${notification.message || 'Notification'}</p>
-                        <small style="color: #888; font-size: 12px;">${new Date(notification.created_at).toLocaleDateString()}</small>
+                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--surface-alt-color); cursor: pointer; transition: var(--transition-colors); ${!notification.is_read ? 'background-color: var(--sub-card-color);' : ''}">
+                        <p style="margin: 0; font-size: var(--font-size-sm); color: var(--text-color); font-weight: var(--font-weight-medium);">${notification.message || 'Notification'}</p>
+                        <small style="color: var(--text-muted); font-size: var(--font-size-xs);">${new Date(notification.created_at).toLocaleDateString()}</small>
                     </div>`
                 ).join('');
             }
             
             dropdown.innerHTML = `
-                <div class="dropdown-header" style="position: sticky; top: 0; border-bottom: 1px solid #eee; padding: 10px 16px; font-weight: bold;">
-                    <a href="#" id="all-notifications-link" style="color: #1976d2; text-decoration: underline; cursor: pointer; display: block;">All Notifications</a>
+                <div class="dropdown-header" style="position: sticky; top: 0; border-bottom: 1px solid var(--surface-alt-color); padding: var(--spacing-sm) var(--spacing-lg); font-weight: var(--font-weight-semibold); background: var(--card-color); border-radius: var(--border-radius) var(--border-radius) 0 0;">
+                    <a href="#" id="all-notifications-link" style="color: var(--primary-color); text-decoration: underline; cursor: pointer; display: block; font-size: var(--font-size-sm);">All Notifications</a>
                 </div>
                 <div class="dropdown-list" style="max-height: 220px; overflow-y: auto;">
                     ${notificationsContent}
@@ -217,7 +224,8 @@ const NavBar = {
                     if (notificationId) {
                         this.markNotificationAsRead(notificationId);
                         // Add visual feedback
-                        item.style.backgroundColor = '#e8f5e8';
+                        item.style.backgroundColor = 'var(--accent-color)';
+                        item.style.color = 'var(--text-on-primary)';
                     }
                 });
             });
@@ -237,9 +245,16 @@ const NavBar = {
             }
         },
         openModal() {
+            console.log('NavBar: Opening notifications modal');
+            console.log('NavBar: Current notifications array:', this.notifications);
+            console.log('NavBar: Notifications length:', this.notifications ? this.notifications.length : 0);
+            
             this.showModal = true;
             this.showDropdown = false;
             this.removeDropdownElement();
+            
+            // Refresh notifications when modal opens
+            this.fetchNotifications();
         },
         closeModal() {
             this.showModal = false;
@@ -266,16 +281,31 @@ const NavBar = {
         
         fetchNotifications() {
             if (this.currentUserValue.isLoggedIn) {
+                console.log('NavBar: Fetching notifications for user:', this.currentUserValue.id);
                 fetch('/api/notifications', { credentials: 'include' })
-                    .then(res => res.json())
+                    .then(res => {
+                        console.log('NavBar: Notifications response status:', res.status);
+                        if (!res.ok) {
+                            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                        }
+                        return res.json();
+                    })
                     .then(data => {
-                        console.log('NavBar: Received notifications:', data);
+                        console.log('NavBar: Received notifications data:', data);
+                        console.log('NavBar: Notifications array length:', data ? data.length : 0);
+                        if (data && data.length > 0) {
+                            console.log('NavBar: First notification object:', data[0]);
+                            console.log('NavBar: First notification keys:', Object.keys(data[0]));
+                        }
                         this.notifications = data || [];
+                        console.log('NavBar: Set notifications array:', this.notifications);
                     })
                     .catch((error) => {
                         console.error('NavBar: Error fetching notifications:', error);
                         this.notifications = [];
                     });
+            } else {
+                console.log('NavBar: User not logged in, skipping notification fetch');
             }
         },
         
@@ -313,6 +343,30 @@ const NavBar = {
             .catch((error) => {
                 console.error('NavBar: Error marking notification as read:', error);
             });
+        },
+        debugNotifications() {
+            console.log('NavBar: Debugging notifications...');
+            console.log('NavBar: Current notifications array:', this.notifications);
+            console.log('NavBar: Notifications length:', this.notifications ? this.notifications.length : 0);
+            console.log('NavBar: Unread notification count:', this.unreadNotificationCount);
+            console.log('NavBar: Unread group counts:', this.unreadCounts);
+            console.log('NavBar: Current user:', this.currentUserValue);
+            console.log('NavBar: My ID:', this.myId);
+            
+            // Call debug endpoint
+            fetch('/api/notifications/debug', { credentials: 'include' })
+                .then(res => {
+                    console.log('NavBar: Debug response status:', res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('NavBar: Debug endpoint response:', data);
+                    alert(`Debug Info:\nUser ID: ${data.user_id}\nRaw notifications: ${data.count}\nCheck console for details`);
+                })
+                .catch(error => {
+                    console.error('NavBar: Debug endpoint error:', error);
+                    alert('Debug endpoint error: ' + error.message);
+                });
         }
     },
     beforeUnmount() {
@@ -326,4 +380,5 @@ const NavBar = {
         }
     }
 };
+// No mount here, will be registered globally. 
 // No mount here, will be registered globally. 

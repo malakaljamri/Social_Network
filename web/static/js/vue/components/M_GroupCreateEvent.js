@@ -49,6 +49,10 @@ const CreateGroupEventModal = {
             }
             this.form.loading = true;
             this.form.error = '';
+            
+            console.log('DEBUG: Starting group event creation...');
+            const startTime = Date.now();
+            
             try {
                 const payload = {
                     title: this.form.title,
@@ -56,12 +60,24 @@ const CreateGroupEventModal = {
                     event_date: this.form.date,
                     group_id: this.groupId
                 };
+                
+                // Add timeout to the fetch request
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                
                 const response = await fetch('/api/groups/events/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
-                    credentials: 'include'
+                    credentials: 'include',
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
+                
+                const responseTime = Date.now() - startTime;
+                console.log(`DEBUG: Group event creation completed in ${responseTime}ms`);
+                
                 if (!response.ok) {
                     const err = await response.json();
                     throw new Error(err.error || 'Failed to create group event');
@@ -70,7 +86,14 @@ const CreateGroupEventModal = {
                 this.$emit('created', data);
                 this.close();
             } catch (e) {
-                this.form.error = e.message || 'Network error';
+                const responseTime = Date.now() - startTime;
+                console.error(`DEBUG: Group event creation failed after ${responseTime}ms:`, e);
+                
+                if (e.name === 'AbortError') {
+                    this.form.error = 'Request timed out. The event may have been created. Please check your group events.';
+                } else {
+                    this.form.error = e.message || 'Network error';
+                }
             } finally {
                 this.form.loading = false;
             }

@@ -100,6 +100,7 @@ const GroupsView = {
             this.$emit('event-click', event);
         },
         openChat(user) {
+            console.log('🔍 GroupsView openChat called with user:', user);
             if (!user || !user.ID) return;
             if (!this.openChats.some(u => u.ID === user.ID)) {
                 this.openChats.push(user);
@@ -117,6 +118,11 @@ const GroupsView = {
         handleGroupMembershipChanged(data) {
             // Pass the membership change to the group list component
             this.$refs.groupList?.updateGroupMembershipStatus(data.groupId, data.membershipStatus);
+        },
+        viewUserProfile(userId) {
+            console.log('🔍 GroupsView viewUserProfile called with userId:', userId);
+            // Use the root method to view user profile
+            this.$root.viewUserProfile(userId);
         }
     },
     mounted() {
@@ -147,6 +153,8 @@ const GroupsView = {
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                     @event-click="handleEventClick"
                     @group-membership-changed="handleGroupMembershipChanged"
+                    @view-user-profile="viewUserProfile"
+                    @open-chat="openChat"
                 ></g-group-main>
             </div>
             <users-list class="sidebar" @open-chat="openChat"></users-list>
