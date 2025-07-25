@@ -107,6 +107,13 @@ const NavBar = {
         this.fetchUnreadNotificationCount();
 
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        // Listen for websocket notification updates
+        this._notificationUpdateHandler = () => {
+            console.log('NavBar: Received notification-update event, refreshing notifications.');
+            this.fetchNotifications();
+            this.fetchUnreadNotificationCount();
+        };
+        window.addEventListener('notification-update', this._notificationUpdateHandler);
         
         // Set up periodic refresh of notifications (every 30 seconds)
         this.notificationRefreshInterval = setInterval(() => {
@@ -117,8 +124,13 @@ const NavBar = {
     },
     watch: {
         currentUser: {
-            handler() {
+            handler(newVal, oldVal) {
                 this.fetchUnreadCountsIfLoggedIn();
+                if (newVal && newVal.isLoggedIn && (!oldVal || !oldVal.isLoggedIn)) {
+                    console.log('NavBar: Detected login, fetching notifications and unread count.');
+                    this.fetchNotifications();
+                    this.fetchUnreadNotificationCount();
+                }
             },
             deep: true
         }
@@ -372,6 +384,10 @@ const NavBar = {
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick);
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        // Remove websocket notification event listener
+        if (this._notificationUpdateHandler) {
+            window.removeEventListener('notification-update', this._notificationUpdateHandler);
+        }
         this.removeDropdownElement();
         
         // Clear notification refresh interval

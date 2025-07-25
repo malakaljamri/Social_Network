@@ -122,6 +122,11 @@ const WebSocketPlugin = {
                 case 'error':
                     console.error("Server error:", message.content);
                     break;
+                case 'notification':
+                case 'new_notification':
+                    console.log('WebSocket: Received notification event:', message);
+                    window.dispatchEvent(new CustomEvent('notification-update', { detail: message.content }));
+                    break;
                 default:
                     console.warn('Unknown message type:', message);
             }
