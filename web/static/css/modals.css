@@ -96,3 +96,125 @@
     font-size: var(--font-size-xl);
   }
 }
+
+/* Join Requests Modal Styles */
+.join-requests-btn {
+    background: var(--button-primary);
+    color: var(--text-on-primary);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    position: relative;
+}
+
+.join-requests-btn:hover {
+    background: var(--button-primary-hover);
+}
+
+.request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    transition: var(--transition-colors);
+}
+
+.request-item:last-child {
+    border-bottom: none;
+}
+
+.request-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.request-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.request-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.request-details strong {
+    color: var(--text-color);
+    font-weight: var(--font-weight-medium);
+}
+
+.request-details .nickname {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.accept-btn {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+}
+
+.accept-btn:hover:not(:disabled) {
+    background: var(--success-color-hover);
+}
+
+.decline-btn {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+}
+
+.decline-btn:hover:not(:disabled) {
+    background: var(--danger-color-hover);
+}
+
+.accept-btn:disabled,
+.decline-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.error-message {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--danger-color);
+}
+
+.no-requests {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.requests-list {
+    max-height: 400px;
+    overflow-y: auto;
+}

@@ -304,3 +304,81 @@ func GetGroupMembersHandler(db *sql.DB) http.HandlerFunc {
 		log.Println("✅ Successfully sent group members response")
 	}
 }
+
+// Get pending join requests for a group (owner only)
+func GetGroupJoinRequestsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+		groupIDStr := r.URL.Query().Get("group_id")
+		if groupIDStr == "" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
+			return
+		}
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
+			return
+		}
+		// Check if user is group owner
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusNotFound, "Group not found")
+			return
+		}
+		if creatorID != userID {
+			utils.WriteJSONError(w, http.StatusForbidden, "Only group owner can view join requests")
+			return
+		}
+		requests, err := database.GetPendingGroupJoinRequests(db, groupID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch join requests")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(requests)
+	}
+}
+
+// Accept or decline a join request (owner only)
+func HandleGroupJoinRequestHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+		var req struct {
+			GroupID      int    `json:"group_id"`
+			TargetUserID int    `json:"user_id"`
+			Action       string `json:"action"` // "accept" or "decline"
+		}
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+		// Check if user is group owner
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", req.GroupID).Scan(&creatorID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusNotFound, "Group not found")
+			return
+		}
+		if creatorID != userID {
+			utils.WriteJSONError(w, http.StatusForbidden, "Only group owner can handle join requests")
+			return
+		}
+		err = database.HandleGroupJoinRequest(db, req.GroupID, req.TargetUserID, req.Action)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+	}
+}

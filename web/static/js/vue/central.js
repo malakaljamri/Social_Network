@@ -529,6 +529,7 @@ app.component('m-create-post', M_CreatePost);
 app.component('m-group-create', M_GroupCreate);
 app.component('m-group-create-event', M_GroupCreateEvent);
 app.component('g-group-events-modal', G_GroupEventsModal);
+app.component('g-group-join-requests-modal', window.G_GroupJoinRequestsModal);
 app.component('p-profile-edit-form', P_ProfileEditForm);
 app.component('p-follow-request-list', P_FollowRequestList);
 app.component('feed-main', FeedMain);

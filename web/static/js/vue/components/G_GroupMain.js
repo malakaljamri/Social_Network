@@ -7,6 +7,7 @@ const GroupMain = {
             showGroupEventsModal: false,
             showGroupChatWindow: false,
             showGroupMembers: false,
+            showGroupJoinRequestsModal: false,
             groupMembers: [],
             loadingMembers: false,
             newGroupPost: {
@@ -20,7 +21,8 @@ const GroupMain = {
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            pendingJoinRequestsCount: 0
         };
     },
     computed: {
@@ -38,6 +40,9 @@ const GroupMain = {
                 // Then sort by username
                 return a.Username.localeCompare(b.Username);
             });
+        },
+        isGroupOwner() {
+            return this.selectedGroup && this.selectedGroup.Creator?.ID === this.myId || this.selectedGroup?.CreatorID === this.myId;
         }
     },
     mounted() {
@@ -72,6 +77,14 @@ const GroupMain = {
                     detail: { groupId: this.selectedGroup.ID, count: 0 } 
                 }));
             }
+        },
+        openGroupJoinRequestsModal() {
+            console.log('🔍 Opening join requests modal for group:', this.selectedGroup?.ID);
+            this.showGroupJoinRequestsModal = true;
+        },
+        closeGroupJoinRequestsModal() {
+            console.log('🔍 Closing join requests modal');
+            this.showGroupJoinRequestsModal = false;
         },
         closeCreateGroupPostModal() {
             this.showCreateGroupPostForm = false;
@@ -140,6 +153,40 @@ const GroupMain = {
         handleUnreadCountUpdate(event) {
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
+        },
+        handleJoinRequestHandled(event) {
+            console.log('🔍 Join request handled:', event);
+            const { userId, action, groupId } = event;
+            
+            // Update the pending count
+            this.pendingJoinRequestsCount = Math.max(0, this.pendingJoinRequestsCount - 1);
+            
+            // If this was an accept, we might want to refresh the group members
+            if (action === 'accept' && this.showGroupMembers) {
+                this.fetchGroupMembers();
+            }
+        },
+        async fetchPendingJoinRequestsCount() {
+            if (!this.isGroupOwner || !this.selectedGroup) return;
+            
+            console.log('🔍 Fetching pending join requests count for group:', this.selectedGroup.ID);
+            try {
+                const response = await fetch(`/api/groups/join-requests?group_id=${this.selectedGroup.ID}`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const requests = await response.json();
+                    this.pendingJoinRequestsCount = requests.length;
+                    console.log('✅ Pending join requests count:', this.pendingJoinRequestsCount);
+                } else {
+                    console.log('⚠️ Could not fetch join requests count, status:', response.status);
+                    this.pendingJoinRequestsCount = 0;
+                }
+            } catch (error) {
+                console.error('❌ Error fetching join requests count:', error);
+                this.pendingJoinRequestsCount = 0;
+            }
         },
         viewUserProfile(userId) {
             console.log('🔍 viewUserProfile called with userId:', userId);
@@ -211,6 +258,8 @@ const GroupMain = {
                 // Reset members when group changes
                 this.showGroupMembers = false;
                 this.groupMembers = [];
+                // Fetch pending join requests count if user is group owner
+                this.fetchPendingJoinRequestsCount();
             },
             immediate: true
         }
@@ -240,8 +289,13 @@ const GroupMain = {
                                 <i class="fas fa-comments"></i> Group Chat
                                 <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
                             </button>
-                            <button @click="toggleGroupMembers" class="group-members-btn" style="margin-bottom: 16px;">
+                            <button @click="toggleGroupMembers" class="group-members-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-users"></i> {{ showGroupMembers ? 'Hide' : 'Show' }} Members
+                            </button>
+                            <!-- Join Requests button - only for group owner -->
+                            <button v-if="isGroupOwner" @click="openGroupJoinRequestsModal" class="join-requests-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-user-plus"></i> Join Requests
+                                <span v-if="pendingJoinRequestsCount > 0" class="unread-badge right-badge">{{ pendingJoinRequestsCount }}</span>
                             </button>
                         </div>
                         
@@ -363,6 +417,14 @@ const GroupMain = {
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
             </div>
+            <!-- Group Join Requests Modal -->
+            <g-group-join-requests-modal
+                v-if="showGroupJoinRequestsModal && selectedGroup"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
+                @close="closeGroupJoinRequestsModal"
+                @request-handled="handleJoinRequestHandled"
+            />
             <!-- Group Posts Section -->
             <div class="group-posts">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
@@ -396,7 +458,8 @@ const GroupMain = {
         </div>
     `,
     components: {
-        'g-group-events-modal': window.G_GroupEventsModal
+        'g-group-events-modal': window.G_GroupEventsModal,
+        'g-group-join-requests-modal': window.G_GroupJoinRequestsModal
     }
 };
 window.G_GroupMain = GroupMain; 

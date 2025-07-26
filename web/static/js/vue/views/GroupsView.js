@@ -99,6 +99,26 @@ const GroupsView = {
         handleEventClick(event) {
             this.$emit('event-click', event);
         },
+        
+        handleOpenJoinRequestsModal(event) {
+            console.log('GroupsView: Received open-join-requests-modal event:', event.detail);
+            const { groupId } = event.detail;
+            
+            // Find the group and select it
+            const group = this.groups.find(g => g.ID === groupId);
+            if (group) {
+                this.handleGroupSelected(group.ID);
+                
+                // Wait a bit for the group to be selected, then open the modal
+                setTimeout(() => {
+                    if (this.$refs.groupMain) {
+                        this.$refs.groupMain.openGroupJoinRequestsModal();
+                    }
+                }, 200);
+            } else {
+                console.log('GroupsView: Group not found for ID:', groupId);
+            }
+        },
         openChat(user) {
             console.log('🔍 GroupsView openChat called with user:', user);
             if (!user || !user.ID) return;
@@ -128,6 +148,13 @@ const GroupsView = {
     mounted() {
         this.fetchGroups();
         this.fetchCategories();
+        
+        // Listen for custom event to open join requests modal
+        window.addEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
+    },
+    beforeUnmount() {
+        // Clean up event listener
+        window.removeEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
     },
     template: `
         <div class="layout-grid groups-layout">
@@ -155,6 +182,7 @@ const GroupsView = {
                     @group-membership-changed="handleGroupMembershipChanged"
                     @view-user-profile="viewUserProfile"
                     @open-chat="openChat"
+                    ref="groupMain"
                 ></g-group-main>
             </div>
             <users-list class="sidebar" @open-chat="openChat"></users-list>

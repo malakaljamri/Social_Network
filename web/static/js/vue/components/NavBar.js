@@ -22,7 +22,7 @@ const NavBar = {
                         </div>
                         <div v-else>
                             <div v-for="notification in notifications" :key="notification.id" 
-                                 @click="markNotificationAsRead(notification.id)"
+                                 @click="handleNotificationClick(notification); markNotificationAsRead(notification.id)"
                                  :style="{ 
                                      padding: 'var(--spacing-md) 0', 
                                      borderBottom: '1px solid var(--surface-alt-color)', 
@@ -234,6 +234,11 @@ const NavBar = {
                 item.addEventListener('click', (e) => {
                     const notificationId = parseInt(item.dataset.notificationId);
                     if (notificationId) {
+                        // Find the notification object to pass to handler
+                        const notification = this.notifications.find(n => n.id === notificationId);
+                        if (notification) {
+                            this.handleNotificationClick(notification);
+                        }
                         this.markNotificationAsRead(notificationId);
                         // Add visual feedback
                         item.style.backgroundColor = 'var(--accent-color)';
@@ -355,6 +360,24 @@ const NavBar = {
             .catch((error) => {
                 console.error('NavBar: Error marking notification as read:', error);
             });
+        },
+        
+        handleNotificationClick(notification) {
+            console.log('NavBar: Notification clicked:', notification);
+            
+            // Check if this is a group join request notification
+            if (notification.type === 'group_join_request') {
+                console.log('NavBar: Group join request notification detected, navigating to groups');
+                // Navigate to groups view and emit event to open join requests modal
+                this.$emit('navigate', 'groups');
+                
+                // Dispatch a custom event that GroupsView can listen to
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('open-join-requests-modal', {
+                        detail: { groupId: notification.reference_id }
+                    }));
+                }, 100);
+            }
         },
         debugNotifications() {
             console.log('NavBar: Debugging notifications...');

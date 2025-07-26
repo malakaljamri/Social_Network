@@ -258,3 +258,59 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]GroupMember, error) {
 	log.Printf("✅ GetGroupMembers completed. Found %d members", len(members))
 	return members, nil
 }
+
+// Fetch pending join requests for a group (with user details)
+func GetPendingGroupJoinRequests(db *sql.DB, groupID int) ([]GroupMember, error) {
+	query := `
+		SELECT u.id, u.username, u.nickname, u.avatar, 0 as online
+		FROM group_members gm
+		JOIN users u ON gm.user_id = u.id
+		WHERE gm.group_id = ? AND gm.status = 'pending'
+		ORDER BY u.username
+	`
+	rows, err := db.Query(query, groupID)
+	if err != nil {
+		log.Printf("❌ Database query error (pending join requests): %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []GroupMember
+	for rows.Next() {
+		var member GroupMember
+		var online int
+		err := rows.Scan(&member.ID, &member.Username, &member.Nickname, &member.Avatar, &online)
+		if err != nil {
+			log.Printf("❌ Row scan error (pending join requests): %v", err)
+			continue
+		}
+		member.Online = false
+		requests = append(requests, member)
+	}
+	log.Printf("✅ GetPendingGroupJoinRequests completed. Found %d requests", len(requests))
+	return requests, nil
+}
+
+// Accept or decline a group join request
+func HandleGroupJoinRequest(db *sql.DB, groupID, userID int, action string) error {
+	var status string
+	switch action {
+	case "accept":
+		status = "accepted"
+	case "decline":
+		status = "declined"
+	default:
+		return errors.New("invalid action")
+	}
+	query := `UPDATE group_members SET status = ? WHERE group_id = ? AND user_id = ? AND status = 'pending'`
+	res, err := db.Exec(query, status, groupID, userID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("no pending request found")
+	}
+	log.Printf("✅ HandleGroupJoinRequest: %s request for user %d in group %d", status, userID, groupID)
+	return nil
+}

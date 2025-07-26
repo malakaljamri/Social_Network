@@ -111,6 +111,8 @@ func main() {
 	mux.HandleFunc("/api/groups/events/attendance/list", handlers.ListEventAttendeesHandler(db))
 	mux.HandleFunc("/api/groups/access/batch", handlers.BatchGroupAccessHandler(db))
 	mux.HandleFunc("/api/groups/members", handlers.GetGroupMembersHandler(db))
+	mux.HandleFunc("/api/groups/join-requests", handlers.GetGroupJoinRequestsHandler(db))
+	mux.HandleFunc("/api/groups/handle-join-request", handlers.HandleGroupJoinRequestHandler(db))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})
