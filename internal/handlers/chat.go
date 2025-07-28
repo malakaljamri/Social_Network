@@ -22,11 +22,17 @@ func NewChatHandlers(hub *websocket.Hub) *ChatHandlers {
 }
 
 func (h *ChatHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
+	log.Printf("WebSocket connection attempt from: %s", r.RemoteAddr)
+	log.Printf("WebSocket request headers: %v", r.Header)
+
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
+		log.Printf("WebSocket authentication failed: %v", err)
 		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
+
+	log.Printf("WebSocket authentication successful for user: %d", userID)
 
 	conn, err := websocket.Upgrader.Upgrade(w, r, nil)
 	if err != nil {

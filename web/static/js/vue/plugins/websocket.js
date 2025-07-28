@@ -114,6 +114,9 @@ const WebSocketPlugin = {
                     case 'ping':
                         await this.handlePing(event.data);
                         break;
+                    case 'typing':
+                        await this.handleTypingIndicator(event.data);
+                        break;
                     default:
                         console.warn('Unknown event type:', event.type);
                 }
@@ -146,16 +149,22 @@ const WebSocketPlugin = {
             async handleChatMessage(data) {
                 console.log("Processing chat message:", data);
                 
+                // Extract message data from the content object
                 const messageData = data.content || data;
+                console.log("Message data extracted:", messageData);
+                
+                // Create standardized chat message object
                 const chatMessage = {
-                    sender_id: messageData.sender_id || messageData.user_id,
-                    receiver_id: messageData.receiver_id || messageData.Receiver_id,
+                    sender_id: messageData.sender_id,
+                    receiver_id: messageData.receiver_id,
                     content: messageData.content,
                     timestamp: messageData.timestamp || new Date().toISOString(),
                     username: messageData.username || messageData.sender_username
                 };
                 
-                // Update chat windows state
+                console.log("Standardized chat message:", chatMessage);
+                
+                // Update chat windows state for unread tracking
                 if (!wsState.chatWindows.has(chatMessage.sender_id)) {
                     wsState.chatWindows.set(chatMessage.sender_id, []);
                 }
@@ -169,7 +178,7 @@ const WebSocketPlugin = {
                 // Notify about new message
                 this.notifyNewMessage(chatMessage);
                 
-                // Dispatch standardized event
+                // Dispatch standardized event with proper data structure
                 window.dispatchEvent(new CustomEvent('chat-message', { 
                     detail: chatMessage 
                 }));
@@ -266,6 +275,26 @@ const WebSocketPlugin = {
                     }
                 };
                 sendMessage(pongMessage, 'low');
+            },
+            
+            async handleTypingIndicator(data) {
+                console.log('Processing typing indicator:', data);
+                
+                // Update typing state
+                if (data.is_typing) {
+                    wsState.typingUsers.add(data.sender_id);
+                } else {
+                    wsState.typingUsers.delete(data.sender_id);
+                }
+                
+                // Dispatch typing event
+                window.dispatchEvent(new CustomEvent('chat-typing', { 
+                    detail: {
+                        sender_id: data.sender_id,
+                        receiver_id: data.receiver_id,
+                        is_typing: data.is_typing
+                    }
+                }));
             },
             
             notifyNewMessage(message) {

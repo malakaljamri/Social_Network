@@ -134,10 +134,12 @@ func main() {
 	mux.HandleFunc("/api/groups/invite", handlers.RequestGroupInviteHandler(db))
 	mux.HandleFunc("/api/groups/invite/action", handlers.HandleGroupInviteActionHandler(db))
 
-	// Chat and WebSocket routes
+	// --- WebSocket route registered FIRST (before static handlers) ---
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})
+
+	// Chat and other API routes
 	mux.HandleFunc("/api/chat-history", handlers.GetChatHistory)
 	mux.HandleFunc("/api/online-users", handlers.GetOnlineUsers)
 	mux.HandleFunc("/api/search/users", handlers.SearchUsers)
