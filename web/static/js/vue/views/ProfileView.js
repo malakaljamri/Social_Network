@@ -86,54 +86,79 @@ const ProfileView = {
 
                     <!-- Privacy Enforcement -->
                     <div v-if="(profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isOwnProfile && !isFollower" class="private-profile-message">
-                        <p>This profile is private. Only followers can view the full profile.</p>
+                        <div class="alert alert-warning">
+                            <h4>🔒 Private Profile</h4>
+                            <p>This profile is private. Only followers can view the full profile information.</p>
+                            <p><strong>What you can see:</strong></p>
+                            <ul>
+                                <li>Username and avatar</li>
+                                <li>Profile privacy status</li>
+                                <li>Follow/Unfollow button</li>
+                            </ul>
+                            <p><strong>What's hidden:</strong></p>
+                            <ul>
+                                <li>Personal information (name, email, about, etc.)</li>
+                                <li>Posts and content</li>
+                                <li>Followers and following lists</li>
+                                <li>Post counts</li>
+                            </ul>
+                            <p>Send a follow request to see the full profile!</p>
+                        </div>
                     </div>
                     <template v-else>
-                        <!-- Expandable Followers Section -->
-                        <div class="expandable-section">
-                            <button class="btn btn-link" @click="showFollowers = !showFollowers">
-                                {{ showFollowers ? 'Hide' : 'Show' }} Followers ({{ followers.length }})
-                            </button>
-                            <div v-if="showFollowers">
-                                <ul>
-                                    <li v-for="user in followers" :key="user.id">
-                                        <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
-                                        {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
-                                    </li>
-                                </ul>
+                        <!-- Show profile content only if user can view it -->
+                        <div v-if="!isOwnProfile && (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isFollower" class="private-profile-message">
+                            <div class="alert alert-info">
+                                <p>This profile is private. You need to be a follower to see the content.</p>
                             </div>
                         </div>
-                        <!-- Expandable Following Section -->
-                        <div class="expandable-section">
-                            <button class="btn btn-link" @click="showFollowing = !showFollowing">
-                                {{ showFollowing ? 'Hide' : 'Show' }} Following ({{ following.length }})
-                            </button>
-                            <div v-if="showFollowing">
-                                <ul>
-                                    <li v-for="user in following" :key="user.id">
-                                        <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
-                                        {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
-                                    </li>
-                                </ul>
+                        <template v-else>
+                            <!-- Expandable Followers Section -->
+                            <div class="expandable-section">
+                                <button class="btn btn-link" @click="showFollowers = !showFollowers">
+                                    {{ showFollowers ? 'Hide' : 'Show' }} Followers ({{ followers.length }})
+                                </button>
+                                <div v-if="showFollowers">
+                                    <ul>
+                                        <li v-for="user in followers" :key="user.id">
+                                            <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                            {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Profile Content -->
-                        <div class="profile-content">
-                            <h3>Posts</h3>
-                            <div v-if="!profile.posts || profile.posts.length === 0" class="no-content">
-                                No posts to show.
+                            <!-- Expandable Following Section -->
+                            <div class="expandable-section">
+                                <button class="btn btn-link" @click="showFollowing = !showFollowing">
+                                    {{ showFollowing ? 'Hide' : 'Show' }} Following ({{ following.length }})
+                                </button>
+                                <div v-if="showFollowing">
+                                    <ul>
+                                        <li v-for="user in following" :key="user.id">
+                                            <img :src="getAvatarUrl(user.avatar)" class="avatar-small" style="width:24px;height:24px;margin-right:5px;">
+                                            {{ user.Username || user.username }} <span style="color: #888; font-size: 0.9em;">({{ user.Email || user.email }})</span>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div v-else class="content-list">
-                                <feed-main
-                                    :posts="profile.posts || []"
-                                    :categories="categories"
-                                    :current-user="$root.currentUser.value"
-                                    :total-pages="1"
-                                    :current-page="1"
-                                    :profile-user-name="profile.user.Username || profile.user.username"
-                                ></feed-main>
+                            <!-- Profile Content -->
+                            <div class="profile-content">
+                                <h3>Posts</h3>
+                                <div v-if="!profile.posts || profile.posts.length === 0" class="no-content">
+                                    No posts to show.
+                                </div>
+                                <div v-else class="content-list">
+                                    <feed-main
+                                        :posts="profile.posts || []"
+                                        :categories="categories"
+                                        :current-user="$root.currentUser.value"
+                                        :total-pages="1"
+                                        :current-page="1"
+                                        :profile-user-name="profile.user.Username || profile.user.username"
+                                    ></feed-main>
+                                </div>
                             </div>
-                        </div>
+                        </template>
                     </template>
                 </div>
             </div>

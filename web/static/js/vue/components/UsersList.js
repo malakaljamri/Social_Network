@@ -120,11 +120,36 @@ const UsersList = {
             this.$root.viewUserProfile(userId);
         },
         getUserTooltip(user) {
-            let tooltip = `Email: ${user.Email}`;
-            if (user.Nickname) {
-                tooltip += `\nNickname: ${user.Nickname}`;
+            let tooltip = '';
+            
+            // Check if we can show email (respect privacy settings)
+            const canShowEmail = !user.IsPrivate || user.ID === this.myId || this.isFollowingUser(user.ID);
+            
+            if (canShowEmail && user.Email) {
+                tooltip += `Email: ${user.Email}`;
+            } else if (user.IsPrivate) {
+                tooltip += `Email: [Private Profile]`;
             }
-            return tooltip;
+            
+            if (user.Nickname) {
+                if (tooltip) tooltip += '\n';
+                tooltip += `Nickname: ${user.Nickname}`;
+            }
+            
+            // Add privacy status indicator
+            if (user.IsPrivate) {
+                if (tooltip) tooltip += '\n';
+                tooltip += `🔒 Private Profile`;
+            }
+            
+            return tooltip || 'No additional information available';
+        },
+        
+        isFollowingUser(userId) {
+            // This is a simplified check - in a real implementation, 
+            // you might want to fetch this data from the backend
+            // For now, we'll assume we can't determine this from the users list
+            return false;
         }
     },
     mounted() {

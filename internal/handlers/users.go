@@ -16,6 +16,7 @@ import (
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
+	"time"
 )
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
@@ -143,20 +144,16 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if filtersJSON != "" {
-		var filters map[string]interface{}
-		if err := json.Unmarshal([]byte(filtersJSON), &filters); err == nil {
-			// Use page 1 and a high limit to get all filtered posts for the profile view
-			posts, _, err := database.GetFilteredPosts(1, 1000, filters, r)
-			if err == nil {
-				profile.Posts = posts
-			}
-		}
-	} else {
-		// Fetch all posts by the user if no filters are applied
-		posts, err := database.GetPostsByUserID(targetUserID)
-		if err == nil {
-			profile.Posts = posts
+	// Check privacy settings
+	canViewFullProfile := true
+	if profile.User.IsPrivate && currentUserID != targetUserID {
+		// If profile is private, only followers can see full profile
+		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
+		if err != nil || !isFollowing {
+			canViewFullProfile = false
+			log.Printf("Privacy check failed - Profile %d is private, user %d is not a follower", targetUserID, currentUserID)
+		} else {
+			log.Printf("Privacy check passed - Profile %d is private, user %d is a follower", targetUserID, currentUserID)
 		}
 	}
 
@@ -193,6 +190,41 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		log.Printf("Skipping follow status check - currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
+	}
+
+	// Apply privacy restrictions
+	if !canViewFullProfile {
+		// Hide sensitive information for private profiles
+		profile.User.FirstName = ""
+		profile.User.LastName = ""
+		profile.User.Nickname = ""
+		profile.User.AboutMe = ""
+		profile.User.Gender = ""
+		profile.User.BirthDate = time.Time{} // Zero time value
+		profile.User.Email = ""
+		profile.Posts = []models.Post{} // Hide posts
+		profile.FollowersCount = 0      // Hide follower count
+		profile.FollowingCount = 0      // Hide following count
+		profile.PostsCount = 0          // Hide posts count
+		log.Printf("Applied privacy restrictions to profile %d for user %d", targetUserID, currentUserID)
+	} else {
+		// Load posts and other data only if user can view full profile
+		if filtersJSON != "" {
+			var filters map[string]interface{}
+			if err := json.Unmarshal([]byte(filtersJSON), &filters); err == nil {
+				// Use page 1 and a high limit to get all filtered posts for the profile view
+				posts, _, err := database.GetFilteredPosts(1, 1000, filters, r)
+				if err == nil {
+					profile.Posts = posts
+				}
+			}
+		} else {
+			// Fetch all posts by the user if no filters are applied
+			posts, err := database.GetPostsByUserID(targetUserID)
+			if err == nil {
+				profile.Posts = posts
+			}
+		}
 	}
 
 	// Remove sensitive information before sending
@@ -293,11 +325,38 @@ func GetUserFollowers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Get current logged-in user ID
+	currentUserID, _ := database.GetUserIDFromSession(r)
+
+	// Check privacy settings
+	canViewFollowers := true
+	if currentUserID != userID {
+		// Get the target user to check privacy settings
+		targetUser, err := database.GetUserByID(userID)
+		if err == nil && targetUser.IsPrivate {
+			// If profile is private, only followers can see followers list
+			isFollowing, err := database.IsFollowing(currentUserID, userID)
+			if err != nil || !isFollowing {
+				canViewFollowers = false
+				log.Printf("Privacy check failed - Cannot view followers for private profile %d, user %d is not a follower", userID, currentUserID)
+			} else {
+				log.Printf("Privacy check passed - Can view followers for private profile %d, user %d is a follower", userID, currentUserID)
+			}
+		}
+	}
+
 	// Fetch followers for the determined user ID
-	followers, err := database.GetFollowers(userID)
-	if err != nil {
-		http.Error(w, "Error fetching followers", http.StatusInternalServerError)
-		return
+	var followers []models.User
+	if canViewFollowers {
+		followers, err = database.GetFollowers(userID)
+		if err != nil {
+			http.Error(w, "Error fetching followers", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Return empty list for private profiles when user is not a follower
+		followers = []models.User{}
+		log.Printf("Returning empty followers list due to privacy restrictions for user %d", userID)
 	}
 
 	// Ensure we always return an array, even if there are no followers
@@ -323,12 +382,39 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get current logged-in user ID
+	currentUserID, _ := database.GetUserIDFromSession(r)
+
+	// Check privacy settings
+	canViewFollowing := true
+	if currentUserID != userID {
+		// Get the target user to check privacy settings
+		targetUser, err := database.GetUserByID(userID)
+		if err == nil && targetUser.IsPrivate {
+			// If profile is private, only followers can see following list
+			isFollowing, err := database.IsFollowing(currentUserID, userID)
+			if err != nil || !isFollowing {
+				canViewFollowing = false
+				log.Printf("Privacy check failed - Cannot view following for private profile %d, user %d is not a follower", userID, currentUserID)
+			} else {
+				log.Printf("Privacy check passed - Can view following for private profile %d, user %d is a follower", userID, currentUserID)
+			}
+		}
+	}
+
 	// Fetch following
-	following, err := database.GetFollowing(userID)
-	if err != nil {
-		// log.Printf("Error fetching following for user %d: %v", userID, err)
-		http.Error(w, "Error fetching following", http.StatusInternalServerError)
-		return
+	var following []models.User
+	if canViewFollowing {
+		following, err = database.GetFollowing(userID)
+		if err != nil {
+			// log.Printf("Error fetching following for user %d: %v", userID, err)
+			http.Error(w, "Error fetching following", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Return empty list for private profiles when user is not a follower
+		following = []models.User{}
+		log.Printf("Returning empty following list due to privacy restrictions for user %d", userID)
 	}
 
 	// Ensure we always return an array, even if the user is not following anyone
