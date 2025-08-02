@@ -32,9 +32,13 @@ func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
 
 		group.CreatorID = userID
 
+		// Debug: Log the received privacy setting
+		log.Printf("🔍 DEBUG: Received privacy_setting: '%s'", group.PrivacySetting)
+
 		// Set default privacy setting if not provided
 		if group.PrivacySetting == "" {
 			group.PrivacySetting = "public"
+			log.Printf("🔍 DEBUG: Privacy setting was empty, defaulting to 'public'")
 		}
 
 		log.Printf("📦 Creating group: %+v", group)

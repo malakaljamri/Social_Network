@@ -9,12 +9,12 @@ import (
 )
 
 type Group struct {
-	ID             int
-	Name           string
-	Description    string
-	CreatorID      int
-	CreatedAt      string
-	PrivacySetting string
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	CreatorID      int    `json:"creator_id"`
+	CreatedAt      string `json:"created_at"`
+	PrivacySetting string `json:"privacy_setting"`
 }
 
 type GroupWithCreator struct {
