@@ -73,7 +73,9 @@ const GroupChat = {
                 const res = await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
                 const data = await res.json();
                 this.messages = Array.isArray(data) ? data : [];
+                console.log('GroupChat: Fetched history for group', this.groupId, 'messages:', this.messages.length);
             } catch (e) {
+                console.error('GroupChat: Error fetching history:', e);
                 this.messages = [];
             }
             this.loading = false;
@@ -82,8 +84,11 @@ const GroupChat = {
         sendMessage() {
             if (!this.input.trim()) return;
             if (this.websocket && this.websocket.state.connected) {
+                console.log('GroupChat: Sending message to group', this.groupId, ':', this.input);
                 this.websocket.sendGroupChatMessage(this.groupId, this.input);
                 this.input = '';
+            } else {
+                console.error('GroupChat: WebSocket not connected');
             }
         },
         formatTimestamp(ts) {
@@ -118,9 +123,22 @@ const GroupChat = {
             await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
         },
         receiveMessage(msg) {
+            console.log('GroupChat: Received message for group', this.groupId, ':', msg);
             if (msg.group_id === this.groupId) {
-                this.messages.push(msg);
-                this.$nextTick(this.scrollToBottom);
+                // Check if message already exists to avoid duplicates
+                const existingMessage = this.messages.find(m => 
+                    m.sender_id === msg.sender_id && 
+                    m.content === msg.content && 
+                    m.timestamp === msg.timestamp
+                );
+                
+                if (!existingMessage) {
+                    this.messages.push(msg);
+                    console.log('GroupChat: Added new message to group', this.groupId, 'total messages:', this.messages.length);
+                    this.$nextTick(this.scrollToBottom);
+                } else {
+                    console.log('GroupChat: Message already exists, skipping duplicate');
+                }
             }
         }
     },
@@ -128,13 +146,18 @@ const GroupChat = {
         document.addEventListener('click', this.closeEmojiPickerOnClickOutside);
         // Get current user ID from root
         this.currentUserId = this.$root.currentUser?.id;
+        console.log('GroupChat: Component mounted for group', this.groupId, 'current user:', this.currentUserId);
         this.fetchHistory();
-        window.addEventListener('group-chat-message', this._onGroupChatMessage = (e) => {
+        
+        // Listen for group chat messages
+        this._onGroupChatMessage = (e) => {
             const msg = e.detail;
-            if (msg.group_id === this.groupId) {
-                this.receiveMessage(msg);
-            }
-        });
+            console.log('GroupChat: Received group-chat-message event:', msg);
+            this.receiveMessage(msg);
+        };
+        
+        window.addEventListener('group-chat-message', this._onGroupChatMessage);
+        
         this.$nextTick(() => {
             if (this.$refs.inputBox) this.$refs.inputBox.focus();
             const c = this.$refs.messagesContainer;

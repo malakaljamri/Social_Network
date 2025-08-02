@@ -93,7 +93,6 @@ const WebSocketPlugin = {
 
         // Handle incoming WebSocket messages
         function handleWebSocketMessage(message) {
-            console.log("Handling message:", message);
             switch(message.type) {
                 case 'user_status':
                     handleUserStatus(message.content);
@@ -121,6 +120,14 @@ const WebSocketPlugin = {
                     break;
                 case 'error':
                     console.error("Server error:", message.content);
+                    // Show user-friendly error message
+                    if (typeof message.content === 'string') {
+                        showToastNotification({
+                            type: 'error',
+                            message: message.content,
+                            duration: 5000
+                        });
+                    }
                     break;
                 case 'notification':
                 case 'new_notification':
@@ -190,6 +197,7 @@ const WebSocketPlugin = {
 
         // Handle group chat messages
         function handleGroupChatMessage(data) {
+            console.log('WebSocket: Handling group chat message:', data);
             window.dispatchEvent(new CustomEvent('group-chat-message', { detail: data }));
         }
 
@@ -358,11 +366,15 @@ const WebSocketPlugin = {
 
         // Send group chat message
         function sendGroupChatMessage(groupId, message) {
-            if (!wsState.connected) return;
+            if (!wsState.connected) {
+                console.error('WebSocket: Cannot send group chat message - not connected');
+                return;
+            }
             const data = {
                 type: 'group_chat',
                 content: { group_id: groupId, content: message }
             };
+            console.log('WebSocket: Sending group chat message:', data);
             socket.send(JSON.stringify(data));
         }
 

@@ -169,9 +169,10 @@ func CountUnreadGroupMessages(groupID, userID int) int {
 		lastOpenTime = "1970-01-01 00:00:00"
 	}
 	// Use a more explicit timestamp comparison to avoid precision issues
-	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`
+	// Exclude messages sent by the user themselves
+	query := `SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?) AND sender_id != ?`
 	var count int
-	err = db.QueryRow(query, groupID, lastOpenTime).Scan(&count)
+	err = db.QueryRow(query, groupID, lastOpenTime, userID).Scan(&count)
 	if err != nil {
 		return 0
 	}
@@ -212,7 +213,8 @@ func GetUnreadGroupCountsForUser(userID int) (map[int]int, error) {
 				openTime = lastOpenTime.String
 			}
 			var count int
-			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?)`, groupID, openTime).Scan(&count)
+			// Exclude messages sent by the user themselves
+			err2 := db.QueryRow(`SELECT COUNT(*) FROM group_messages WHERE group_id = ? AND datetime(timestamp) > datetime(?) AND sender_id != ?`, groupID, openTime, userID).Scan(&count)
 			if err2 == nil {
 				counts[groupID] = count
 			}

@@ -573,6 +573,7 @@ INSERT INTO "groups" VALUES(12,'Nature Lovers','A group for sharing experiences 
 INSERT INTO "groups" VALUES(13,'zzzzzzzzzzzzzzzz','zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',52,'2025-06-02 15:18:17','public');
 INSERT INTO "groups" VALUES(14,'22222222222222222222','222222222222222222222',52,'2025-06-05 14:18:32','public');
 INSERT INTO "groups" VALUES(15,'private1','1111111111111111111111111111111111',52,'2025-07-01 14:43:30','private');
+INSERT INTO group_members VALUES(4,4,'accepted');
 INSERT INTO group_members VALUES(1,2,'accepted');
 INSERT INTO group_members VALUES(1,3,'pending');
 INSERT INTO group_members VALUES(2,4,'accepted');

@@ -277,8 +277,10 @@ const NavBar = {
             this.showModal = false;
         },
         handleUnreadCountUpdate(event) {
+            console.log('NavBar: Received unread group count update:', event.detail);
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
+            console.log('NavBar: Updated unread counts:', this.unreadCounts);
         },
         fetchUnreadCountsIfLoggedIn() {
             if (this.currentUserValue.isLoggedIn) {
