@@ -84,7 +84,7 @@ func main() {
 	mux.HandleFunc("/api/profile/image", handlers.UpdateProfileImage)
 	mux.HandleFunc("/api/profile/info", handlers.UpdateProfileInfo)
 	mux.HandleFunc("/api/profile/privacy", handlers.ToggleProfilePrivacy)
-	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest)
+	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest(db))
 	mux.HandleFunc("/api/profile/follow-requests", handlers.GetPendingFollowRequestsHandler)
 
 	// Other API routes

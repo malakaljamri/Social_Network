@@ -431,6 +431,19 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 				// Don't fail the request if notification creation fails
 			} else {
 				log.Printf("SUCCESS: Created follow request notification for user %d", followReq.UserID)
+				// Broadcast WebSocket notification
+				broadcastFollowNotification(db, followReq.UserID, "follow_request", currentUserID)
+			}
+		} else {
+			// Create notification for the followed user when someone follows a public profile
+			err = database.CreateFollowNotification(db, followReq.UserID, "new_follower", currentUserID)
+			if err != nil {
+				log.Printf("WARNING: Failed to create new follower notification: %v", err)
+				// Don't fail the request if notification creation fails
+			} else {
+				log.Printf("SUCCESS: Created new follower notification for user %d", followReq.UserID)
+				// Broadcast WebSocket notification
+				broadcastFollowNotification(db, followReq.UserID, "new_follower", currentUserID)
 			}
 		}
 
@@ -729,51 +742,77 @@ func ToggleProfilePrivacy(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleFollowRequest handles accepting or declining follow requests
-func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
-	// Get current user ID from session
-	currentUserID, err := database.GetUserIDFromSession(r)
-	if err != nil {
-		utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
+func HandleFollowRequest(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get current user ID from session
+		currentUserID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
 
-	// Get follower ID from URL
-	followerIDStr := r.URL.Query().Get("follower_id")
-	followerID, err := strconv.Atoi(followerIDStr)
-	if err != nil {
-		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid follower ID")
-		return
-	}
+		// Get follower ID from URL
+		followerIDStr := r.URL.Query().Get("follower_id")
+		followerID, err := strconv.Atoi(followerIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid follower ID")
+			return
+		}
 
-	// Parse request body
-	var requestData struct {
-		Action string `json:"action"` // "accept" or "decline"
-	}
+		// Parse request body
+		var requestData struct {
+			Action string `json:"action"` // "accept" or "decline"
+		}
 
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
+		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
 
-	// Handle the follow request
-	switch requestData.Action {
-	case "accept":
-		err = database.AcceptFollowRequest(followerID, currentUserID)
-	case "decline":
-		err = database.DeclineFollowRequest(followerID, currentUserID)
-	default:
-		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid action")
-		return
-	}
+		// Handle the follow request
+		switch requestData.Action {
+		case "accept":
+			err = database.AcceptFollowRequest(followerID, currentUserID)
+			if err == nil {
+				// Create notification for the follower that their request was accepted
+				notificationErr := database.CreateFollowNotification(db, followerID, "follow_accepted", currentUserID)
+				if notificationErr != nil {
+					log.Printf("WARNING: Failed to create follow accepted notification: %v", notificationErr)
+					// Don't fail the request if notification creation fails
+				} else {
+					log.Printf("SUCCESS: Created follow accepted notification for user %d", followerID)
+					// Broadcast WebSocket notification
+					broadcastFollowNotification(db, followerID, "follow_accepted", currentUserID)
+				}
+			}
+		case "decline":
+			err = database.DeclineFollowRequest(followerID, currentUserID)
+			if err == nil {
+				// Create notification for the follower that their request was declined
+				notificationErr := database.CreateFollowNotification(db, followerID, "follow_declined", currentUserID)
+				if notificationErr != nil {
+					log.Printf("WARNING: Failed to create follow declined notification: %v", notificationErr)
+					// Don't fail the request if notification creation fails
+				} else {
+					log.Printf("SUCCESS: Created follow declined notification for user %d", followerID)
+					// Broadcast WebSocket notification
+					broadcastFollowNotification(db, followerID, "follow_declined", currentUserID)
+				}
+			}
+		default:
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid action")
+			return
+		}
 
-	if err != nil {
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Error handling follow request")
-		return
-	}
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Error handling follow request")
+			return
+		}
 
-	utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
-		"message": "Follow request handled successfully",
-	})
+		utils.WriteJSONResponse(w, http.StatusOK, map[string]string{
+			"message": "Follow request handled successfully",
+		})
+	}
 }
 
 // GetPendingFollowRequestsHandler returns all pending follow requests for the current user
@@ -852,4 +891,47 @@ func ChangePasswordHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Password changed successfully"})
+}
+
+// broadcastFollowNotification sends a WebSocket notification for follow events
+func broadcastFollowNotification(db *sql.DB, userID int, notificationType string, referenceID int) {
+	// Get the username for the reference ID (the user who performed the action)
+	username, err := database.GetUsernameByID(db, referenceID)
+	if err != nil {
+		log.Printf("WARNING: Failed to get username for broadcast notification %d: %v", referenceID, err)
+		username = "Someone"
+	}
+
+	// Create the notification message
+	notification := websocket.Message{
+		Type: "new_notification",
+		Content: map[string]interface{}{
+			"user_id":      userID,
+			"type":         notificationType,
+			"reference_id": referenceID,
+			"message":      generateNotificationMessageForBroadcast(notificationType, username),
+		},
+		UserID: userID,
+	}
+
+	// Broadcast the notification
+	jsonNotification, _ := json.Marshal(notification)
+	websocket.MainHub.Broadcast <- jsonNotification
+	log.Printf("SUCCESS: Broadcasted follow notification to user %d, type: %s", userID, notificationType)
+}
+
+// generateNotificationMessageForBroadcast creates a message for WebSocket broadcast
+func generateNotificationMessageForBroadcast(notificationType, username string) string {
+	switch notificationType {
+	case "follow_request":
+		return username + " sent you a follow request"
+	case "follow_accepted":
+		return username + " accepted your follow request"
+	case "follow_declined":
+		return username + " declined your follow request"
+	case "new_follower":
+		return username + " started following you"
+	default:
+		return "You have a new notification"
+	}
 }

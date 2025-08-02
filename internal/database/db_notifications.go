@@ -110,6 +110,45 @@ func generateNotificationMessage(db *sql.DB, notificationType string, referenceI
 		log.Printf("DEBUG: Generated follow request message: %s", message)
 		return message
 
+	case "follow_accepted":
+		// Get followed user name (the one who accepted the request)
+		var username string
+		query := `SELECT username FROM users WHERE id = ?`
+		err := db.QueryRow(query, referenceID).Scan(&username)
+		if err != nil {
+			log.Printf("WARNING: Failed to get username for follow accepted %d: %v", referenceID, err)
+			return "Your follow request was accepted"
+		}
+		message := username + " accepted your follow request"
+		log.Printf("DEBUG: Generated follow accepted message: %s", message)
+		return message
+
+	case "follow_declined":
+		// Get followed user name (the one who declined the request)
+		var username string
+		query := `SELECT username FROM users WHERE id = ?`
+		err := db.QueryRow(query, referenceID).Scan(&username)
+		if err != nil {
+			log.Printf("WARNING: Failed to get username for follow declined %d: %v", referenceID, err)
+			return "Your follow request was declined"
+		}
+		message := username + " declined your follow request"
+		log.Printf("DEBUG: Generated follow declined message: %s", message)
+		return message
+
+	case "new_follower":
+		// Get follower name (the one who started following)
+		var username string
+		query := `SELECT username FROM users WHERE id = ?`
+		err := db.QueryRow(query, referenceID).Scan(&username)
+		if err != nil {
+			log.Printf("WARNING: Failed to get username for new follower %d: %v", referenceID, err)
+			return "Someone started following you"
+		}
+		message := username + " started following you"
+		log.Printf("DEBUG: Generated new follower message: %s", message)
+		return message
+
 	case "group_invitation":
 		// Get group name
 		var groupName string

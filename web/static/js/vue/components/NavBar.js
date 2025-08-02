@@ -21,16 +21,42 @@ const NavBar = {
                             <p>No notifications</p>
                         </div>
                         <div v-else>
-                            <div v-for="notification in notifications" :key="notification.id" 
-                                 @click="handleNotificationClick(notification); markNotificationAsRead(notification.id)"
+                            <!-- Unread notifications -->
+                            <div v-for="notification in unreadNotifications" :key="notification.id" 
+                                 @click="handleNotificationClick(notification)"
                                  :style="{ 
                                      padding: 'var(--spacing-md) 0', 
                                      borderBottom: '1px solid var(--surface-alt-color)', 
                                      cursor: 'pointer',
-                                     backgroundColor: notification.is_read ? 'transparent' : 'var(--sub-card-color)',
+                                     backgroundColor: 'var(--sub-card-color)',
                                      transition: 'var(--transition-colors)',
                                      borderRadius: 'var(--border-radius-sm)',
                                      marginBottom: 'var(--spacing-xs)'
+                                 }">
+                                <p style="margin: 0; font-weight: var(--font-weight-medium); color: var(--text-color);">{{ notification.message || 'Notification' }}</p>
+                                <small style="font-size: var(--font-size-xs); color: var(--text-muted);">{{ new Date(notification.created_at).toLocaleString() }}</small>
+                            </div>
+                            
+                            <!-- Read notifications separator -->
+                            <div v-if="unreadNotifications.length > 0 && readNotifications.length > 0" 
+                                 style="padding: var(--spacing-md) 0; border-bottom: 2px solid var(--surface-alt-color); margin: var(--spacing-md) 0;">
+                                <p style="margin: 0; font-size: var(--font-size-sm); color: var(--text-muted); text-align: center; font-style: italic;">
+                                    Read notifications (will not persist after page refresh)
+                                </p>
+                            </div>
+                            
+                            <!-- Read notifications -->
+                            <div v-for="notification in readNotifications" :key="notification.id" 
+                                 @click="handleNotificationClick(notification)"
+                                 :style="{ 
+                                     padding: 'var(--spacing-md) 0', 
+                                     borderBottom: '1px solid var(--surface-alt-color)', 
+                                     cursor: 'pointer',
+                                     backgroundColor: 'transparent',
+                                     transition: 'var(--transition-colors)',
+                                     borderRadius: 'var(--border-radius-sm)',
+                                     marginBottom: 'var(--spacing-xs)',
+                                     opacity: '0.7'
                                  }">
                                 <p style="margin: 0; font-weight: var(--font-weight-medium); color: var(--text-color);">{{ notification.message || 'Notification' }}</p>
                                 <small style="font-size: var(--font-size-xs); color: var(--text-muted);">{{ new Date(notification.created_at).toLocaleString() }}</small>
@@ -86,6 +112,12 @@ const NavBar = {
                 total: total
             });
             return total;
+        },
+        unreadNotifications() {
+            return this.notifications.filter(notification => !notification.is_read);
+        },
+        readNotifications() {
+            return this.notifications.filter(notification => notification.is_read);
         }
     },
     data() {
@@ -200,12 +232,32 @@ const NavBar = {
             if (!this.notifications || this.notifications.length === 0) {
                 notificationsContent = `<div style="padding: var(--spacing-md) var(--spacing-lg); color: var(--text-secondary); text-align: center;"><p>No notifications</p></div>`;
             } else {
-                notificationsContent = this.notifications.slice(0, 5).map(notification => 
-                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--surface-alt-color); cursor: pointer; transition: var(--transition-colors); ${!notification.is_read ? 'background-color: var(--sub-card-color);' : ''}">
+                // Get unread and read notifications
+                const unreadNotifications = this.notifications.filter(n => !n.is_read);
+                const readNotifications = this.notifications.filter(n => n.is_read);
+                
+                // Build unread notifications
+                const unreadContent = unreadNotifications.slice(0, 5).map(notification => 
+                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--surface-alt-color); cursor: pointer; transition: var(--transition-colors); background-color: var(--sub-card-color);">
                         <p style="margin: 0; font-size: var(--font-size-sm); color: var(--text-color); font-weight: var(--font-weight-medium);">${notification.message || 'Notification'}</p>
                         <small style="color: var(--text-muted); font-size: var(--font-size-xs);">${new Date(notification.created_at).toLocaleDateString()}</small>
                     </div>`
                 ).join('');
+                
+                // Build read notifications (show fewer in dropdown)
+                const readContent = readNotifications.slice(0, 2).map(notification => 
+                    `<div class="notification-item" data-notification-id="${notification.id}" style="padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--surface-alt-color); cursor: pointer; transition: var(--transition-colors); opacity: 0.7;">
+                        <p style="margin: 0; font-size: var(--font-size-sm); color: var(--text-color); font-weight: var(--font-weight-medium);">${notification.message || 'Notification'}</p>
+                        <small style="color: var(--text-muted); font-size: var(--font-size-xs);">${new Date(notification.created_at).toLocaleDateString()}</small>
+                    </div>`
+                ).join('');
+                
+                // Combine content
+                notificationsContent = unreadContent;
+                if (unreadContent && readContent) {
+                    notificationsContent += `<div style="padding: var(--spacing-sm) var(--spacing-lg); border-bottom: 1px solid var(--surface-alt-color); text-align: center;"><small style="color: var(--text-muted); font-style: italic;">Read notifications</small></div>`;
+                }
+                notificationsContent += readContent;
             }
             
             dropdown.innerHTML = `
@@ -367,18 +419,55 @@ const NavBar = {
         handleNotificationClick(notification) {
             console.log('NavBar: Notification clicked:', notification);
             
-            // Check if this is a group join request notification
-            if (notification.type === 'group_join_request') {
-                console.log('NavBar: Group join request notification detected, navigating to groups');
-                // Navigate to groups view and emit event to open join requests modal
-                this.$emit('navigate', 'groups');
-                
-                // Dispatch a custom event that GroupsView can listen to
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('open-join-requests-modal', {
-                        detail: { groupId: notification.reference_id }
-                    }));
-                }, 100);
+            // Mark notification as read first
+            this.markNotificationAsRead(notification.id);
+            
+            // Check notification type and navigate accordingly
+            switch (notification.type) {
+                case 'group_join_request':
+                    console.log('NavBar: Group join request notification detected, navigating to groups');
+                    // Navigate to groups view and emit event to open join requests modal
+                    this.$emit('navigate', 'groups');
+                    
+                    // Dispatch a custom event that GroupsView can listen to
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('open-join-requests-modal', {
+                            detail: { groupId: notification.reference_id }
+                        }));
+                    }, 100);
+                    break;
+                    
+                case 'follow_request':
+                    console.log('NavBar: Follow request notification detected, navigating to profile');
+                    // Navigate to profile view to show pending follow requests
+                    this.$emit('navigate', 'profile');
+                    
+                    // Dispatch event to open follow requests modal
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('open-follow-requests-modal', {
+                            detail: { userId: this.currentUserValue.id }
+                        }));
+                    }, 100);
+                    break;
+                    
+                case 'follow_accepted':
+                case 'follow_declined':
+                case 'new_follower':
+                    console.log('NavBar: Follow-related notification detected, navigating to profile');
+                    // Navigate to profile view
+                    this.$emit('navigate', 'profile');
+                    break;
+                    
+                case 'group_event':
+                    console.log('NavBar: Group event notification detected, navigating to groups');
+                    // Navigate to groups view
+                    this.$emit('navigate', 'groups');
+                    break;
+                    
+                default:
+                    console.log('NavBar: Unknown notification type, staying on current view');
+                    // For unknown types, just mark as read and stay on current view
+                    break;
             }
         },
         debugNotifications() {
