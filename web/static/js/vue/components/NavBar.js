@@ -75,6 +75,7 @@ const NavBar = {
                     👥 Groups
                     <span v-if="myId && totalUnreadGroupCount > 0" class="unread-badge right-badge">{{ totalUnreadGroupCount }}</span>
                 </button>
+
             </div>
             <div v-if="currentUserValue.isLoggedIn" class="nav-right" style="display: flex; align-items: center; gap: 24px; flex: 1; justify-content: flex-end;">
                 <span class="user-greeting">{{ currentUserValue.username }} 👋</span>
@@ -105,10 +106,11 @@ const NavBar = {
         },
         totalUnreadGroupCount() {
             if (!this.myId) return 0;
-            const total = Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0);
+            const total = Object.values(this.unreadCounts).reduce((a, b) => a + (b || 0), 0) + this.pendingInvitationsData;
             console.log('NavBar: Total unread group count calculation:', {
                 myId: this.myId,
                 unreadCounts: this.unreadCounts,
+                pendingInvitations: this.pendingInvitationsData,
                 total: total
             });
             return total;
@@ -118,7 +120,8 @@ const NavBar = {
         },
         readNotifications() {
             return this.notifications.filter(notification => notification.is_read);
-        }
+        },
+
     },
     data() {
         return {
@@ -127,7 +130,8 @@ const NavBar = {
             unreadCounts: {}, // Track unread group counts
             dropdownPosition: { x: 0, y: 0 },
             notifications: [], // Initialize notifications as empty array
-            unreadNotificationCount: 0
+            unreadNotificationCount: 0,
+            pendingInvitationsData: 0
         };
     },
     mounted() {
@@ -139,6 +143,7 @@ const NavBar = {
         this.fetchUnreadNotificationCount();
 
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        window.addEventListener('invitation-count-update', this.handleInvitationCountUpdate);
         // Listen for websocket notification updates
         this._notificationUpdateHandler = () => {
             console.log('NavBar: Received notification-update event, refreshing notifications.');
@@ -174,6 +179,7 @@ const NavBar = {
         goToGroups() {
             this.$emit('navigate', 'groups');
         },
+
         goToProfile() {
             this.$root.selectedProfileUserId = null;
             this.$emit('navigate', 'profile');
@@ -334,6 +340,12 @@ const NavBar = {
             this.unreadCounts[groupId] = count;
             console.log('NavBar: Updated unread counts:', this.unreadCounts);
         },
+        handleInvitationCountUpdate(event) {
+            console.log('NavBar: Received invitation count update:', event.detail);
+            const { count } = event.detail;
+            this.pendingInvitationsData = count;
+            console.log('NavBar: Updated invitation count:', this.pendingInvitationsData);
+        },
         fetchUnreadCountsIfLoggedIn() {
             if (this.currentUserValue.isLoggedIn) {
                 console.log('NavBar: Fetching unread group counts for user:', this.currentUserValue.id);
@@ -394,6 +406,7 @@ const NavBar = {
                     });
             }
         },
+
         
         markNotificationAsRead(notificationId) {
             fetch('/api/notifications/mark-read', {
@@ -498,6 +511,7 @@ const NavBar = {
     beforeUnmount() {
         document.removeEventListener('click', this.handleOutsideClick);
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        window.removeEventListener('invitation-count-update', this.handleInvitationCountUpdate);
         // Remove websocket notification event listener
         if (this._notificationUpdateHandler) {
             window.removeEventListener('notification-update', this._notificationUpdateHandler);

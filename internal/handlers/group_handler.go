@@ -351,24 +351,29 @@ func GetGroupJoinRequestsHandler(db *sql.DB) http.HandlerFunc {
 // Accept or decline a join request (owner only)
 func HandleGroupJoinRequestHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/handle-join-request")
+
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
-		var req struct {
-			GroupID      int    `json:"group_id"`
-			TargetUserID int    `json:"user_id"`
-			Action       string `json:"action"` // "accept" or "decline"
+
+		var request struct {
+			GroupID int    `json:"group_id"`
+			UserID  int    `json:"user_id"`
+			Action  string `json:"action"`
 		}
-		err = json.NewDecoder(r.Body).Decode(&req)
+
+		err = json.NewDecoder(r.Body).Decode(&request)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
+
 		// Check if user is group owner
 		var creatorID int
-		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", req.GroupID).Scan(&creatorID)
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", request.GroupID).Scan(&creatorID)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusNotFound, "Group not found")
 			return
@@ -377,12 +382,163 @@ func HandleGroupJoinRequestHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusForbidden, "Only group owner can handle join requests")
 			return
 		}
-		err = database.HandleGroupJoinRequest(db, req.GroupID, req.TargetUserID, req.Action)
+
+		// Handle the join request
+		err = database.HandleGroupJoinRequest(db, request.GroupID, request.UserID, request.Action)
 		if err != nil {
-			utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+			log.Printf("❌ Failed to handle join request: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to handle join request: %v", err))
 			return
 		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+		})
+	}
+}
+
+// SendGroupInvitationHandler handles sending group invitations
+func SendGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/invite")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		var request struct {
+			GroupID  int    `json:"group_id"`
+			Username string `json:"username"`
+		}
+
+		err = json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		// Get invitee user ID by username
+		var inviteeID int
+		err = db.QueryRow("SELECT id FROM users WHERE username = ?", request.Username).Scan(&inviteeID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusNotFound, "User not found")
+			return
+		}
+
+		// Create the invitation
+		err = database.CreateGroupInvitation(db, request.GroupID, userID, inviteeID)
+		if err != nil {
+			log.Printf("❌ Failed to create group invitation: %v", err)
+			utils.WriteJSONError(w, http.StatusBadRequest, fmt.Sprintf("Failed to create invitation: %v", err))
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+		})
+	}
+}
+
+// GetUserGroupInvitationsHandler gets all pending group invitations for the current user
+func GetUserGroupInvitationsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/invitations")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		invitations, err := database.GetUserGroupInvitations(db, userID)
+		if err != nil {
+			log.Printf("❌ Failed to get user group invitations: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get invitations")
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		json.NewEncoder(w).Encode(invitations)
+	}
+}
+
+// HandleGroupInvitationHandler handles accepting or declining group invitations
+func HandleGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/handle-invitation")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		var request struct {
+			InvitationID int    `json:"invitation_id"`
+			Action       string `json:"action"` // accept or decline
+		}
+
+		err = json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		if request.Action != "accept" && request.Action != "decline" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Action must be 'accept' or 'decline'")
+			return
+		}
+
+		// Handle the invitation
+		err = database.HandleGroupInvitation(db, request.InvitationID, userID, request.Action)
+		if err != nil {
+			log.Printf("❌ Failed to handle group invitation: %v", err)
+			utils.WriteJSONError(w, http.StatusBadRequest, fmt.Sprintf("Failed to handle invitation: %v", err))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+		})
+	}
+}
+
+// GetGroupInvitationsHandler gets all invitations for a specific group (for group owners)
+func GetGroupInvitationsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/invitations/group")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		groupIDStr := r.URL.Query().Get("group_id")
+		if groupIDStr == "" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
+			return
+		}
+
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
+			return
+		}
+
+		invitations, err := database.GetGroupInvitations(db, groupID, userID)
+		if err != nil {
+			log.Printf("❌ Failed to get group invitations: %v", err)
+			utils.WriteJSONError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get invitations: %v", err))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(invitations)
 	}
 }

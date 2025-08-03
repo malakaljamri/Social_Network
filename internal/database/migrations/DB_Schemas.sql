@@ -85,6 +85,18 @@ CREATE TABLE IF NOT EXISTS group_members (
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+CREATE TABLE IF NOT EXISTS group_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    inviter_id INTEGER NOT NULL,
+    invitee_id INTEGER NOT NULL,
+    status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (invitee_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (group_id, invitee_id)
+);
 CREATE TABLE IF NOT EXISTS group_messages (
   id INTEGER PRIMARY KEY,
   group_id INTEGER,
@@ -152,4 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_post_viewers_post_id_viewer_id
 ON post_viewers(post_id, viewer_id);
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_group_invitations_group_id ON group_invitations(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_invitations_invitee_id ON group_invitations(invitee_id);
+CREATE INDEX IF NOT EXISTS idx_group_invitations_status ON group_invitations(status);
 COMMIT;

@@ -6,7 +6,8 @@ const GroupList = {
             searchQuery: '',
             groupAccess: new Map(), // Store access status for each group
             groupMembership: new Map(), // Store membership status for each group
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            pendingInvitationsCount: 0
         };
     },
     computed: {
@@ -22,6 +23,7 @@ const GroupList = {
     mounted() {
         this.fetchAllGroupAccess();
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        window.addEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
 
         // Fetch unread group counts on page load only if user is logged in
         if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
@@ -34,6 +36,9 @@ const GroupList = {
                     this.unreadCounts = {};
                 });
         }
+
+        // Fetch pending invitations count
+        this.fetchPendingInvitationsCount();
     },
     watch: {
         groups: {
@@ -120,15 +125,45 @@ const GroupList = {
             if (membershipStatus === 'pending') {
                 this.groupAccess.set(groupId, false);
             }
+        },
+        openGroupInvitations() {
+            // Dispatch event to open group invitations modal
+            window.dispatchEvent(new CustomEvent('open-group-invitations-modal'));
+        },
+        fetchPendingInvitationsCount() {
+            if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
+                fetch('/api/groups/invitations', { credentials: 'include' })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('G_GroupList: Received pending invitations count:', data);
+                        this.pendingInvitationsCount = Array.isArray(data) ? data.length : 0;
+                        // Dispatch event to update NavBar counter
+                        window.dispatchEvent(new CustomEvent('invitation-count-update', {
+                            detail: { count: this.pendingInvitationsCount }
+                        }));
+                    })
+                    .catch((error) => {
+                        console.error('G_GroupList: Error fetching pending invitations count:', error);
+                        this.pendingInvitationsCount = 0;
+                        window.dispatchEvent(new CustomEvent('invitation-count-update', {
+                            detail: { count: 0 }
+                        }));
+                    });
+            }
         }
     },
     beforeUnmount() {
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
+        window.removeEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
     },
     template: `
         <div class="group-list-container">
             <h3 class="group-list-header">List of Groups</h3>
             <button class="button" style="margin-bottom: 10px; width: 100%;" @click="showCreateGroupModal">➕ Create Group</button>
+            <button class="button" style="margin-bottom: 10px; width: 100%; position: relative;" @click="openGroupInvitations">
+                📨 Invitations
+                <span v-if="pendingInvitationsCount > 0" class="unread-badge right-badge">{{ pendingInvitationsCount }}</span>
+            </button>
             <input type="text" placeholder="Search groups..." class="group-search" v-model="searchQuery">
             <div class="group-list">
                 <div v-for="group in filteredGroups" :key="group.ID"

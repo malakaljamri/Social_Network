@@ -5,6 +5,7 @@ const GroupsView = {
             groups: [],
             selectedGroupId: null,
             showCreateGroupModal: false,
+            showGroupInvitationsModal: false,
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
@@ -96,6 +97,12 @@ const GroupsView = {
         handleOpenCreateGroupModal() {
             this.showCreateGroupModal = true;
         },
+        openGroupInvitationsModal() {
+            this.showGroupInvitationsModal = true;
+        },
+        closeGroupInvitationsModal() {
+            this.showGroupInvitationsModal = false;
+        },
         handleEventClick(event) {
             this.$emit('event-click', event);
         },
@@ -118,6 +125,10 @@ const GroupsView = {
             } else {
                 console.log('GroupsView: Group not found for ID:', groupId);
             }
+        },
+        handleOpenGroupInvitationsModal(event) {
+            console.log('GroupsView: Received open-group-invitations-modal event');
+            this.openGroupInvitationsModal();
         },
         openChat(user) {
             console.log('🔍 GroupsView openChat called with user:', user);
@@ -143,6 +154,10 @@ const GroupsView = {
             console.log('🔍 GroupsView viewUserProfile called with userId:', userId);
             // Use the root method to view user profile
             this.$root.viewUserProfile(userId);
+        },
+        handleInvitationHandled(event) {
+            console.log('🔍 Invitation handled:', event);
+            // Could refresh groups or show success message
         }
     },
     mounted() {
@@ -151,10 +166,14 @@ const GroupsView = {
         
         // Listen for custom event to open join requests modal
         window.addEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
+        
+        // Listen for custom event to open group invitations modal
+        window.addEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
     },
     beforeUnmount() {
-        // Clean up event listener
+        // Clean up event listeners
         window.removeEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
+        window.removeEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
     },
     template: `
         <div class="layout-grid groups-layout">
@@ -193,6 +212,11 @@ const GroupsView = {
                 v-if="showCreateGroupModal"
                 @created="handleGroupCreated"
                 @close="showCreateGroupModal = false"
+            />
+            <g-group-invitations-modal
+                v-if="showGroupInvitationsModal"
+                @close="closeGroupInvitationsModal"
+                @invitation-handled="handleInvitationHandled"
             />
         </div>
     `

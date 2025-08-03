@@ -39,6 +39,19 @@ type GroupMember struct {
 	Online   bool   `json:"Online"`
 }
 
+// GroupInvitation represents a group invitation
+type GroupInvitation struct {
+	ID          int       `json:"id"`
+	GroupID     int       `json:"group_id"`
+	InviterID   int       `json:"inviter_id"`
+	InviteeID   int       `json:"invitee_id"`
+	Status      string    `json:"status"` // pending, accepted, declined
+	CreatedAt   time.Time `json:"created_at"`
+	GroupName   string    `json:"group_name,omitempty"`
+	InviterName string    `json:"inviter_name,omitempty"`
+	InviteeName string    `json:"invitee_name,omitempty"`
+}
+
 func CreateGroup(db *sql.DB, group *Group) error {
 	if group == nil {
 		return errors.New("group cannot be nil")
@@ -315,4 +328,162 @@ func HandleGroupJoinRequest(db *sql.DB, groupID, userID int, action string) erro
 	}
 	log.Printf("✅ HandleGroupJoinRequest: %s request for user %d in group %d", status, userID, groupID)
 	return nil
+}
+
+// CreateGroupInvitation creates a new group invitation
+func CreateGroupInvitation(db *sql.DB, groupID, inviterID, inviteeID int) error {
+	// Check if invitation already exists
+	var exists int
+	err := db.QueryRow("SELECT 1 FROM group_invitations WHERE group_id = ? AND invitee_id = ?", groupID, inviteeID).Scan(&exists)
+	if err == nil {
+		return fmt.Errorf("invitation already exists")
+	} else if err != sql.ErrNoRows {
+		return err
+	}
+
+	// Check if user is already a member
+	err = db.QueryRow("SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?", groupID, inviteeID).Scan(&exists)
+	if err == nil {
+		return fmt.Errorf("user is already a member of this group")
+	} else if err != sql.ErrNoRows {
+		return err
+	}
+
+	// Check if inviter has permission to invite (must be group owner or member)
+	var inviterStatus string
+	err = db.QueryRow("SELECT status FROM group_members WHERE group_id = ? AND user_id = ?", groupID, inviterID).Scan(&inviterStatus)
+	if err == sql.ErrNoRows {
+		// Check if inviter is the group creator
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+		if err != nil || creatorID != inviterID {
+			return fmt.Errorf("you don't have permission to invite users to this group")
+		}
+	} else if err != nil {
+		return err
+	} else if inviterStatus != "accepted" {
+		return fmt.Errorf("you must be an accepted member to invite users")
+	}
+
+	// Create the invitation
+	_, err = db.Exec("INSERT INTO group_invitations (group_id, inviter_id, invitee_id, status) VALUES (?, ?, ?, 'pending')",
+		groupID, inviterID, inviteeID)
+	if err != nil {
+		return err
+	}
+
+	// Create notification for invitee
+	return CreateNotification(db, inviteeID, "group_invitation", groupID)
+}
+
+// GetUserGroupInvitations gets all pending group invitations for a user
+func GetUserGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, error) {
+	query := `
+		SELECT gi.id, gi.group_id, gi.inviter_id, gi.invitee_id, gi.status, gi.created_at,
+		       g.name as group_name, u.username as inviter_name
+		FROM group_invitations gi
+		JOIN groups g ON gi.group_id = g.id
+		JOIN users u ON gi.inviter_id = u.id
+		WHERE gi.invitee_id = ? AND gi.status = 'pending'
+		ORDER BY gi.created_at DESC
+	`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invitations []GroupInvitation
+	for rows.Next() {
+		var inv GroupInvitation
+		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt, &inv.GroupName, &inv.InviterName)
+		if err != nil {
+			return nil, err
+		}
+		invitations = append(invitations, inv)
+	}
+
+	return invitations, nil
+}
+
+// HandleGroupInvitation handles accepting or declining a group invitation
+func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) error {
+	// Get the invitation
+	var inv GroupInvitation
+	err := db.QueryRow("SELECT id, group_id, inviter_id, invitee_id, status FROM group_invitations WHERE id = ? AND invitee_id = ?",
+		invitationID, userID).Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status)
+	if err != nil {
+		return err
+	}
+
+	if inv.Status != "pending" {
+		return fmt.Errorf("invitation has already been handled")
+	}
+
+	// Update invitation status
+	_, err = db.Exec("UPDATE group_invitations SET status = ? WHERE id = ?", action, invitationID)
+	if err != nil {
+		return err
+	}
+
+	if action == "accepted" {
+		// Add user to group members
+		_, err = db.Exec("INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')",
+			inv.GroupID, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetGroupInvitations gets all invitations for a specific group (for group owners)
+func GetGroupInvitations(db *sql.DB, groupID, userID int) ([]GroupInvitation, error) {
+	// Check if user is group owner
+	var creatorID int
+	err := db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+	if err != nil {
+		return nil, err
+	}
+	if creatorID != userID {
+		return nil, fmt.Errorf("only group owner can view invitations")
+	}
+
+	query := `
+		SELECT gi.id, gi.group_id, gi.inviter_id, gi.invitee_id, gi.status, gi.created_at,
+		       g.name as group_name, u1.username as inviter_name, u2.username as invitee_name
+		FROM group_invitations gi
+		JOIN groups g ON gi.group_id = g.id
+		JOIN users u1 ON gi.inviter_id = u1.id
+		JOIN users u2 ON gi.invitee_id = u2.id
+		WHERE gi.group_id = ?
+		ORDER BY gi.created_at DESC
+	`
+
+	rows, err := db.Query(query, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invitations []GroupInvitation
+	for rows.Next() {
+		var inv GroupInvitation
+		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt,
+			&inv.GroupName, &inv.InviterName, &inv.InviteeName)
+		if err != nil {
+			return nil, err
+		}
+		invitations = append(invitations, inv)
+	}
+
+	return invitations, nil
+}
+
+// DeleteGroupInvitation deletes a group invitation
+func DeleteGroupInvitation(db *sql.DB, invitationID int) error {
+	_, err := db.Exec("DELETE FROM group_invitations WHERE id = ?", invitationID)
+	return err
 }

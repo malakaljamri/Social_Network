@@ -8,6 +8,7 @@ const GroupMain = {
             showGroupChatWindow: false,
             showGroupMembers: false,
             showGroupJoinRequestsModal: false,
+            showGroupInviteModal: false,
             groupMembers: [],
             loadingMembers: false,
             newGroupPost: {
@@ -82,9 +83,17 @@ const GroupMain = {
             console.log('🔍 Opening join requests modal for group:', this.selectedGroup?.ID);
             this.showGroupJoinRequestsModal = true;
         },
+        openGroupInviteModal() {
+            console.log('🔍 Opening invite modal for group:', this.selectedGroup?.ID);
+            this.showGroupInviteModal = true;
+        },
         closeGroupJoinRequestsModal() {
             console.log('🔍 Closing join requests modal');
             this.showGroupJoinRequestsModal = false;
+        },
+        closeGroupInviteModal() {
+            console.log('🔍 Closing invite modal');
+            this.showGroupInviteModal = false;
         },
         closeCreateGroupPostModal() {
             this.showCreateGroupPostForm = false;
@@ -165,6 +174,10 @@ const GroupMain = {
             if (action === 'accept' && this.showGroupMembers) {
                 this.fetchGroupMembers();
             }
+        },
+        handleInvitationSent(event) {
+            console.log('🔍 Invitation sent:', event);
+            // Could add success message or other feedback here
         },
         async fetchPendingJoinRequestsCount() {
             if (!this.isGroupOwner || !this.selectedGroup) return;
@@ -293,9 +306,13 @@ const GroupMain = {
                                 <i class="fas fa-users"></i> {{ showGroupMembers ? 'Hide' : 'Show' }} Members
                             </button>
                             <!-- Join Requests button - only for group owner -->
-                            <button v-if="isGroupOwner" @click="openGroupJoinRequestsModal" class="join-requests-btn" style="margin-bottom: 16px;">
+                            <button v-if="isGroupOwner" @click="openGroupJoinRequestsModal" class="join-requests-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-user-plus"></i> Join Requests
                                 <span v-if="pendingJoinRequestsCount > 0" class="unread-badge right-badge">{{ pendingJoinRequestsCount }}</span>
+                            </button>
+                            <!-- Invite Users button - for group owner and members -->
+                            <button v-if="groupAccess" @click="openGroupInviteModal" class="invite-users-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-user-plus"></i> Invite Users
                             </button>
                         </div>
                         
@@ -425,6 +442,14 @@ const GroupMain = {
                 @close="closeGroupJoinRequestsModal"
                 @request-handled="handleJoinRequestHandled"
             />
+            <!-- Group Invite Modal -->
+            <g-group-invite-modal
+                v-if="showGroupInviteModal && selectedGroup"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
+                @close="closeGroupInviteModal"
+                @invitation-sent="handleInvitationSent"
+            />
             <!-- Group Posts Section -->
             <div class="group-posts">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
@@ -459,7 +484,8 @@ const GroupMain = {
     `,
     components: {
         'g-group-events-modal': window.G_GroupEventsModal,
-        'g-group-join-requests-modal': window.G_GroupJoinRequestsModal
+        'g-group-join-requests-modal': window.G_GroupJoinRequestsModal,
+        'g-group-invite-modal': window.G_GroupInviteModal
     }
 };
 window.G_GroupMain = GroupMain; 
