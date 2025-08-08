@@ -13,13 +13,15 @@ const UsersList = {
                         <img
                             :src="getAvatarUrl(user.Avatar)"
                             class="avatar-small profile-link-avatar"
-                            style="width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;"
+                            style="width:24px;height:24px;border-radius:50%;cursor:pointer;vertical-align:middle;"
                             :alt="user.Username + ' avatar'"
                             @click.stop="goToProfile(user.ID)"
                         >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
-                        <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
+                        <div class="user-info" @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">
+                            <strong class="username">{{ user.Username }}</strong>
+                            <span v-if="user.Nickname" class="nickname"> ({{ user.Nickname }})</span>
+                        </div>
                         <span v-if="myId && user.ID !== myId && unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
