@@ -386,7 +386,7 @@ func GetPendingGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, erro
 }
 
 // HandleGroupInvitation accepts or declines a group invitation
-func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) error {
+func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) (int, error) {
 	log.Printf("🔍 Handling group invitation: invitationID=%d, userID=%d, action=%s", invitationID, userID, action)
 
 	var status string
@@ -396,13 +396,13 @@ func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) 
 	case "decline":
 		status = "declined"
 	default:
-		return errors.New("invalid action")
+		return 0, errors.New("invalid action")
 	}
 
 	// Start transaction
 	tx, err := db.Begin()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer tx.Rollback()
 
@@ -411,30 +411,30 @@ func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) 
 	res, err := tx.Exec(updateQuery, status, invitationID, userID)
 	if err != nil {
 		log.Printf("❌ Error updating invitation: %v", err)
-		return err
+		return 0, err
 	}
 
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.New("no pending invitation found")
+		return 0, errors.New("no pending invitation found")
+	}
+
+	// Get group ID from invitation (needed for both accept and decline)
+	var groupID int
+	err = tx.QueryRow("SELECT group_id FROM group_invitations WHERE id = ?", invitationID).Scan(&groupID)
+	if err != nil {
+		log.Printf("❌ Error getting group ID from invitation: %v", err)
+		return 0, err
 	}
 
 	// If accepting, add user to group
 	if action == "accept" {
-		// Get group ID from invitation
-		var groupID int
-		err = tx.QueryRow("SELECT group_id FROM group_invitations WHERE id = ?", invitationID).Scan(&groupID)
-		if err != nil {
-			log.Printf("❌ Error getting group ID from invitation: %v", err)
-			return err
-		}
-
 		// Add user to group_members
 		memberQuery := `INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
 		_, err = tx.Exec(memberQuery, groupID, userID)
 		if err != nil {
 			log.Printf("❌ Error adding user to group: %v", err)
-			return err
+			return 0, err
 		}
 
 		log.Printf("✅ User %d added to group %d", userID, groupID)
@@ -443,11 +443,11 @@ func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) 
 	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		log.Printf("❌ Error committing transaction: %v", err)
-		return err
+		return 0, err
 	}
 
 	log.Printf("✅ Group invitation %s successfully", action)
-	return nil
+	return groupID, nil
 }
 
 // CheckIfUserInvited checks if a user has been invited to a group

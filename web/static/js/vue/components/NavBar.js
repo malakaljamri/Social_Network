@@ -390,6 +390,7 @@ const NavBar = {
                         }
                         this.notifications = data || [];
                         console.log('NavBar: Set notifications array:', this.notifications);
+                        console.log('NavBar: Updated notifications count:', this.notifications.length);
                     })
                     .catch((error) => {
                         console.error('NavBar: Error fetching notifications:', error);
@@ -527,8 +528,21 @@ const NavBar = {
             const { invitationId, action, groupId } = event;
             
             // Refresh notifications to update the count
+            console.log('NavBar: Refreshing notifications after invitation handled');
             this.fetchNotifications();
             this.fetchUnreadNotificationCount();
+            
+            // Close the invitations modal since the invitation was handled
+            this.showGroupInvitationsModal = false;
+            
+            // Force refresh the notification dropdown if it's open
+            if (this.showDropdown) {
+                console.log('NavBar: Refreshing notification dropdown');
+                this.removeDropdownElement();
+                setTimeout(() => {
+                    this.createDropdownElement();
+                }, 100);
+            }
             
             // If invitation was accepted, we might want to navigate to the group
             if (action === 'accept' && groupId) {

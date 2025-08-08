@@ -56,7 +56,7 @@ func GetUserNotifications(db *sql.DB, userID int) ([]Notification, error) {
 			continue
 		}
 
-		log.Printf("DEBUG: Processing notification ID %d, type: %s, reference_id: %d", n.ID, n.Type, n.ReferenceID)
+		log.Printf("DEBUG: Processing notification ID %d, type: %s, reference_id: %d, is_read: %t", n.ID, n.Type, n.ReferenceID, n.IsRead)
 
 		// Generate message based on notification type
 		n.Message = generateNotificationMessage(db, n.Type, n.ReferenceID)
@@ -204,6 +204,24 @@ func generateNotificationMessage(db *sql.DB, notificationType string, referenceI
 		log.Printf("WARNING: Unknown notification type: %s", notificationType)
 		return "You have a new notification"
 	}
+}
+
+// MarkGroupInvitationNotificationAsRead marks the notification for a group invitation as read
+func MarkGroupInvitationNotificationAsRead(db *sql.DB, userID, groupID int) error {
+	log.Printf("🔍 DEBUG: MarkGroupInvitationNotificationAsRead called with userID=%d, groupID=%d", userID, groupID)
+
+	// Instead of marking as read, delete the notification since it's no longer relevant
+	query := `DELETE FROM notifications WHERE user_id = ? AND type = 'group_invitation' AND reference_id = ?`
+	result, err := db.Exec(query, userID, groupID)
+	if err != nil {
+		log.Printf("❌ Error deleting group invitation notification: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("🔍 DEBUG: MarkGroupInvitationNotificationAsRead deleted %d rows for userID=%d, groupID=%d", rowsAffected, userID, groupID)
+
+	return nil
 }
 
 // DeleteNotification deletes a notification

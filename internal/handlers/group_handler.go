@@ -539,11 +539,22 @@ func HandleGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		err = database.HandleGroupInvitation(db, req.InvitationID, userID, req.Action)
+		groupID, err := database.HandleGroupInvitation(db, req.InvitationID, userID, req.Action)
 		if err != nil {
 			log.Printf("❌ Failed to handle group invitation: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		log.Printf("🔍 DEBUG: About to delete notification for userID=%d, groupID=%d", userID, groupID)
+
+		// Delete the notification since it's no longer relevant
+		err = database.MarkGroupInvitationNotificationAsRead(db, userID, groupID)
+		if err != nil {
+			log.Printf("⚠️ Failed to delete notification: %v", err)
+			// Don't return error here as the main operation succeeded
+		} else {
+			log.Printf("✅ Successfully deleted group invitation notification for userID=%d, groupID=%d", userID, groupID)
 		}
 
 		log.Printf("✅ Group invitation %s successfully: invitationID=%d, userID=%d", req.Action, req.InvitationID, userID)
