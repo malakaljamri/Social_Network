@@ -41,15 +41,14 @@ type GroupMember struct {
 
 // GroupInvitation represents a group invitation
 type GroupInvitation struct {
-	ID          int       `json:"id"`
-	GroupID     int       `json:"group_id"`
-	InviterID   int       `json:"inviter_id"`
-	InviteeID   int       `json:"invitee_id"`
-	Status      string    `json:"status"` // pending, accepted, declined
-	CreatedAt   time.Time `json:"created_at"`
-	GroupName   string    `json:"group_name,omitempty"`
-	InviterName string    `json:"inviter_name,omitempty"`
-	InviteeName string    `json:"invitee_name,omitempty"`
+	ID              int    `json:"id"`
+	GroupID         int    `json:"group_id"`
+	GroupName       string `json:"group_name"`
+	InviterID       int    `json:"inviter_id"`
+	InviterUsername string `json:"inviter_username"`
+	InviteeID       int    `json:"invitee_id"`
+	Status          string `json:"status"` // "pending", "accepted", "declined"
+	CreatedAt       string `json:"created_at"`
 }
 
 func CreateGroup(db *sql.DB, group *Group) error {
@@ -332,48 +331,131 @@ func HandleGroupJoinRequest(db *sql.DB, groupID, userID int, action string) erro
 
 // CreateGroupInvitation creates a new group invitation
 func CreateGroupInvitation(db *sql.DB, groupID, inviterID, inviteeID int) error {
-	// Check if invitation already exists
-	var exists int
-	err := db.QueryRow("SELECT 1 FROM group_invitations WHERE group_id = ? AND invitee_id = ?", groupID, inviteeID).Scan(&exists)
-	if err == nil {
-		return fmt.Errorf("invitation already exists")
-	} else if err != sql.ErrNoRows {
+	log.Printf("🔍 Creating group invitation: groupID=%d, inviterID=%d, inviteeID=%d", groupID, inviterID, inviteeID)
+
+	query := `
+		INSERT INTO group_invitations (group_id, inviter_id, invitee_id, status)
+		VALUES (?, ?, ?, 'pending')
+	`
+
+	_, err := db.Exec(query, groupID, inviterID, inviteeID)
+	if err != nil {
+		log.Printf("❌ Error creating group invitation: %v", err)
 		return err
 	}
 
-	// Check if user is already a member
-	err = db.QueryRow("SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?", groupID, inviteeID).Scan(&exists)
-	if err == nil {
-		return fmt.Errorf("user is already a member of this group")
-	} else if err != sql.ErrNoRows {
-		return err
-	}
+	log.Printf("✅ Group invitation created successfully")
+	return nil
+}
 
-	// Check if inviter has permission to invite (must be group owner or member)
-	var inviterStatus string
-	err = db.QueryRow("SELECT status FROM group_members WHERE group_id = ? AND user_id = ?", groupID, inviterID).Scan(&inviterStatus)
-	if err == sql.ErrNoRows {
-		// Check if inviter is the group creator
-		var creatorID int
-		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
-		if err != nil || creatorID != inviterID {
-			return fmt.Errorf("you don't have permission to invite users to this group")
+// GetPendingGroupInvitations returns all pending invitations for a user
+func GetPendingGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, error) {
+	log.Printf("🔍 Fetching pending group invitations for user: %d", userID)
+
+	query := `
+		SELECT gi.id, gi.group_id, g.name as group_name, gi.inviter_id, 
+		       u.username as inviter_username, gi.invitee_id, gi.status, gi.created_at
+		FROM group_invitations gi
+		JOIN groups g ON gi.group_id = g.id
+		JOIN users u ON gi.inviter_id = u.id
+		WHERE gi.invitee_id = ? AND gi.status = 'pending'
+		ORDER BY gi.created_at DESC
+	`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		log.Printf("❌ Error fetching group invitations: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invitations []GroupInvitation
+	for rows.Next() {
+		var inv GroupInvitation
+		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.GroupName, &inv.InviterID,
+			&inv.InviterUsername, &inv.InviteeID, &inv.Status, &inv.CreatedAt)
+		if err != nil {
+			log.Printf("❌ Error scanning invitation: %v", err)
+			continue
 		}
-	} else if err != nil {
-		return err
-	} else if inviterStatus != "accepted" {
-		return fmt.Errorf("you must be an accepted member to invite users")
+		invitations = append(invitations, inv)
 	}
 
-	// Create the invitation
-	_, err = db.Exec("INSERT INTO group_invitations (group_id, inviter_id, invitee_id, status) VALUES (?, ?, ?, 'pending')",
-		groupID, inviterID, inviteeID)
+	log.Printf("✅ Found %d pending group invitations", len(invitations))
+	return invitations, nil
+}
+
+// HandleGroupInvitation accepts or declines a group invitation
+func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) error {
+	log.Printf("🔍 Handling group invitation: invitationID=%d, userID=%d, action=%s", invitationID, userID, action)
+
+	var status string
+	switch action {
+	case "accept":
+		status = "accepted"
+	case "decline":
+		status = "declined"
+	default:
+		return errors.New("invalid action")
+	}
+
+	// Start transaction
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 
-	// Create notification for invitee
-	return CreateNotification(db, inviteeID, "group_invitation", groupID)
+	// Update invitation status
+	updateQuery := `UPDATE group_invitations SET status = ? WHERE id = ? AND invitee_id = ? AND status = 'pending'`
+	res, err := tx.Exec(updateQuery, status, invitationID, userID)
+	if err != nil {
+		log.Printf("❌ Error updating invitation: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("no pending invitation found")
+	}
+
+	// If accepting, add user to group
+	if action == "accept" {
+		// Get group ID from invitation
+		var groupID int
+		err = tx.QueryRow("SELECT group_id FROM group_invitations WHERE id = ?", invitationID).Scan(&groupID)
+		if err != nil {
+			log.Printf("❌ Error getting group ID from invitation: %v", err)
+			return err
+		}
+
+		// Add user to group_members
+		memberQuery := `INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')`
+		_, err = tx.Exec(memberQuery, groupID, userID)
+		if err != nil {
+			log.Printf("❌ Error adding user to group: %v", err)
+			return err
+		}
+
+		log.Printf("✅ User %d added to group %d", userID, groupID)
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		log.Printf("❌ Error committing transaction: %v", err)
+		return err
+	}
+
+	log.Printf("✅ Group invitation %s successfully", action)
+	return nil
+}
+
+// CheckIfUserInvited checks if a user has been invited to a group
+func CheckIfUserInvited(db *sql.DB, groupID, userID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM group_invitations WHERE group_id = ? AND invitee_id = ? AND status = 'pending'`
+	var count int
+	err := db.QueryRow(query, groupID, userID).Scan(&count)
+	return count > 0, err
 }
 
 // GetUserGroupInvitations gets all pending group invitations for a user
@@ -397,7 +479,7 @@ func GetUserGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, error) 
 	var invitations []GroupInvitation
 	for rows.Next() {
 		var inv GroupInvitation
-		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt, &inv.GroupName, &inv.InviterName)
+		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt, &inv.GroupName, &inv.InviterUsername)
 		if err != nil {
 			return nil, err
 		}
@@ -405,38 +487,6 @@ func GetUserGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, error) 
 	}
 
 	return invitations, nil
-}
-
-// HandleGroupInvitation handles accepting or declining a group invitation
-func HandleGroupInvitation(db *sql.DB, invitationID, userID int, action string) error {
-	// Get the invitation
-	var inv GroupInvitation
-	err := db.QueryRow("SELECT id, group_id, inviter_id, invitee_id, status FROM group_invitations WHERE id = ? AND invitee_id = ?",
-		invitationID, userID).Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status)
-	if err != nil {
-		return err
-	}
-
-	if inv.Status != "pending" {
-		return fmt.Errorf("invitation has already been handled")
-	}
-
-	// Update invitation status
-	_, err = db.Exec("UPDATE group_invitations SET status = ? WHERE id = ?", action, invitationID)
-	if err != nil {
-		return err
-	}
-
-	if action == "accepted" {
-		// Add user to group members
-		_, err = db.Exec("INSERT OR REPLACE INTO group_members (group_id, user_id, status) VALUES (?, ?, 'accepted')",
-			inv.GroupID, userID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // GetGroupInvitations gets all invitations for a specific group (for group owners)
@@ -472,7 +522,7 @@ func GetGroupInvitations(db *sql.DB, groupID, userID int) ([]GroupInvitation, er
 	for rows.Next() {
 		var inv GroupInvitation
 		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt,
-			&inv.GroupName, &inv.InviterName, &inv.InviteeName)
+			&inv.GroupName, &inv.InviterUsername)
 		if err != nil {
 			return nil, err
 		}

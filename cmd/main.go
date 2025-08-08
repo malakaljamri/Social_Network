@@ -116,9 +116,8 @@ func main() {
 
 	// Group invitation routes
 	mux.HandleFunc("/api/groups/invite", handlers.SendGroupInvitationHandler(db))
-	mux.HandleFunc("/api/groups/invitations", handlers.GetUserGroupInvitationsHandler(db))
-	mux.HandleFunc("/api/groups/handle-invitation", handlers.HandleGroupInvitationHandler(db))
-	mux.HandleFunc("/api/groups/invitations/group", handlers.GetGroupInvitationsHandler(db))
+	mux.HandleFunc("/api/groups/invitations", handlers.GetGroupInvitationsHandler(db))
+	mux.HandleFunc("/api/groups/invitations/handle", handlers.HandleGroupInvitationHandler(db))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})

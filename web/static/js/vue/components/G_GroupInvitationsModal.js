@@ -5,7 +5,7 @@ const GroupInvitationsModal = {
             invitations: [],
             loading: false,
             error: '',
-            processingRequests: new Set() // Track which requests are being processed
+            processingInvitations: new Set() // Track which invitations are being processed
         };
     },
     computed: {
@@ -24,34 +24,33 @@ const GroupInvitationsModal = {
                     credentials: 'include'
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                if (response.ok) {
+                    this.invitations = await response.json();
+                    console.log('✅ Fetched invitations:', this.invitations);
+                } else {
+                    const errorData = await response.json();
+                    this.error = errorData.error || 'Failed to fetch invitations';
+                    console.error('❌ Failed to fetch invitations:', errorData);
                 }
-                
-                const data = await response.json();
-                console.log('✅ Received group invitations:', data);
-                this.invitations = data || [];
             } catch (error) {
-                console.error('❌ Error fetching group invitations:', error);
-                this.error = 'Failed to load group invitations';
-                this.invitations = [];
+                console.error('❌ Error fetching invitations:', error);
+                this.error = 'Failed to fetch invitations';
             } finally {
                 this.loading = false;
             }
         },
         
         async handleInvitation(invitationId, action) {
-            console.log(`🔍 Handling ${action} invitation ${invitationId}`);
+            console.log(`🔍 Handling invitation ${invitationId} with action: ${action}`);
             
-            if (this.processingRequests.has(invitationId)) {
-                console.log('⚠️ Invitation already being processed:', invitationId);
-                return;
+            if (this.processingInvitations.has(invitationId)) {
+                return; // Already processing
             }
             
-            this.processingRequests.add(invitationId);
+            this.processingInvitations.add(invitationId);
             
             try {
-                const response = await fetch('/api/groups/handle-invitation', {
+                const response = await fetch('/api/groups/invitations/handle', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -63,41 +62,51 @@ const GroupInvitationsModal = {
                     credentials: 'include'
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ Invitation ${action}ed successfully:`, result);
+                    
+                    // Remove the invitation from the list
+                    this.invitations = this.invitations.filter(inv => inv.id !== invitationId);
+                    
+                    // Emit event to notify parent
+                    this.$emit('invitation-handled', { 
+                        invitationId, 
+                        action, 
+                        groupId: this.invitations.find(inv => inv.id === invitationId)?.group_id 
+                    });
+                    
+                    // Show success message
+                    this.showSuccessMessage(`Invitation ${action}ed successfully`);
+                } else {
+                    const errorData = await response.json();
+                    this.error = errorData.error || `Failed to ${action} invitation`;
+                    console.error(`❌ Failed to ${action} invitation:`, errorData);
                 }
-                
-                console.log(`✅ Successfully ${action}ed invitation ${invitationId}`);
-                
-                // Remove the invitation from the list
-                this.invitations = this.invitations.filter(inv => inv.id !== invitationId);
-                
-                // Emit event to notify parent components
-                this.$emit('invitation-handled', { invitationId, action });
-                
-                // Dispatch event to refresh invitation count in G_GroupList
-                window.dispatchEvent(new CustomEvent('refresh-invitation-count'));
-                
             } catch (error) {
                 console.error(`❌ Error ${action}ing invitation:`, error);
-                alert(`Failed to ${action} invitation. Please try again.`);
+                this.error = `Failed to ${action} invitation`;
             } finally {
-                this.processingRequests.delete(invitationId);
+                this.processingInvitations.delete(invitationId);
             }
         },
         
+        showSuccessMessage(message) {
+            // You could implement a toast notification here
+            console.log('✅', message);
+        },
+        
         formatDate(dateStr) {
-            return window.formatDate ? window.formatDate(dateStr, "YYYY-MM-DD HH:MM") : new Date(dateStr).toLocaleString();
+            return window.formatDate ? window.formatDate(dateStr, "YYYY-MM-DD HH:MM") : dateStr;
         },
         
         close() {
-            console.log('🔍 Closing group invitations modal');
+            console.log('🔍 Closing invitations modal');
             this.$emit('close');
         }
     },
     
     mounted() {
-        console.log('🔍 GroupInvitationsModal mounted');
         this.fetchInvitations();
     },
     
@@ -114,11 +123,12 @@ const GroupInvitationsModal = {
                     
                     <div class="modal-body">
                         <div v-if="loading" class="loading-indicator">
-                            <p>Loading group invitations...</p>
+                            <p>Loading invitations...</p>
                         </div>
                         
                         <div v-else-if="error" class="error-message">
                             <p>{{ error }}</p>
+                            <button @click="fetchInvitations" class="button">Retry</button>
                         </div>
                         
                         <div v-else-if="!hasInvitations" class="no-invitations">
@@ -129,33 +139,30 @@ const GroupInvitationsModal = {
                             <div v-for="invitation in invitations" :key="invitation.id" class="invitation-item">
                                 <div class="invitation-info">
                                     <div class="invitation-header">
-                                        <strong>{{ invitation.group_name }}</strong>
+                                        <h3>{{ invitation.group_name }}</h3>
                                         <span class="invitation-date">{{ formatDate(invitation.created_at) }}</span>
                                     </div>
-                                    <div class="invitation-details">
-                                        <p>Invited by: <strong>{{ invitation.inviter_name }}</strong></p>
-                                    </div>
+                                    <p class="invitation-message">
+                                        <strong>{{ invitation.inviter_username }}</strong> invited you to join this group
+                                    </p>
                                 </div>
                                 
                                 <div class="invitation-actions">
                                     <button 
                                         @click="handleInvitation(invitation.id, 'accept')"
-                                        :disabled="processingRequests.has(invitation.id)"
+                                        :disabled="processingInvitations.has(invitation.id)"
                                         class="button accept-btn"
-                                        :class="{ 'loading': processingRequests.has(invitation.id) }"
                                     >
-                                        <i v-if="processingRequests.has(invitation.id)" class="fas fa-spinner fa-spin"></i>
+                                        <i v-if="processingInvitations.has(invitation.id)" class="fas fa-spinner fa-spin"></i>
                                         <i v-else class="fas fa-check"></i>
                                         Accept
                                     </button>
-                                    
                                     <button 
                                         @click="handleInvitation(invitation.id, 'decline')"
-                                        :disabled="processingRequests.has(invitation.id)"
+                                        :disabled="processingInvitations.has(invitation.id)"
                                         class="button decline-btn"
-                                        :class="{ 'loading': processingRequests.has(invitation.id) }"
                                     >
-                                        <i v-if="processingRequests.has(invitation.id)" class="fas fa-spinner fa-spin"></i>
+                                        <i v-if="processingInvitations.has(invitation.id)" class="fas fa-spinner fa-spin"></i>
                                         <i v-else class="fas fa-times"></i>
                                         Decline
                                     </button>

@@ -82,6 +82,13 @@ const NavBar = {
                 <button class="button secondary-button" @click="goToProfile">My Profile</button>
                 <button class="button logout-button" @click="$emit('logout')">Logout</button>
             </div>
+            
+            <!-- Group Invitations Modal -->
+            <g-group-invitations-modal
+                v-if="showGroupInvitationsModal"
+                @close="showGroupInvitationsModal = false"
+                @invitation-handled="handleInvitationHandled"
+            />
         </nav>
     `,
     props: {
@@ -127,6 +134,7 @@ const NavBar = {
         return {
             showDropdown: false,
             showModal: false,
+            showGroupInvitationsModal: false,
             unreadCounts: {}, // Track unread group counts
             dropdownPosition: { x: 0, y: 0 },
             notifications: [], // Initialize notifications as empty array
@@ -450,6 +458,12 @@ const NavBar = {
                     }, 100);
                     break;
                     
+                case 'group_invitation':
+                    console.log('NavBar: Group invitation notification detected, opening invitations modal');
+                    // Open the invitations modal
+                    this.showGroupInvitationsModal = true;
+                    break;
+                    
                 case 'follow_request':
                     console.log('NavBar: Follow request notification detected, navigating to profile');
                     // Navigate to profile view to show pending follow requests
@@ -506,6 +520,21 @@ const NavBar = {
                     console.error('NavBar: Debug endpoint error:', error);
                     alert('Debug endpoint error: ' + error.message);
                 });
+        },
+        
+        handleInvitationHandled(event) {
+            console.log('NavBar: Invitation handled:', event);
+            const { invitationId, action, groupId } = event;
+            
+            // Refresh notifications to update the count
+            this.fetchNotifications();
+            this.fetchUnreadNotificationCount();
+            
+            // If invitation was accepted, we might want to navigate to the group
+            if (action === 'accept' && groupId) {
+                console.log('NavBar: Invitation accepted, navigating to groups');
+                this.$emit('navigate', 'groups');
+            }
         }
     },
     beforeUnmount() {

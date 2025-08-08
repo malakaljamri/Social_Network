@@ -218,3 +218,105 @@
     max-height: 400px;
     overflow-y: auto;
 }
+
+/* Group Invitations Modal Styles */
+.invitation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    transition: var(--transition-colors);
+}
+
+.invitation-item:last-child {
+    border-bottom: none;
+}
+
+.invitation-info {
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+.invitation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.invitation-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+}
+
+.invitation-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.invitation-message {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.invitation-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.accept-btn {
+    background: var(--button-primary);
+    color: var(--text-on-primary);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.accept-btn:hover {
+    background: var(--button-primary-hover);
+}
+
+.accept-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.decline-btn {
+    background: var(--button-danger);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.decline-btn:hover {
+    background: linear-gradient(135deg, var(--error-color-dark), var(--error-color));
+}
+
+.decline-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.no-invitations {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.invitations-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
