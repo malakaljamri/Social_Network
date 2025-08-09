@@ -6,6 +6,11 @@ const GroupMain = {
             showCreateGroupPostForm: false,
             showGroupEventsModal: false,
             showGroupChatWindow: false,
+            showGroupMembers: false,
+            showGroupJoinRequestsModal: false,
+            showGroupInviteModal: false,
+            groupMembers: [],
+            loadingMembers: false,
             newGroupPost: {
                 title: '',
                 content: '',
@@ -17,12 +22,28 @@ const GroupMain = {
             groupAccess: false,
             groupMembership: '',
             joinLoading: false,
-            unreadCounts: {} // Track unread counts by group ID
+            unreadCounts: {}, // Track unread counts by group ID
+            pendingJoinRequestsCount: 0
         };
     },
     computed: {
         myId() {
             return this.$root.currentUser?.id || this.$root.currentUser?.value?.id || null;
+        },
+        sortedGroupMembers() {
+            if (!this.groupMembers.length) return [];
+            
+            // Sort members with current user at the top
+            return [...this.groupMembers].sort((a, b) => {
+                // Current user goes first
+                if (a.ID === this.myId) return -1;
+                if (b.ID === this.myId) return 1;
+                // Then sort by username
+                return a.Username.localeCompare(b.Username);
+            });
+        },
+        isGroupOwner() {
+            return this.selectedGroup && this.selectedGroup.Creator?.ID === this.myId || this.selectedGroup?.CreatorID === this.myId;
         }
     },
     mounted() {
@@ -57,6 +78,22 @@ const GroupMain = {
                     detail: { groupId: this.selectedGroup.ID, count: 0 } 
                 }));
             }
+        },
+        openGroupJoinRequestsModal() {
+            console.log('🔍 Opening join requests modal for group:', this.selectedGroup?.ID);
+            this.showGroupJoinRequestsModal = true;
+        },
+        openGroupInviteModal() {
+            console.log('🔍 Opening invite modal for group:', this.selectedGroup?.ID);
+            this.showGroupInviteModal = true;
+        },
+        closeGroupJoinRequestsModal() {
+            console.log('🔍 Closing join requests modal');
+            this.showGroupJoinRequestsModal = false;
+        },
+        closeGroupInviteModal() {
+            console.log('🔍 Closing invite modal');
+            this.showGroupInviteModal = false;
         },
         closeCreateGroupPostModal() {
             this.showCreateGroupPostForm = false;
@@ -126,8 +163,102 @@ const GroupMain = {
             const { groupId, count } = event.detail;
             this.unreadCounts[groupId] = count;
         },
+        handleJoinRequestHandled(event) {
+            console.log('🔍 Join request handled:', event);
+            const { userId, action, groupId } = event;
+            
+            // Update the pending count
+            this.pendingJoinRequestsCount = Math.max(0, this.pendingJoinRequestsCount - 1);
+            
+            // If this was an accept, we might want to refresh the group members
+            if (action === 'accept' && this.showGroupMembers) {
+                this.fetchGroupMembers();
+            }
+        },
+        handleInvitationSent(event) {
+            console.log('🔍 Invitation sent:', event);
+            // Could add success message or other feedback here
+        },
+        async fetchPendingJoinRequestsCount() {
+            if (!this.isGroupOwner || !this.selectedGroup) return;
+            
+            console.log('🔍 Fetching pending join requests count for group:', this.selectedGroup.ID);
+            try {
+                const response = await fetch(`/api/groups/join-requests?group_id=${this.selectedGroup.ID}`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const requests = await response.json();
+                    this.pendingJoinRequestsCount = requests.length;
+                    console.log('✅ Pending join requests count:', this.pendingJoinRequestsCount);
+                } else {
+                    console.log('⚠️ Could not fetch join requests count, status:', response.status);
+                    this.pendingJoinRequestsCount = 0;
+                }
+            } catch (error) {
+                console.error('❌ Error fetching join requests count:', error);
+                this.pendingJoinRequestsCount = 0;
+            }
+        },
         viewUserProfile(userId) {
+            console.log('🔍 viewUserProfile called with userId:', userId);
             this.$emit('view-user-profile', userId);
+        },
+        toggleGroupMembers() {
+            this.showGroupMembers = !this.showGroupMembers;
+            if (this.showGroupMembers && this.groupMembers.length === 0) {
+                this.fetchGroupMembers();
+            }
+        },
+        async fetchGroupMembers() {
+            if (!this.selectedGroup || !this.groupAccess) return;
+            
+            this.loadingMembers = true;
+            try {
+                const response = await fetch(`/api/groups/members?group_id=${this.selectedGroup.ID}`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    this.groupMembers = await response.json();
+                } else {
+                    console.error('Failed to fetch group members');
+                    this.groupMembers = [];
+                }
+            } catch (error) {
+                console.error('Error fetching group members:', error);
+                this.groupMembers = [];
+            } finally {
+                this.loadingMembers = false;
+            }
+        },
+        openPrivateChat(userId) {
+            console.log('🔍 openPrivateChat called with userId:', userId);
+            // Find the user in group members
+            const user = this.groupMembers.find(member => member.ID === userId);
+            if (user) {
+                console.log('🔍 Emitting open-chat event with user:', user);
+                this.$emit('open-chat', user);
+            } else {
+                console.log('❌ User not found in group members');
+            }
+        },
+        getAvatarUrl(avatar) {
+            if (!avatar) {
+                return '/static/images/default-avatar.png';
+            }
+            if (avatar.startsWith('http')) {
+                return avatar;
+            }
+            return `/web/${avatar}`;
+        },
+        getMemberTooltip(member) {
+            let tooltip = `Username: ${member.Username}`;
+            if (member.Nickname) {
+                tooltip += `\nNickname: ${member.Nickname}`;
+            }
+            tooltip += `\nStatus: ${member.Online ? 'Online' : 'Offline'}`;
+            return tooltip;
         }
     },
     beforeUnmount() {
@@ -137,6 +268,11 @@ const GroupMain = {
         selectedGroup: {
             handler() {
                 this.checkGroupAccess();
+                // Reset members when group changes
+                this.showGroupMembers = false;
+                this.groupMembers = [];
+                // Fetch pending join requests count if user is group owner
+                this.fetchPendingJoinRequestsCount();
             },
             immediate: true
         }
@@ -162,9 +298,21 @@ const GroupMain = {
                             <button @click="openGroupEventsModal" class="group-events-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-calendar-alt"></i> Group Events
                             </button>
-                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px;">
+                            <button @click="openGroupChatWindow" class="group-chat-btn" style="margin-bottom: 16px; margin-right: 10px;">
                                 <i class="fas fa-comments"></i> Group Chat
                                 <span v-if="myId && unreadCounts[selectedGroup.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[selectedGroup.ID] }}</span>
+                            </button>
+                            <button @click="toggleGroupMembers" class="group-members-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-users"></i> {{ showGroupMembers ? 'Hide' : 'Show' }} Members
+                            </button>
+                            <!-- Join Requests button - only for group owner -->
+                            <button v-if="isGroupOwner" @click="openGroupJoinRequestsModal" class="join-requests-btn" style="margin-bottom: 16px; margin-right: 10px;">
+                                <i class="fas fa-user-plus"></i> Join Requests
+                                <span v-if="pendingJoinRequestsCount > 0" class="unread-badge right-badge">{{ pendingJoinRequestsCount }}</span>
+                            </button>
+                            <!-- Invite Users button - for group owner and members -->
+                            <button v-if="groupAccess" @click="openGroupInviteModal" class="invite-users-btn" style="margin-bottom: 16px;">
+                                <i class="fas fa-user-plus"></i> Invite Users
                             </button>
                         </div>
                         
@@ -182,6 +330,65 @@ const GroupMain = {
                     </template>
                 </div>
             </div>
+            
+            <!-- Group Members Section -->
+            <div v-if="showGroupMembers && groupAccess" class="group-members">
+                <h2>{{ selectedGroup ? (selectedGroup.Name + ' Members') : 'Group Members' }}</h2>
+                <div class="card">
+                    <div v-if="loadingMembers" class="loading-members">
+                        <p>Loading members...</p>
+                    </div>
+                    <div v-else-if="groupMembers.length === 0" class="no-members">
+                        <p>No members found</p>
+                    </div>
+                    <div v-else class="members-container">
+                        <div v-if="sortedGroupMembers.some(m => m.ID === myId)" class="members-section-header">
+                            <span class="section-title">You</span>
+                        </div>
+                        <div v-for="member in sortedGroupMembers.filter(m => m.ID === myId)" :key="member.ID" class="member-item user-item-flex" :class="{ 'online-user': member.Online, 'current-user': member.ID === myId }">
+                            <img
+                                :src="getAvatarUrl(member.Avatar)"
+                                class="avatar-small profile-link-avatar"
+                                :style="member.ID === myId ? 'width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;opacity:0.7;' : 'width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;'"
+                                :alt="member.Username + ' avatar'"
+                                @click.stop="member.ID !== myId ? viewUserProfile(member.ID) : null"
+                            >
+                            <!-- <span class="status-dot" :class="{ 'online': member.Online }"></span> -->
+                            <strong 
+                                :style="member.ID === myId ? 'color: #666; font-style: italic;' : 'cursor:pointer;'" 
+                                @click="member.ID !== myId ? openPrivateChat(member.ID) : null" 
+                                :title="member.ID === myId ? 'You' : getMemberTooltip(member)"
+                            >
+                                {{ member.Username }}{{ member.ID === myId ? ' (You)' : '' }}
+                            </strong>
+                            <span v-if="member.Nickname && member.ID !== myId"> ({{ member.Nickname }})</span>
+                        </div>
+                        
+                        <div v-if="sortedGroupMembers.some(m => m.ID !== myId)" class="members-section-header">
+                            <span class="section-title">Other Members</span>
+                        </div>
+                        <div v-for="member in sortedGroupMembers.filter(m => m.ID !== myId)" :key="member.ID" class="member-item user-item-flex" :class="{ 'online-user': member.Online, 'current-user': member.ID === myId }">
+                            <img
+                                :src="getAvatarUrl(member.Avatar)"
+                                class="avatar-small profile-link-avatar"
+                                :style="member.ID === myId ? 'width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;opacity:0.7;' : 'width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;'"
+                                :alt="member.Username + ' avatar'"
+                                @click.stop="member.ID !== myId ? viewUserProfile(member.ID) : null"
+                            >
+                            <!-- <span class="status-dot" :class="{ 'online': member.Online }"></span> -->
+                            <strong 
+                                :style="member.ID === myId ? 'color: #666; font-style: italic;' : 'cursor:pointer;'" 
+                                @click="member.ID !== myId ? openPrivateChat(member.ID) : null" 
+                                :title="member.ID === myId ? 'You' : getMemberTooltip(member)"
+                            >
+                                {{ member.Username }}{{ member.ID === myId ? ' (You)' : '' }}
+                            </strong>
+                            <span v-if="member.Nickname && member.ID !== myId"> ({{ member.Nickname }})</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Create Group Post Modal -->
             <div v-if="showCreateGroupPostForm" class="modal-overlay" @click.self="closeCreateGroupPostModal">
                 <div class="modal-content" @click.stop>
@@ -227,6 +434,22 @@ const GroupMain = {
             <div v-if="showGroupChatWindow" class="modal-overlay" @click.self="closeGroupChatWindow">
                 <g-group-chat :group-name="selectedGroup?.Name" :group-id="selectedGroup?.ID" @close="closeGroupChatWindow" />
             </div>
+            <!-- Group Join Requests Modal -->
+            <g-group-join-requests-modal
+                v-if="showGroupJoinRequestsModal && selectedGroup"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
+                @close="closeGroupJoinRequestsModal"
+                @request-handled="handleJoinRequestHandled"
+            />
+            <!-- Group Invite Modal -->
+            <g-group-invite-modal
+                v-if="showGroupInviteModal && selectedGroup"
+                :group-id="selectedGroup.ID"
+                :group-name="selectedGroup.Name || 'Group'"
+                @close="closeGroupInviteModal"
+                @invitation-sent="handleInvitationSent"
+            />
             <!-- Group Posts Section -->
             <div class="group-posts">
                 <h2>{{ selectedGroup ? (selectedGroup.Name + ' Posts') : 'Group Posts' }}</h2>
@@ -260,7 +483,9 @@ const GroupMain = {
         </div>
     `,
     components: {
-        'g-group-events-modal': window.G_GroupEventsModal
+        'g-group-events-modal': window.G_GroupEventsModal,
+        'g-group-join-requests-modal': window.G_GroupJoinRequestsModal,
+        'g-group-invite-modal': window.G_GroupInviteModal
     }
 };
 window.G_GroupMain = GroupMain; 

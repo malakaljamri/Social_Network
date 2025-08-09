@@ -75,8 +75,8 @@ func main() {
 	mux.HandleFunc("/api/user/posts", handlers.GetUserPosts)
 	mux.HandleFunc("/api/user/followers", handlers.GetUserFollowers)
 	mux.HandleFunc("/api/user/following", handlers.GetUserFollowing)
-	mux.HandleFunc("/api/user/follow", handlers.FollowUser)
-	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser)
+	mux.HandleFunc("/api/user/follow", handlers.FollowUser(db))
+	mux.HandleFunc("/api/user/unfollow", handlers.UnfollowUser(db))
 	mux.HandleFunc("/api/user/privacy", handlers.UpdatePrivacySettings)
 	mux.HandleFunc("/api/user/change_password", handlers.ChangePasswordHandler)
 
@@ -84,7 +84,7 @@ func main() {
 	mux.HandleFunc("/api/profile/image", handlers.UpdateProfileImage)
 	mux.HandleFunc("/api/profile/info", handlers.UpdateProfileInfo)
 	mux.HandleFunc("/api/profile/privacy", handlers.ToggleProfilePrivacy)
-	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest)
+	mux.HandleFunc("/api/profile/follow-request", handlers.HandleFollowRequest(db))
 	mux.HandleFunc("/api/profile/follow-requests", handlers.GetPendingFollowRequestsHandler)
 
 	// Other API routes
@@ -110,6 +110,18 @@ func main() {
 	mux.HandleFunc("/api/groups/events/attendance", handlers.EventAttendanceHandler(db))
 	mux.HandleFunc("/api/groups/events/attendance/list", handlers.ListEventAttendeesHandler(db))
 	mux.HandleFunc("/api/groups/access/batch", handlers.BatchGroupAccessHandler(db))
+	mux.HandleFunc("/api/groups/members", handlers.GetGroupMembersHandler(db))
+	mux.HandleFunc("/api/groups/join-requests", handlers.GetGroupJoinRequestsHandler(db))
+	mux.HandleFunc("/api/groups/handle-join-request", handlers.HandleGroupJoinRequestHandler(db))
+
+	// Group invitation routes
+	mux.HandleFunc("/api/groups/invite", handlers.SendGroupInvitationHandler(db))
+	mux.HandleFunc("/api/groups/invitations", handlers.GetGroupInvitationsHandler(db))
+	mux.HandleFunc("/api/groups/invitations/handle", handlers.HandleGroupInvitationHandler(db))
+
+	// Group invitation request routes (for private groups)
+	mux.HandleFunc("/api/groups/invitation-requests", handlers.GetGroupInvitationRequestsHandler(db))
+	mux.HandleFunc("/api/groups/invitation-requests/handle", handlers.HandleGroupInvitationRequestHandler(db))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		chatHandlers.HandleChat(w, r)
 	})
@@ -121,6 +133,13 @@ func main() {
 	mux.HandleFunc("/api/groups/chat-history", handlers.GetGroupChatHistory)
 	mux.HandleFunc("/api/unread-counts", handlers.GetUnreadCounts)
 	mux.HandleFunc("/api/unread-group-counts", handlers.GetUnreadGroupCounts)
+
+	// Notification routes
+	mux.HandleFunc("/api/notifications", handlers.GetNotificationsHandler(db))
+	mux.HandleFunc("/api/notifications/mark-read", handlers.MarkNotificationAsReadHandler(db))
+	mux.HandleFunc("/api/notifications/unread-count", handlers.GetUnreadNotificationCountHandler(db))
+	mux.HandleFunc("/api/notifications/delete", handlers.DeleteNotificationHandler(db))
+	mux.HandleFunc("/api/notifications/debug", handlers.DebugNotificationsHandler(db)) // Debug endpoint
 
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads

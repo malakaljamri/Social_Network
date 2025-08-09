@@ -206,6 +206,27 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			client.Send <- messageToJSON(errorMsg)
 			return
 		}
+
+		// Check if user is a member of the group
+		memberIDs := database.GetGroupMemberIDs(groupChatContent.GroupID)
+		isMember := false
+		for _, memberID := range memberIDs {
+			if memberID == client.UserID {
+				isMember = true
+				break
+			}
+		}
+
+		if !isMember {
+			errorMsg := websocket.Message{
+				Type:    "error",
+				Content: "You are not a member of this group",
+				UserID:  client.UserID,
+			}
+			client.Send <- messageToJSON(errorMsg)
+			return
+		}
+
 		// Fetch sender's username
 		user, err := database.GetUserByID(client.UserID)
 		if err != nil {
@@ -226,6 +247,7 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			Content:        groupChatContent.Content,
 			Timestamp:      time.Now(),
 		}
+
 		if err := database.SaveGroupChatMessage(&groupChatMessage); err != nil {
 			log.Printf("Error saving group chat message: %v", err)
 			errorMsg := websocket.Message{
@@ -237,7 +259,6 @@ func (h *ChatHandlers) handleChatMessage(client *websocket.Client, message []byt
 			return
 		}
 		// Broadcast the group chat message to all group members
-		memberIDs := database.GetGroupMemberIDs(groupChatMessage.GroupID)
 		for _, memberID := range memberIDs {
 			msg := websocket.Message{
 				Type:    "group_chat",
@@ -351,9 +372,8 @@ func GetGroupChatHistory(w http.ResponseWriter, r *http.Request) {
 		UserID:  userID,
 	}
 	unreadJson, _ := json.Marshal(unreadMsg)
-	if h, ok := w.(interface{ Hub() *websocket.Hub }); ok {
-		h.Hub().Broadcast <- unreadJson
-	}
+	// Use the global hub instance
+	websocket.MainHub.Broadcast <- unreadJson
 	// Support limit and offset
 	limit := 10
 	offset := 0

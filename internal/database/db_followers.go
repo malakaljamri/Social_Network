@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"log"
 	"social_network/internal/models"
 )
@@ -68,6 +69,33 @@ func FollowUser(followerID, followedID int) error {
 
 	log.Printf("=== Database FollowUser completed successfully ===")
 	return nil
+}
+
+// CreateFollowNotification creates a notification for follow-related events
+func CreateFollowNotification(db *sql.DB, userID int, notificationType string, referenceID int) error {
+	log.Printf("DEBUG: Creating follow notification - userID: %d, type: %s, referenceID: %d", userID, notificationType, referenceID)
+
+	query := `INSERT INTO notifications (user_id, type, reference_id) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, userID, notificationType, referenceID)
+	if err != nil {
+		log.Printf("ERROR: Failed to create follow notification: %v", err)
+		return err
+	}
+
+	log.Printf("SUCCESS: Created follow notification for user %d, type: %s", userID, notificationType)
+	return nil
+}
+
+// GetUsernameByID gets a username by user ID for notification messages
+func GetUsernameByID(db *sql.DB, userID int) (string, error) {
+	var username string
+	query := `SELECT username FROM users WHERE id = ?`
+	err := db.QueryRow(query, userID).Scan(&username)
+	if err != nil {
+		log.Printf("WARNING: Failed to get username for user %d: %v", userID, err)
+		return "Someone", err
+	}
+	return username, nil
 }
 
 // UnfollowUser removes a follower relationship

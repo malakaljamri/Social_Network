@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"social_network/internal/database"
 	"social_network/internal/utils"
@@ -42,11 +43,16 @@ func GetGroupEventsHandler(db *sql.DB) http.HandlerFunc {
 
 func CreateGroupEventHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		log.Printf("DEBUG: Starting group event creation at %v", startTime)
+
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
+		log.Printf("DEBUG: Got user ID %d in %v", userID, time.Since(startTime))
+
 		var req struct {
 			GroupID     int    `json:"group_id"`
 			Title       string `json:"title"`
@@ -57,6 +63,8 @@ func CreateGroupEventHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
+		log.Printf("DEBUG: Parsed request in %v", time.Since(startTime))
+
 		if req.GroupID <= 0 || req.Title == "" || req.Description == "" || req.EventDate == "" {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Missing required fields")
 			return
@@ -72,11 +80,92 @@ func CreateGroupEventHandler(db *sql.DB) http.HandlerFunc {
 			utils.WriteJSONError(w, http.StatusBadRequest, "Event date must be today or in the future")
 			return
 		}
+		log.Printf("DEBUG: Validated input in %v", time.Since(startTime))
+
+		// Create the event
+		eventStart := time.Now()
 		err = database.CreateGroupEvent(db, req.GroupID, req.Title, req.Description, req.EventDate, userID)
 		if err != nil {
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create event")
 			return
 		}
+		log.Printf("DEBUG: Created event in %v", time.Since(eventStart))
+
+		// Get the created event ID
+		eventIDStart := time.Now()
+		var eventID int
+		err = db.QueryRow("SELECT id FROM events WHERE group_id = ? AND title = ? AND created_by = ? ORDER BY id DESC LIMIT 1",
+			req.GroupID, req.Title, userID).Scan(&eventID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get created event ID for notification: %v", err)
+		} else {
+			log.Printf("DEBUG: Got event ID %d in %v", eventID, time.Since(eventIDStart))
+
+			// OPTIMIZATION: Make notification creation asynchronous
+			go func() {
+				notificationStart := time.Now()
+				log.Printf("DEBUG: Starting async notification creation for event %d", eventID)
+
+				// Get all group members in one query and batch process
+				rows, err := db.Query("SELECT user_id FROM group_members WHERE group_id = ? AND status = 'accepted'", req.GroupID)
+				if err != nil {
+					log.Printf("WARNING: Failed to get group members for notification: %v", err)
+					return
+				}
+				defer rows.Close()
+
+				var memberIDs []int
+				for rows.Next() {
+					var memberID int
+					if err := rows.Scan(&memberID); err != nil {
+						continue
+					}
+					// Don't notify the event creator
+					if memberID != userID {
+						memberIDs = append(memberIDs, memberID)
+					}
+				}
+				log.Printf("DEBUG: Found %d members to notify in %v", len(memberIDs), time.Since(notificationStart))
+
+				// OPTIMIZATION: Batch create notifications
+				if len(memberIDs) > 0 {
+					// Use a transaction for batch insertion
+					tx, err := db.Begin()
+					if err != nil {
+						log.Printf("WARNING: Failed to start transaction for notifications: %v", err)
+						return
+					}
+					defer tx.Rollback() // Will be ignored if tx.Commit() succeeds
+
+					// Prepare the insert statement
+					stmt, err := tx.Prepare("INSERT INTO notifications (user_id, type, reference_id) VALUES (?, ?, ?)")
+					if err != nil {
+						log.Printf("WARNING: Failed to prepare notification statement: %v", err)
+						return
+					}
+					defer stmt.Close()
+
+					// Batch insert notifications
+					for _, memberID := range memberIDs {
+						_, err = stmt.Exec(memberID, "group_event", eventID)
+						if err != nil {
+							log.Printf("WARNING: Failed to create group event notification for user %d: %v", memberID, err)
+						}
+					}
+
+					// Commit the transaction
+					if err := tx.Commit(); err != nil {
+						log.Printf("WARNING: Failed to commit notification transaction: %v", err)
+					} else {
+						log.Printf("SUCCESS: Created %d group event notifications in %v", len(memberIDs), time.Since(notificationStart))
+					}
+				}
+			}()
+		}
+
+		totalTime := time.Since(startTime)
+		log.Printf("DEBUG: Total group event creation completed in %v", totalTime)
+
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	}

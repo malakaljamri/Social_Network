@@ -13,13 +13,15 @@ const UsersList = {
                         <img
                             :src="getAvatarUrl(user.Avatar)"
                             class="avatar-small profile-link-avatar"
-                            style="width:24px;height:24px;border-radius:50%;margin-right:8px;cursor:pointer;vertical-align:middle;"
+                            style="width:24px;height:24px;border-radius:50%;cursor:pointer;vertical-align:middle;"
                             :alt="user.Username + ' avatar'"
                             @click.stop="goToProfile(user.ID)"
                         >
                         <span class="status-dot" :class="{ 'online': user.Online }"></span>
-                        <strong @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">{{ user.Username }}</strong>
-                        <span v-if="user.Nickname"> ({{ user.Nickname }})</span>
+                        <div class="user-info" @click="openChat(user.ID)" style="cursor:pointer;" :title="getUserTooltip(user)">
+                            <strong class="username">{{ user.Username }}</strong>
+                            <span v-if="user.Nickname" class="nickname"> ({{ user.Nickname }})</span>
+                        </div>
                         <span v-if="myId && user.ID !== myId && unreadCounts[user.ID] > 0" class="unread-badge right-badge">{{ unreadCounts[user.ID] }}</span>
                     </div>
                 </div>
@@ -120,11 +122,36 @@ const UsersList = {
             this.$root.viewUserProfile(userId);
         },
         getUserTooltip(user) {
-            let tooltip = `Email: ${user.Email}`;
-            if (user.Nickname) {
-                tooltip += `\nNickname: ${user.Nickname}`;
+            let tooltip = '';
+            
+            // Check if we can show email (respect privacy settings)
+            const canShowEmail = !user.IsPrivate || user.ID === this.myId || this.isFollowingUser(user.ID);
+            
+            if (canShowEmail && user.Email) {
+                tooltip += `Email: ${user.Email}`;
+            } else if (user.IsPrivate) {
+                tooltip += `Email: [Private Profile]`;
             }
-            return tooltip;
+            
+            if (user.Nickname) {
+                if (tooltip) tooltip += '\n';
+                tooltip += `Nickname: ${user.Nickname}`;
+            }
+            
+            // Add privacy status indicator
+            if (user.IsPrivate) {
+                if (tooltip) tooltip += '\n';
+                tooltip += `🔒 Private Profile`;
+            }
+            
+            return tooltip || 'No additional information available';
+        },
+        
+        isFollowingUser(userId) {
+            // This is a simplified check - in a real implementation, 
+            // you might want to fetch this data from the backend
+            // For now, we'll assume we can't determine this from the users list
+            return false;
         }
     },
     mounted() {

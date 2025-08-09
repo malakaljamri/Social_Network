@@ -238,11 +238,12 @@ func (h *Hub) Run() {
 				if userID, ok := msgData["user_id"].(float64); ok {
 					// Send only to the specific user
 					targetUserID := int(userID)
+
 					for client := range h.clients {
 						if client.UserID == targetUserID {
 							select {
 							case client.Send <- message:
-								// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
+
 							default:
 								log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
 								close(client.Send)

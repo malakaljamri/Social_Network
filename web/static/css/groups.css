@@ -10,7 +10,6 @@
   padding: 16px 16px 32px 16px !important;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 2;
 }
 
 .group-list-header {
@@ -198,4 +197,341 @@
     grid-column: 1;
     grid-row: 3;
   }
+}
+
+/* Group Members Section Styles */
+.group-members {
+  grid-column: 2;
+  grid-row: 2;
+  margin-bottom: 20px;
+}
+
+.group-members h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: var(--font-size-2xl);
+}
+
+.group-members .card {
+  padding: 20px;
+  background: var(--card-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.group-members-btn {
+  padding: 2px 8px;
+  background-color: #90bfe0;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin-left: 0;
+  margin-right: 10px;
+  border: 1px solid #2196f3;
+  color: #1976d2;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.group-members-btn:hover {
+  background-color: #bbdefb;
+}
+
+.members-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.members-section-header {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #2196f3;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.member-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-item.online-user {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.member-item.current-user {
+  background-color: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid #2196f3;
+  padding-left: 12px;
+}
+
+.member-item.current-user:hover {
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+.loading-members,
+.no-members {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Update grid layout to accommodate members section */
+#group-main {
+  grid-template-rows: auto auto auto;
+}
+
+.group-posts {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+/* Responsive adjustments for members section */
+@media (max-width: 768px) {
+  #group-main {
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .group-members {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .group-posts {
+    grid-column: 1;
+    grid-row: 4;
+  }
+}
+
+/* Group Invitation Styles */
+.invite-users-btn {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invite-users-btn:hover {
+  background: linear-gradient(135deg, #45a049, #4CAF50);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.invite-users-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Invitation Modal Styles */
+.search-results {
+  margin-top: 16px;
+}
+
+.user-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--surface-alt-color);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--card-color);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-details strong {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.nickname {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.invite-btn {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.invite-btn:hover {
+  background: linear-gradient(135deg, #1976D2, #2196F3);
+  transform: translateY(-1px);
+}
+
+.invite-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Invitations List Styles */
+.invitations-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.invitation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid var(--surface-alt-color);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: var(--card-color);
+}
+
+.invitation-info {
+  flex: 1;
+}
+
+.invitation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.invitation-header strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.invitation-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.invitation-details {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.accept-btn:hover {
+  background: linear-gradient(135deg, #45a049, #4CAF50);
+  transform: translateY(-1px);
+}
+
+.decline-btn {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.decline-btn:hover {
+  background: linear-gradient(135deg, #d32f2f, #f44336);
+  transform: translateY(-1px);
+}
+
+.accept-btn:disabled,
+.decline-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.no-invitations {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.no-results {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-secondary);
+  font-style: italic;
 }

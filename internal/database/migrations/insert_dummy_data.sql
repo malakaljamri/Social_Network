@@ -573,6 +573,7 @@ INSERT INTO "groups" VALUES(12,'Nature Lovers','A group for sharing experiences 
 INSERT INTO "groups" VALUES(13,'zzzzzzzzzzzzzzzz','zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',52,'2025-06-02 15:18:17','public');
 INSERT INTO "groups" VALUES(14,'22222222222222222222','222222222222222222222',52,'2025-06-05 14:18:32','public');
 INSERT INTO "groups" VALUES(15,'private1','1111111111111111111111111111111111',52,'2025-07-01 14:43:30','private');
+INSERT INTO group_members VALUES(4,4,'accepted');
 INSERT INTO group_members VALUES(1,2,'accepted');
 INSERT INTO group_members VALUES(1,3,'pending');
 INSERT INTO group_members VALUES(2,4,'accepted');
@@ -605,15 +606,15 @@ INSERT INTO group_messages VALUES(17,3,6,'Let''s brainstorm ideas for group 3.',
 INSERT INTO group_messages VALUES(18,5,8,'Group 5 is planning a charity event.','2025-05-05 14:22:10');
 INSERT INTO group_messages VALUES(19,5,13,'I''ll contribute to the charity event for group 5.','2025-05-05 14:27:55');
 INSERT INTO group_messages VALUES(20,1,1,'Group 1 is hosting a webinar.','2025-05-05 14:32:40');
-INSERT INTO group_messages VALUES(21,1,6,'I'll join the webinar for group 1.','2025-05-05 14:37:25');
+INSERT INTO group_messages VALUES(21,1,6,'I''ll join the webinar for group 1.','2025-05-05 14:37:25');
 INSERT INTO group_messages VALUES(22,1,2,'Does anyone have questions about group 1?','2025-05-05 14:42:15');
 INSERT INTO group_messages VALUES(23,2,4,'Group 2 is organizing a workshop.','2025-05-05 14:47:00');
 INSERT INTO group_messages VALUES(24,3,6,'Group 3 is looking for volunteers.','2025-05-05 14:51:45');
 INSERT INTO group_messages VALUES(25,5,8,'Group 5 is planning a picnic.','2025-05-05 14:56:30');
-INSERT INTO group_messages VALUES(26,5,13,'I'll bring snacks for the picnic in group 5.','2025-05-05 14:02:10');
+INSERT INTO group_messages VALUES(26,5,13,'I''ll bring snacks for the picnic in group 5.','2025-05-05 14:02:10');
 INSERT INTO group_messages VALUES(27,1,1,'Group 1 is discussing new ideas.','2025-05-05 14:06:55');
 INSERT INTO group_messages VALUES(28,1,6,'I have a suggestion for group 1.','2025-05-05 14:11:40');
-INSERT INTO group_messages VALUES(29,1,2,'Let's vote on the suggestions for group 1.','2025-05-05 14:16:25');
+INSERT INTO group_messages VALUES(29,1,2,'Let''s vote on the suggestions for group 1.','2025-05-05 14:16:25');
 INSERT INTO group_messages VALUES(30,2,4,'Group 2 is planning a trip.','2025-05-05 14:21:10');
 INSERT INTO group_messages VALUES(31,3,6,'Group 3 is hosting a debate.','2025-05-05 14:25:55');
 INSERT INTO group_messages VALUES(32,5,8,'Group 5 is organizing a fundraiser.','2025-05-05 14:30:40');
@@ -930,3 +931,43 @@ INSERT OR IGNORE INTO group_messages VALUES(65,4,6,'Anyone seen the latest block
 INSERT OR IGNORE INTO group_messages VALUES(66,4,8,'I watched it last weekend, amazing!','2025-07-06 12:05:00');
 INSERT OR IGNORE INTO group_messages VALUES(67,4,9,'We should organize a movie night','2025-07-06 12:10:00');
 INSERT OR IGNORE INTO group_messages VALUES(68,5,8,'Planning my next trip to Europe','2025-07-06 13:00:00');
+
+-- Group Invitations dummy data
+-- User 1 (j) invites user 2 (jane_smith) to group 1 (Tech Enthusiasts)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(1,1,2,'pending','2025-07-06 14:00:00');
+
+-- User 4 (emily_brown) invites user 5 (chris_wilson) to group 2 (Book Lovers)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(2,4,5,'pending','2025-07-06 14:30:00');
+
+-- User 6 (example1) invites user 8 (Ali) to group 3 (Fitness Freaks)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(3,6,8,'pending','2025-07-06 15:00:00');
+
+-- User 12 (user1) invites user 13 (user2) to group 4 (Movie Buffs)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(4,12,13,'pending','2025-07-06 15:30:00');
+
+-- User 8 (Ali) invites user 9 (example123) to group 5 (Travel Adventures)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(5,8,9,'pending','2025-07-06 16:00:00');
+
+-- User 6 (example1) invites user 11 (example1234) to group 6 (Cooking Masters)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(6,6,11,'pending','2025-07-06 16:30:00');
+
+-- User 12 (user1) invites user 14 (user3) to group 7 (Music Lovers)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(7,12,14,'pending','2025-07-06 17:00:00');
+
+-- User 8 (Ali) invites user 15 (user4) to group 8 (Photography Club)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(8,8,15,'pending','2025-07-06 17:30:00');
+
+-- User 9 (example123) invites user 16 (user5) to group 9 (Gaming Community)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(9,9,16,'pending','2025-07-06 18:00:00');
+
+-- User 13 (user2) invites user 17 (user6) to group 10 (Entrepreneurs Network)
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(10,13,17,'pending','2025-07-06 18:30:00');
+
+-- Some accepted invitations
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(1,1,3,'accepted','2025-07-05 10:00:00');
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(2,4,6,'accepted','2025-07-05 11:00:00');
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(3,6,9,'accepted','2025-07-05 12:00:00');
+
+-- Some declined invitations
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(4,12,18,'declined','2025-07-05 13:00:00');
+INSERT OR IGNORE INTO group_invitations (group_id, inviter_id, invitee_id, status, created_at) VALUES(5,8,19,'declined','2025-07-05 14:00:00');

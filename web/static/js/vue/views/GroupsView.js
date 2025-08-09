@@ -5,6 +5,8 @@ const GroupsView = {
             groups: [],
             selectedGroupId: null,
             showCreateGroupModal: false,
+            showGroupInvitationsModal: false,
+            showGroupInvitationRequestsModal: false,
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
@@ -96,10 +98,41 @@ const GroupsView = {
         handleOpenCreateGroupModal() {
             this.showCreateGroupModal = true;
         },
+        openGroupInvitationsModal() {
+            this.showGroupInvitationsModal = true;
+        },
+        closeGroupInvitationsModal() {
+            this.showGroupInvitationsModal = false;
+        },
         handleEventClick(event) {
             this.$emit('event-click', event);
         },
+        
+        handleOpenJoinRequestsModal(event) {
+            console.log('GroupsView: Received open-join-requests-modal event:', event.detail);
+            const { groupId } = event.detail;
+            
+            // Find the group and select it
+            const group = this.groups.find(g => g.ID === groupId);
+            if (group) {
+                this.handleGroupSelected(group.ID);
+                
+                // Wait a bit for the group to be selected, then open the modal
+                setTimeout(() => {
+                    if (this.$refs.groupMain) {
+                        this.$refs.groupMain.openGroupJoinRequestsModal();
+                    }
+                }, 200);
+            } else {
+                console.log('GroupsView: Group not found for ID:', groupId);
+            }
+        },
+        handleOpenGroupInvitationsModal(event) {
+            console.log('GroupsView: Received open-group-invitations-modal event');
+            this.openGroupInvitationsModal();
+        },
         openChat(user) {
+            console.log('🔍 GroupsView openChat called with user:', user);
             if (!user || !user.ID) return;
             if (!this.openChats.some(u => u.ID === user.ID)) {
                 this.openChats.push(user);
@@ -117,11 +150,62 @@ const GroupsView = {
         handleGroupMembershipChanged(data) {
             // Pass the membership change to the group list component
             this.$refs.groupList?.updateGroupMembershipStatus(data.groupId, data.membershipStatus);
+        },
+        viewUserProfile(userId) {
+            console.log('🔍 GroupsView viewUserProfile called with userId:', userId);
+            // Use the root method to view user profile
+            this.$root.viewUserProfile(userId);
+        },
+        handleInvitationHandled(event) {
+            console.log('🔍 Invitation handled:', event);
+            // Could refresh groups or show success message
+        },
+        
+        handleOpenInvitationRequestsModal(event) {
+            console.log('GroupsView: Received open-invitation-requests-modal event:', event.detail);
+            const { groupId } = event.detail;
+            console.log('GroupsView: Setting selectedGroupId to:', groupId);
+            this.selectedGroupId = groupId;
+            this.selectedGroup = this.groups.find(g => g.ID === groupId) || null;
+            console.log('GroupsView: Setting showGroupInvitationRequestsModal to true');
+            this.showGroupInvitationRequestsModal = true;
+            console.log('GroupsView: showGroupInvitationRequestsModal is now:', this.showGroupInvitationRequestsModal);
+        },
+        
+        closeGroupInvitationRequestsModal() {
+            this.showGroupInvitationRequestsModal = false;
+        },
+        
+        handleInvitationRequestHandled(event) {
+            console.log('🔍 Invitation request handled:', event);
+            // Refresh notifications and close modal
+            this.showGroupInvitationRequestsModal = false;
+            
+            // Emit event to refresh notifications in NavBar
+            this.$emit('refresh-notifications');
+            
+            // Also dispatch a custom window event for the NavBar to catch
+            window.dispatchEvent(new CustomEvent('refresh-notifications'));
         }
     },
     mounted() {
         this.fetchGroups();
         this.fetchCategories();
+        
+        // Listen for custom event to open join requests modal
+        window.addEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
+        
+        // Listen for custom event to open group invitations modal
+        window.addEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
+        
+        // Listen for custom event to open invitation requests modal
+        window.addEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
+    },
+    beforeUnmount() {
+        // Clean up event listeners
+        window.removeEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
+        window.removeEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
+        window.removeEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
     },
     template: `
         <div class="layout-grid groups-layout">
@@ -147,6 +231,9 @@ const GroupsView = {
                     @refresh-group-events="fetchGroupEvents(selectedGroupId)"
                     @event-click="handleEventClick"
                     @group-membership-changed="handleGroupMembershipChanged"
+                    @view-user-profile="viewUserProfile"
+                    @open-chat="openChat"
+                    ref="groupMain"
                 ></g-group-main>
             </div>
             <users-list class="sidebar" @open-chat="openChat"></users-list>
@@ -157,6 +244,18 @@ const GroupsView = {
                 v-if="showCreateGroupModal"
                 @created="handleGroupCreated"
                 @close="showCreateGroupModal = false"
+            />
+            <g-group-invitations-modal
+                v-if="showGroupInvitationsModal"
+                @close="closeGroupInvitationsModal"
+                @invitation-handled="handleInvitationHandled"
+            />
+            <g-group-invitation-requests-modal
+                v-if="showGroupInvitationRequestsModal"
+                :show-modal="showGroupInvitationRequestsModal"
+                :group-id="selectedGroupId"
+                @close="closeGroupInvitationRequestsModal"
+                @request-handled="handleInvitationRequestHandled"
             />
         </div>
     `

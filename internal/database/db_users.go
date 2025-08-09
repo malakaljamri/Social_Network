@@ -177,6 +177,7 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 			u.last_name, 
 			u.email,
 			u.avatar,
+			u.is_private,
 			(SELECT MAX(timestamp) 
 				FROM chat_messages 
 				WHERE (sender_id = u.id and Receiver_id = ?) or (sender_id = ? AND Receiver_id = u.id)) as last_message_time
@@ -196,6 +197,7 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 		var user models.User
 		var lastMessageTime sql.NullString
 		var avatar sql.NullString
+		var isPrivate bool
 		err := rows.Scan(
 			&user.ID,
 			&user.Username,
@@ -205,6 +207,7 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 			&user.LastName,
 			&user.Email,
 			&avatar,
+			&isPrivate,
 			&lastMessageTime,
 		)
 		if err != nil {
@@ -212,7 +215,23 @@ func GetAllUsers(currentUserID int) ([]models.User, error) {
 		}
 		user.Avatar = avatar.String
 		user.LastMessageTime = lastMessageTime.String
+		user.IsPrivate = isPrivate
 		_, user.Online = OnlineUsers[user.ID]
+
+		// Apply privacy restrictions
+		if isPrivate && currentUserID != user.ID {
+			// Check if current user is a follower
+			isFollowing, err := IsFollowing(currentUserID, user.ID)
+			if err != nil || !isFollowing {
+				// Hide sensitive information for private profiles when not a follower
+				user.FirstName = ""
+				user.LastName = ""
+				user.Email = ""
+				user.Gender = ""
+				user.BirthDate = time.Time{} // Zero time value
+			}
+		}
+
 		users = append(users, user)
 	}
 	return users, nil

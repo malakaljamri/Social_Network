@@ -96,3 +96,325 @@
     font-size: var(--font-size-xl);
   }
 }
+
+/* Join Requests Modal Styles */
+.join-requests-btn {
+    background: var(--button-primary);
+    color: var(--text-on-primary);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    position: relative;
+}
+
+.join-requests-btn:hover {
+    background: var(--button-primary-hover);
+}
+
+.request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    transition: var(--transition-colors);
+}
+
+.request-item:last-child {
+    border-bottom: none;
+}
+
+.request-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.request-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.request-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.request-details strong {
+    color: var(--text-color);
+    font-weight: var(--font-weight-medium);
+}
+
+.request-details .nickname {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.accept-btn {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+}
+
+.accept-btn:hover:not(:disabled) {
+    background: var(--success-color-hover);
+}
+
+.decline-btn {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+}
+
+.decline-btn:hover:not(:disabled) {
+    background: var(--danger-color-hover);
+}
+
+.accept-btn:disabled,
+.decline-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.error-message {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--danger-color);
+}
+
+.no-requests {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.requests-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Group Invitations Modal Styles */
+.invitation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    transition: var(--transition-colors);
+}
+
+.invitation-item:last-child {
+    border-bottom: none;
+}
+
+.invitation-info {
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+.invitation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.invitation-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+}
+
+.invitation-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.invitation-message {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.invitation-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.accept-btn {
+    background: var(--button-primary);
+    color: var(--text-on-primary);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.accept-btn:hover {
+    background: var(--button-primary-hover);
+}
+
+.accept-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.decline-btn {
+    background: var(--button-danger);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.decline-btn:hover {
+    background: linear-gradient(135deg, var(--error-color-dark), var(--error-color));
+}
+
+.decline-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.no-invitations {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.invitations-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Invitation Requests Modal Styles */
+.invitation-requests-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.invitation-request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    background: var(--card-color);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.request-info {
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.inviter-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-color);
+}
+
+.request-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.request-message {
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.approve-btn {
+    background: var(--button-success);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.approve-btn:hover {
+    background: linear-gradient(135deg, var(--success-color-dark), var(--success-color));
+}
+
+.approve-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.reject-btn {
+    background: var(--button-danger);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.reject-btn:hover {
+    background: linear-gradient(135deg, var(--error-color-dark), var(--error-color));
+}
+
+.reject-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.no-requests {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
