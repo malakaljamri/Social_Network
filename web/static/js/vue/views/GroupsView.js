@@ -6,6 +6,7 @@ const GroupsView = {
             selectedGroupId: null,
             showCreateGroupModal: false,
             showGroupInvitationsModal: false,
+            showGroupInvitationRequestsModal: false,
             selectedGroup: null,
             groupPosts: [],
             groupEvents: [],
@@ -158,6 +159,24 @@ const GroupsView = {
         handleInvitationHandled(event) {
             console.log('🔍 Invitation handled:', event);
             // Could refresh groups or show success message
+        },
+        
+        handleOpenInvitationRequestsModal(event) {
+            console.log('GroupsView: Received open-invitation-requests-modal event:', event.detail);
+            const { groupId } = event.detail;
+            this.selectedGroupId = groupId;
+            this.selectedGroup = this.groups.find(g => g.ID === groupId) || null;
+            this.showGroupInvitationRequestsModal = true;
+        },
+        
+        closeGroupInvitationRequestsModal() {
+            this.showGroupInvitationRequestsModal = false;
+        },
+        
+        handleInvitationRequestHandled(event) {
+            console.log('🔍 Invitation request handled:', event);
+            // Refresh notifications and close modal
+            this.showGroupInvitationRequestsModal = false;
         }
     },
     mounted() {
@@ -169,11 +188,15 @@ const GroupsView = {
         
         // Listen for custom event to open group invitations modal
         window.addEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
+        
+        // Listen for custom event to open invitation requests modal
+        window.addEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
     },
     beforeUnmount() {
         // Clean up event listeners
         window.removeEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
         window.removeEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
+        window.removeEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
     },
     template: `
         <div class="layout-grid groups-layout">
@@ -217,6 +240,13 @@ const GroupsView = {
                 v-if="showGroupInvitationsModal"
                 @close="closeGroupInvitationsModal"
                 @invitation-handled="handleInvitationHandled"
+            />
+            <g-group-invitation-requests-modal
+                v-if="showGroupInvitationRequestsModal"
+                :show-modal="showGroupInvitationRequestsModal"
+                :group-id="selectedGroupId"
+                @close="closeGroupInvitationRequestsModal"
+                @request-handled="handleInvitationRequestHandled"
             />
         </div>
     `

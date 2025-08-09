@@ -10,7 +10,7 @@ const GroupInvitationsModal = {
     },
     computed: {
         hasInvitations() {
-            return this.invitations.length > 0;
+            return this.invitations && this.invitations.length > 0;
         }
     },
     methods: {
@@ -25,7 +25,8 @@ const GroupInvitationsModal = {
                 });
                 
                 if (response.ok) {
-                    this.invitations = await response.json();
+                    const data = await response.json();
+                    this.invitations = data || []; // Ensure it's always an array
                     console.log('✅ Fetched invitations:', this.invitations);
                 } else {
                     const errorData = await response.json();

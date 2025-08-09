@@ -460,10 +460,23 @@ const NavBar = {
                     break;
                     
                 case 'group_invitation':
-                    console.log('NavBar: Group invitation notification detected, opening invitations modal');
-                    // Open the invitations modal
-                    this.showGroupInvitationsModal = true;
-                    break;
+					console.log('NavBar: Group invitation notification detected, opening invitations modal');
+					// Open the invitations modal
+					this.showGroupInvitationsModal = true;
+					break;
+					
+				case 'group_invitation_request':
+					console.log('NavBar: Group invitation request notification detected, navigating to groups');
+					// Navigate to groups view and emit event to open invitation requests modal
+					this.$emit('navigate', 'groups');
+					
+					// Dispatch a custom event that GroupsView can listen to
+					setTimeout(() => {
+						window.dispatchEvent(new CustomEvent('open-invitation-requests-modal', {
+							detail: { groupId: notification.reference_id }
+						}));
+					}, 100);
+					break;
                     
                 case 'follow_request':
                     console.log('NavBar: Follow request notification detected, navigating to profile');

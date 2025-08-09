@@ -453,40 +453,97 @@ func SendGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check if invitation already exists
-		alreadyInvited, err := database.CheckIfUserInvited(db, req.GroupID, inviteeID)
+		// Check if group is private
+		isPrivate, err := database.CheckIfGroupIsPrivate(db, req.GroupID)
 		if err != nil {
-			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check existing invitations")
-			return
-		}
-		if alreadyInvited {
-			utils.WriteJSONError(w, http.StatusBadRequest, "User has already been invited to this group")
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check group privacy")
 			return
 		}
 
-		// Create the invitation
-		err = database.CreateGroupInvitation(db, req.GroupID, userID, inviteeID)
+		// Check if user is group owner
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", req.GroupID).Scan(&creatorID)
 		if err != nil {
-			log.Printf("❌ Failed to create group invitation: %v", err)
-			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create invitation")
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get group creator")
 			return
 		}
+		isOwner := creatorID == userID
 
-		// Create notification for invitee
-		err = database.CreateNotification(db, inviteeID, "group_invitation", req.GroupID)
-		if err != nil {
-			log.Printf("⚠️ Failed to create invitation notification: %v", err)
+		if isPrivate && !isOwner {
+			// For private groups, non-owners need to create invitation requests
+
+			// Check if invitation request already exists
+			alreadyRequested, err := database.CheckIfInvitationRequestExists(db, req.GroupID, inviteeID)
+			if err != nil {
+				utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check existing invitation requests")
+				return
+			}
+			if alreadyRequested {
+				utils.WriteJSONError(w, http.StatusBadRequest, "Invitation request already exists for this user")
+				return
+			}
+
+			// Create invitation request
+			err = database.CreateGroupInvitationRequest(db, req.GroupID, userID, inviteeID)
+			if err != nil {
+				log.Printf("❌ Failed to create group invitation request: %v", err)
+				utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create invitation request")
+				return
+			}
+
+			// Create notification for group owner
+			err = database.CreateNotification(db, creatorID, "group_invitation_request", req.GroupID)
+			if err != nil {
+				log.Printf("⚠️ Failed to create invitation request notification: %v", err)
+			} else {
+				log.Printf("✅ Created invitation request notification for group owner %d", creatorID)
+			}
+
+			log.Printf("✅ Group invitation request created: groupID=%d, inviterID=%d, inviteeID=%d", req.GroupID, userID, inviteeID)
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"status":  "success",
+				"message": "Invitation request sent to group owner for approval",
+			})
 		} else {
-			log.Printf("✅ Created group invitation notification for user %d", inviteeID)
+			// For public groups or group owners, create invitation directly
+
+			// Check if invitation already exists
+			alreadyInvited, err := database.CheckIfUserInvited(db, req.GroupID, inviteeID)
+			if err != nil {
+				utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check existing invitations")
+				return
+			}
+			if alreadyInvited {
+				utils.WriteJSONError(w, http.StatusBadRequest, "User has already been invited to this group")
+				return
+			}
+
+			// Create the invitation
+			err = database.CreateGroupInvitation(db, req.GroupID, userID, inviteeID)
+			if err != nil {
+				log.Printf("❌ Failed to create group invitation: %v", err)
+				utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create invitation")
+				return
+			}
+
+			// Create notification for invitee
+			err = database.CreateNotification(db, inviteeID, "group_invitation", req.GroupID)
+			if err != nil {
+				log.Printf("⚠️ Failed to create invitation notification: %v", err)
+			} else {
+				log.Printf("✅ Created group invitation notification for user %d", inviteeID)
+			}
+
+			log.Printf("✅ Group invitation sent successfully: groupID=%d, inviterID=%d, inviteeID=%d", req.GroupID, userID, inviteeID)
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"status":  "success",
+				"message": "Invitation sent successfully",
+			})
 		}
-
-		log.Printf("✅ Group invitation sent successfully: groupID=%d, inviterID=%d, inviteeID=%d", req.GroupID, userID, inviteeID)
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "success",
-			"message": "Invitation sent successfully",
-		})
 	}
 }
 
@@ -510,6 +567,98 @@ func GetUserGroupInvitationsHandler(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(invitations)
+	}
+}
+
+// GetGroupInvitationRequestsHandler gets pending invitation requests for a group (owner only)
+func GetGroupInvitationRequestsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/invitation-requests")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		groupIDStr := r.URL.Query().Get("group_id")
+		if groupIDStr == "" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
+			return
+		}
+
+		groupID, err := strconv.Atoi(groupIDStr)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
+			return
+		}
+
+		// Check if user is group owner
+		var creatorID int
+		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusNotFound, "Group not found")
+			return
+		}
+		if creatorID != userID {
+			utils.WriteJSONError(w, http.StatusForbidden, "Only group owner can view invitation requests")
+			return
+		}
+
+		requests, err := database.GetPendingInvitationRequests(db, groupID)
+		if err != nil {
+			log.Printf("❌ Failed to fetch invitation requests: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch invitation requests")
+			return
+		}
+
+		log.Printf("✅ Retrieved %d pending invitation requests for group %d", len(requests), groupID)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(requests)
+	}
+}
+
+// HandleGroupInvitationRequestHandler approves or rejects invitation requests (owner only)
+func HandleGroupInvitationRequestHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("📥 Received request at /api/groups/invitation-requests/handle")
+
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		var req struct {
+			RequestID int    `json:"request_id"`
+			Action    string `json:"action"` // "approve" or "reject"
+		}
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		if req.Action != "approve" && req.Action != "reject" {
+			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid action. Must be 'approve' or 'reject'")
+			return
+		}
+
+		err = database.HandleInvitationRequest(db, req.RequestID, userID, req.Action)
+		if err != nil {
+			log.Printf("❌ Failed to handle invitation request: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		log.Printf("✅ Invitation request %s successfully: requestID=%d, userID=%d", req.Action, req.RequestID, userID)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": fmt.Sprintf("Invitation request %s successfully", req.Action),
+		})
 	}
 }
 

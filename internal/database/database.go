@@ -45,8 +45,7 @@ func InitializeDB() (*sql.DB, error) {
 	db.SetMaxIdleConns(10)
 	// Set maximum lifetime of connections
 	db.SetConnMaxLifetime(5 * time.Minute)
-
-	log.Printf("DEBUG: Database connection pool configured - MaxOpen: 25, MaxIdle: 10, MaxLifetime: 5m")
+	// log.Printf("DEBUG: Database connection pool configured - MaxOpen: 25, MaxIdle: 10, MaxLifetime: 5m")
 
 	// Create tables in the database
 	err = createTables()

@@ -162,6 +162,26 @@ func generateNotificationMessage(db *sql.DB, notificationType string, referenceI
 		log.Printf("DEBUG: Generated group invitation message: %s", message)
 		return message
 
+	case "group_invitation_request":
+		// Get group name and inviter name
+		var groupName, inviterName string
+		query := `
+			SELECT g.name, u.username 
+			FROM groups g 
+			JOIN group_invitation_requests gir ON g.id = gir.group_id 
+			JOIN users u ON gir.inviter_id = u.id 
+			WHERE g.id = ? AND gir.status = 'pending'
+			LIMIT 1
+		`
+		err := db.QueryRow(query, referenceID).Scan(&groupName, &inviterName)
+		if err != nil {
+			log.Printf("WARNING: Failed to get group/inviter details for invitation request %d: %v", referenceID, err)
+			return "Someone wants to invite a user to your group"
+		}
+		message := inviterName + " wants to invite a user to " + groupName
+		log.Printf("DEBUG: Generated group invitation request message: %s", message)
+		return message
+
 	case "group_join_request":
 		// Get group name and requester name
 		var groupName, requesterName string

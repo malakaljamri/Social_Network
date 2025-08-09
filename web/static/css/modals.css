@@ -320,3 +320,101 @@
     max-height: 400px;
     overflow-y: auto;
 }
+
+/* Invitation Requests Modal Styles */
+.invitation-requests-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.invitation-request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--surface-alt-color);
+    background: var(--card-color);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.request-info {
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.inviter-name {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-color);
+}
+
+.request-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.request-message {
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.approve-btn {
+    background: var(--button-success);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.approve-btn:hover {
+    background: linear-gradient(135deg, var(--success-color-dark), var(--success-color));
+}
+
+.approve-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.reject-btn {
+    background: var(--button-danger);
+    color: white;
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-size: var(--font-size-sm);
+}
+
+.reject-btn:hover {
+    background: linear-gradient(135deg, var(--error-color-dark), var(--error-color));
+}
+
+.reject-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.no-requests {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}

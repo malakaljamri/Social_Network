@@ -369,7 +369,7 @@ func GetPendingGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, erro
 	}
 	defer rows.Close()
 
-	var invitations []GroupInvitation
+	var invitations []GroupInvitation = make([]GroupInvitation, 0)
 	for rows.Next() {
 		var inv GroupInvitation
 		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.GroupName, &inv.InviterID,
@@ -476,7 +476,7 @@ func GetUserGroupInvitations(db *sql.DB, userID int) ([]GroupInvitation, error) 
 	}
 	defer rows.Close()
 
-	var invitations []GroupInvitation
+	var invitations []GroupInvitation = make([]GroupInvitation, 0)
 	for rows.Next() {
 		var inv GroupInvitation
 		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt, &inv.GroupName, &inv.InviterUsername)
@@ -518,7 +518,7 @@ func GetGroupInvitations(db *sql.DB, groupID, userID int) ([]GroupInvitation, er
 	}
 	defer rows.Close()
 
-	var invitations []GroupInvitation
+	var invitations []GroupInvitation = make([]GroupInvitation, 0)
 	for rows.Next() {
 		var inv GroupInvitation
 		err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt,
@@ -536,4 +536,144 @@ func GetGroupInvitations(db *sql.DB, groupID, userID int) ([]GroupInvitation, er
 func DeleteGroupInvitation(db *sql.DB, invitationID int) error {
 	_, err := db.Exec("DELETE FROM group_invitations WHERE id = ?", invitationID)
 	return err
+}
+
+// GroupInvitationRequest represents a group invitation request that needs owner approval
+type GroupInvitationRequest struct {
+	ID              int    `json:"id"`
+	GroupID         int    `json:"group_id"`
+	GroupName       string `json:"group_name"`
+	InviterID       int    `json:"inviter_id"`
+	InviterUsername string `json:"inviter_username"`
+	InviteeID       int    `json:"invitee_id"`
+	InviteeUsername string `json:"invitee_username"`
+	Status          string `json:"status"` // "pending", "approved", "rejected"
+	CreatedAt       string `json:"created_at"`
+}
+
+// CreateGroupInvitationRequest creates a new invitation request for private groups
+func CreateGroupInvitationRequest(db *sql.DB, groupID, inviterID, inviteeID int) error {
+	query := `INSERT INTO group_invitation_requests (group_id, inviter_id, invitee_id) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, groupID, inviterID, inviteeID)
+	if err != nil {
+		log.Printf("❌ Failed to create group invitation request: %v", err)
+		return err
+	}
+	log.Printf("✅ Created group invitation request: groupID=%d, inviterID=%d, inviteeID=%d", groupID, inviterID, inviteeID)
+	return nil
+}
+
+// GetPendingInvitationRequests gets all pending invitation requests for a group owner
+func GetPendingInvitationRequests(db *sql.DB, groupID int) ([]GroupInvitationRequest, error) {
+	query := `
+		SELECT gir.id, gir.group_id, gir.inviter_id, gir.invitee_id, gir.status, gir.created_at,
+		       g.name as group_name, u1.username as inviter_username, u2.username as invitee_username
+		FROM group_invitation_requests gir
+		JOIN groups g ON gir.group_id = g.id
+		JOIN users u1 ON gir.inviter_id = u1.id
+		JOIN users u2 ON gir.invitee_id = u2.id
+		WHERE gir.group_id = ? AND gir.status = 'pending'
+		ORDER BY gir.created_at DESC
+	`
+
+	rows, err := db.Query(query, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []GroupInvitationRequest = make([]GroupInvitationRequest, 0)
+	for rows.Next() {
+		var req GroupInvitationRequest
+		err := rows.Scan(&req.ID, &req.GroupID, &req.InviterID, &req.InviteeID, &req.Status, &req.CreatedAt,
+			&req.GroupName, &req.InviterUsername, &req.InviteeUsername)
+		if err != nil {
+			return nil, err
+		}
+		requests = append(requests, req)
+	}
+
+	return requests, nil
+}
+
+// HandleInvitationRequest handles approval/rejection of invitation requests by group owner
+func HandleInvitationRequest(db *sql.DB, requestID, ownerID int, action string) error {
+	// Start transaction
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get the invitation request details
+	var groupID, inviterID, inviteeID int
+	err = tx.QueryRow(`
+		SELECT gir.group_id, gir.inviter_id, gir.invitee_id 
+		FROM group_invitation_requests gir
+		JOIN groups g ON gir.group_id = g.id
+		WHERE gir.id = ? AND g.creator_id = ?
+	`, requestID, ownerID).Scan(&groupID, &inviterID, &inviteeID)
+	if err != nil {
+		return fmt.Errorf("invitation request not found or you're not the group owner")
+	}
+
+	if action == "approve" {
+		// Update the request status to approved
+		_, err = tx.Exec("UPDATE group_invitation_requests SET status = 'approved' WHERE id = ?", requestID)
+		if err != nil {
+			return err
+		}
+
+		// Create the actual invitation
+		_, err = tx.Exec(`
+			INSERT INTO group_invitations (group_id, inviter_id, invitee_id, status) 
+			VALUES (?, ?, ?, 'pending')
+		`, groupID, inviterID, inviteeID)
+		if err != nil {
+			return err
+		}
+
+		// Create notification for invitee
+		_, err = tx.Exec("INSERT INTO notifications (user_id, type, reference_id) VALUES (?, ?, ?)", inviteeID, "group_invitation", groupID)
+		if err != nil {
+			log.Printf("⚠️ Failed to create invitation notification: %v", err)
+		}
+
+		log.Printf("✅ Invitation request approved: requestID=%d, groupID=%d, inviteeID=%d", requestID, groupID, inviteeID)
+	} else if action == "reject" {
+		// Update the request status to rejected
+		_, err = tx.Exec("UPDATE group_invitation_requests SET status = 'rejected' WHERE id = ?", requestID)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("✅ Invitation request rejected: requestID=%d, groupID=%d, inviteeID=%d", requestID, groupID, inviteeID)
+	} else {
+		return fmt.Errorf("invalid action: %s", action)
+	}
+
+	// Commit transaction
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckIfGroupIsPrivate checks if a group is private
+func CheckIfGroupIsPrivate(db *sql.DB, groupID int) (bool, error) {
+	var privacySetting string
+	err := db.QueryRow("SELECT privacy_setting FROM groups WHERE id = ?", groupID).Scan(&privacySetting)
+	if err != nil {
+		return false, err
+	}
+	return privacySetting == "private", nil
+}
+
+// CheckIfInvitationRequestExists checks if an invitation request already exists
+func CheckIfInvitationRequestExists(db *sql.DB, groupID, inviteeID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM group_invitation_requests WHERE group_id = ? AND invitee_id = ? AND status = 'pending'`
+	var count int
+	err := db.QueryRow(query, groupID, inviteeID).Scan(&count)
+	return count > 0, err
 }
