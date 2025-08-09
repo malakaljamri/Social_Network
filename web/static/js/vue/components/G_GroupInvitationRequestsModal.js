@@ -60,6 +60,7 @@ const G_GroupInvitationRequestsModal = {
     },
     
     data() {
+        console.log('G_GroupInvitationRequestsModal: Component data() called - component is being created');
         return {
             invitationRequests: [],
             loading: false,
@@ -67,31 +68,59 @@ const G_GroupInvitationRequestsModal = {
         };
     },
     
+    mounted() {
+        console.log('G_GroupInvitationRequestsModal: Component mounted');
+        console.log('G_GroupInvitationRequestsModal: Props - showModal:', this.showModal, 'groupId:', this.groupId);
+        
+        // If the modal is already shown when mounted, fetch the data
+        if (this.showModal && this.groupId) {
+            console.log('G_GroupInvitationRequestsModal: Modal already shown on mount, fetching requests');
+            this.fetchInvitationRequests();
+        }
+    },
+    
     watch: {
         showModal(newVal) {
+            console.log('G_GroupInvitationRequestsModal: showModal changed to:', newVal);
+            console.log('G_GroupInvitationRequestsModal: groupId is:', this.groupId);
             if (newVal && this.groupId) {
+                console.log('G_GroupInvitationRequestsModal: Calling fetchInvitationRequests');
                 this.fetchInvitationRequests();
+            } else {
+                console.log('G_GroupInvitationRequestsModal: Not fetching - showModal:', newVal, 'groupId:', this.groupId);
             }
         }
     },
     
     methods: {
         async fetchInvitationRequests() {
-            if (!this.groupId) return;
+            if (!this.groupId) {
+                console.error('G_GroupInvitationRequestsModal: No groupId provided');
+                return;
+            }
             
+            console.log('G_GroupInvitationRequestsModal: Fetching invitation requests for groupId:', this.groupId);
             this.loading = true;
             try {
-                const response = await fetch(`/api/groups/invitation-requests?group_id=${this.groupId}`, {
+                const url = `/api/groups/invitation-requests?group_id=${this.groupId}`;
+                console.log('G_GroupInvitationRequestsModal: Making request to:', url);
+                
+                const response = await fetch(url, {
                     credentials: 'include'
                 });
                 
+                console.log('G_GroupInvitationRequestsModal: Response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error('G_GroupInvitationRequestsModal: Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
                 }
                 
                 const data = await response.json();
                 this.invitationRequests = data;
                 console.log('G_GroupInvitationRequestsModal: Fetched invitation requests:', data);
+                console.log('G_GroupInvitationRequestsModal: Number of requests:', data ? data.length : 0);
             } catch (error) {
                 console.error('G_GroupInvitationRequestsModal: Error fetching invitation requests:', error);
                 alert('Failed to fetch invitation requests: ' + error.message);

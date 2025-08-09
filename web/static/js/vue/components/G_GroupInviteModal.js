@@ -68,7 +68,9 @@ const GroupInviteModal = {
                 });
                 
                 if (response.ok) {
-                    this.success = `Successfully invited ${username} to ${this.groupName}`;
+                    const responseData = await response.json();
+                    // Use the message from the backend response which differs for private/public groups
+                    this.success = responseData.message || `Successfully invited ${username} to ${this.groupName}`;
                     this.username = '';
                     this.searchResults = [];
                     

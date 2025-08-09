@@ -605,6 +605,8 @@ func GetGroupInvitationRequestsHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		log.Printf("🔍 DEBUG: About to fetch pending invitation requests for groupID=%d", groupID)
+
 		requests, err := database.GetPendingInvitationRequests(db, groupID)
 		if err != nil {
 			log.Printf("❌ Failed to fetch invitation requests: %v", err)
@@ -613,6 +615,7 @@ func GetGroupInvitationRequestsHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		log.Printf("✅ Retrieved %d pending invitation requests for group %d", len(requests), groupID)
+		log.Printf("🔍 DEBUG: Invitation requests details: %+v", requests)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(requests)

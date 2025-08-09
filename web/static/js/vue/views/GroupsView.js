@@ -164,9 +164,12 @@ const GroupsView = {
         handleOpenInvitationRequestsModal(event) {
             console.log('GroupsView: Received open-invitation-requests-modal event:', event.detail);
             const { groupId } = event.detail;
+            console.log('GroupsView: Setting selectedGroupId to:', groupId);
             this.selectedGroupId = groupId;
             this.selectedGroup = this.groups.find(g => g.ID === groupId) || null;
+            console.log('GroupsView: Setting showGroupInvitationRequestsModal to true');
             this.showGroupInvitationRequestsModal = true;
+            console.log('GroupsView: showGroupInvitationRequestsModal is now:', this.showGroupInvitationRequestsModal);
         },
         
         closeGroupInvitationRequestsModal() {
@@ -177,6 +180,12 @@ const GroupsView = {
             console.log('🔍 Invitation request handled:', event);
             // Refresh notifications and close modal
             this.showGroupInvitationRequestsModal = false;
+            
+            // Emit event to refresh notifications in NavBar
+            this.$emit('refresh-notifications');
+            
+            // Also dispatch a custom window event for the NavBar to catch
+            window.dispatchEvent(new CustomEvent('refresh-notifications'));
         }
     },
     mounted() {

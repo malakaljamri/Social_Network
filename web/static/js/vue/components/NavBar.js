@@ -64,7 +64,7 @@ const NavBar = {
                         </div>
                         <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-sm);">
                             <button class="button" @click="closeModal" style="background: var(--button-primary); color: var(--text-on-primary); border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); cursor: pointer; transition: var(--transition-colors);">Close</button>
-                            <button class="button secondary-button" @click="debugNotifications" style="background: var(--button-secondary); color: var(--button-secondary-text); border: 1px solid var(--surface-alt-color); padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); cursor: pointer; transition: var(--transition-colors);">Debug</button>
+                            <!-- <button class="button secondary-button" @click="debugNotifications" style="background: var(--button-secondary); color: var(--button-secondary-text); border: 1px solid var(--surface-alt-color); padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--border-radius); font-weight: var(--font-weight-medium); cursor: pointer; transition: var(--transition-colors);">Debug</button> -->
                         </div>
                     </div>
                 </div>
@@ -159,6 +159,14 @@ const NavBar = {
             this.fetchUnreadNotificationCount();
         };
         window.addEventListener('notification-update', this._notificationUpdateHandler);
+        
+        // Listen for refresh notifications event (from invitation request handling)
+        this._refreshNotificationsHandler = () => {
+            console.log('NavBar: Received refresh-notifications event, refreshing notifications.');
+            this.fetchNotifications();
+            this.fetchUnreadNotificationCount();
+        };
+        window.addEventListener('refresh-notifications', this._refreshNotificationsHandler);
         
         // Set up periodic refresh of notifications (every 30 seconds)
         this.notificationRefreshInterval = setInterval(() => {
@@ -440,6 +448,8 @@ const NavBar = {
         
         handleNotificationClick(notification) {
             console.log('NavBar: Notification clicked:', notification);
+            console.log('NavBar: Notification type:', notification.type);
+            console.log('NavBar: Notification reference_id:', notification.reference_id);
             
             // Mark notification as read first
             this.markNotificationAsRead(notification.id);
@@ -571,6 +581,10 @@ const NavBar = {
         // Remove websocket notification event listener
         if (this._notificationUpdateHandler) {
             window.removeEventListener('notification-update', this._notificationUpdateHandler);
+        }
+        // Remove refresh notifications event listener
+        if (this._refreshNotificationsHandler) {
+            window.removeEventListener('refresh-notifications', this._refreshNotificationsHandler);
         }
         this.removeDropdownElement();
         

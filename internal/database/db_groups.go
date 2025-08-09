@@ -565,6 +565,8 @@ func CreateGroupInvitationRequest(db *sql.DB, groupID, inviterID, inviteeID int)
 
 // GetPendingInvitationRequests gets all pending invitation requests for a group owner
 func GetPendingInvitationRequests(db *sql.DB, groupID int) ([]GroupInvitationRequest, error) {
+	log.Printf("🔍 DEBUG: GetPendingInvitationRequests called for groupID=%d", groupID)
+
 	query := `
 		SELECT gir.id, gir.group_id, gir.inviter_id, gir.invitee_id, gir.status, gir.created_at,
 		       g.name as group_name, u1.username as inviter_username, u2.username as invitee_username
@@ -575,6 +577,8 @@ func GetPendingInvitationRequests(db *sql.DB, groupID int) ([]GroupInvitationReq
 		WHERE gir.group_id = ? AND gir.status = 'pending'
 		ORDER BY gir.created_at DESC
 	`
+
+	log.Printf("🔍 DEBUG: Executing query: %s with groupID=%d", query, groupID)
 
 	rows, err := db.Query(query, groupID)
 	if err != nil {
@@ -588,11 +592,15 @@ func GetPendingInvitationRequests(db *sql.DB, groupID int) ([]GroupInvitationReq
 		err := rows.Scan(&req.ID, &req.GroupID, &req.InviterID, &req.InviteeID, &req.Status, &req.CreatedAt,
 			&req.GroupName, &req.InviterUsername, &req.InviteeUsername)
 		if err != nil {
+			log.Printf("❌ Error scanning invitation request: %v", err)
 			return nil, err
 		}
+		log.Printf("🔍 DEBUG: Found invitation request: ID=%d, GroupID=%d, Status=%s, Inviter=%s, Invitee=%s",
+			req.ID, req.GroupID, req.Status, req.InviterUsername, req.InviteeUsername)
 		requests = append(requests, req)
 	}
 
+	log.Printf("✅ DEBUG: Returning %d invitation requests for groupID=%d", len(requests), groupID)
 	return requests, nil
 }
 
@@ -650,6 +658,14 @@ func HandleInvitationRequest(db *sql.DB, requestID, ownerID int, action string) 
 		log.Printf("✅ Invitation request rejected: requestID=%d, groupID=%d, inviteeID=%d", requestID, groupID, inviteeID)
 	} else {
 		return fmt.Errorf("invalid action: %s", action)
+	}
+
+	// Delete the notification for the group owner (both approve and reject)
+	_, err = tx.Exec("DELETE FROM notifications WHERE user_id = ? AND type = 'group_invitation_request' AND reference_id = ?", ownerID, groupID)
+	if err != nil {
+		log.Printf("⚠️ Failed to delete invitation request notification: %v", err)
+	} else {
+		log.Printf("✅ Deleted invitation request notification for owner %d, group %d", ownerID, groupID)
 	}
 
 	// Commit transaction
