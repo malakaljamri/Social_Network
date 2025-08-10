@@ -32,11 +32,11 @@ type UserDetail struct {
 
 // GroupMember represents a group member with user details
 type GroupMember struct {
-	ID       int    `json:"ID"`
-	Username string `json:"Username"`
-	Nickname string `json:"Nickname"`
-	Avatar   string `json:"Avatar"`
-	Online   bool   `json:"Online"`
+	ID       int     `json:"ID"`
+	Username string  `json:"Username"`
+	Nickname *string `json:"Nickname,omitempty"`
+	Avatar   *string `json:"Avatar,omitempty"`
+	Online   bool    `json:"Online"`
 }
 
 // GroupInvitation represents a group invitation
@@ -259,11 +259,21 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]GroupMember, error) {
 	for rows.Next() {
 		var member GroupMember
 		var online int
-		err := rows.Scan(&member.ID, &member.Username, &member.Nickname, &member.Avatar, &online)
+		var nickname, avatar sql.NullString
+		err := rows.Scan(&member.ID, &member.Username, &nickname, &avatar, &online)
 		if err != nil {
 			log.Printf("❌ Row scan error: %v", err)
 			continue
 		}
+
+		// Handle nullable strings
+		if nickname.Valid {
+			member.Nickname = &nickname.String
+		}
+		if avatar.Valid {
+			member.Avatar = &avatar.String
+		}
+
 		member.Online = online == 1
 		members = append(members, member)
 		log.Printf("✅ Added member: %s (ID: %d, Online: %t)", member.Username, member.ID, member.Online)
@@ -293,11 +303,21 @@ func GetPendingGroupJoinRequests(db *sql.DB, groupID int) ([]GroupMember, error)
 	for rows.Next() {
 		var member GroupMember
 		var online int
-		err := rows.Scan(&member.ID, &member.Username, &member.Nickname, &member.Avatar, &online)
+		var nickname, avatar sql.NullString
+		err := rows.Scan(&member.ID, &member.Username, &nickname, &avatar, &online)
 		if err != nil {
 			log.Printf("❌ Row scan error (pending join requests): %v", err)
 			continue
 		}
+
+		// Handle nullable strings
+		if nickname.Valid {
+			member.Nickname = &nickname.String
+		}
+		if avatar.Valid {
+			member.Avatar = &avatar.String
+		}
+
 		member.Online = false
 		requests = append(requests, member)
 	}

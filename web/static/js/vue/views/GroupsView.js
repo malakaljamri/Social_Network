@@ -68,8 +68,11 @@ const GroupsView = {
             }
         },
         handleGroupSelected(groupId) {
+            console.log('GroupsView: handleGroupSelected called with groupId:', groupId);
             this.selectedGroupId = groupId;
             this.selectedGroup = this.groups.find(g => g.ID === groupId) || null;
+            console.log('GroupsView: Set selectedGroupId to:', this.selectedGroupId);
+            console.log('GroupsView: Set selectedGroup to:', this.selectedGroup);
             this.fetchGroupPosts(groupId);
             this.fetchGroupEvents(groupId);
         },
@@ -108,23 +111,40 @@ const GroupsView = {
             this.$emit('event-click', event);
         },
         
-        handleOpenJoinRequestsModal(event) {
+        async handleOpenJoinRequestsModal(event) {
             console.log('GroupsView: Received open-join-requests-modal event:', event.detail);
             const { groupId } = event.detail;
+            console.log('GroupsView: Looking for group with ID:', groupId);
             
             // Find the group and select it
             const group = this.groups.find(g => g.ID === groupId);
+            console.log('GroupsView: Found group:', group);
+            
             if (group) {
+                console.log('GroupsView: Selecting group:', group.Name);
                 this.handleGroupSelected(group.ID);
                 
-                // Wait a bit for the group to be selected, then open the modal
+                // Wait for the group selection to complete
+                await this.$nextTick();
+                
+                // Wait a bit more to ensure all async operations complete
                 setTimeout(() => {
-                    if (this.$refs.groupMain) {
+                    console.log('GroupsView: Attempting to open modal, groupMain ref:', this.$refs.groupMain);
+                    console.log('GroupsView: Current selectedGroup:', this.selectedGroup);
+                    console.log('GroupsView: Current selectedGroupId:', this.selectedGroupId);
+                    
+                    if (this.$refs.groupMain && this.selectedGroup) {
+                        console.log('GroupsView: Opening join requests modal for group:', this.selectedGroup.Name);
                         this.$refs.groupMain.openGroupJoinRequestsModal();
+                    } else {
+                        console.log('GroupsView: groupMain ref or selectedGroup not available');
+                        console.log('GroupsView: groupMain ref:', this.$refs.groupMain);
+                        console.log('GroupsView: selectedGroup:', this.selectedGroup);
                     }
-                }, 200);
+                }, 300);
             } else {
                 console.log('GroupsView: Group not found for ID:', groupId);
+                console.log('GroupsView: Available groups:', this.groups.map(g => ({ ID: g.ID, Name: g.Name })));
             }
         },
         handleOpenGroupInvitationsModal(event) {

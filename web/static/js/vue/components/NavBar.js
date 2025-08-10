@@ -458,11 +458,15 @@ const NavBar = {
             switch (notification.type) {
                 case 'group_join_request':
                     console.log('NavBar: Group join request notification detected, navigating to groups');
+                    console.log('NavBar: Notification details:', notification);
+                    console.log('NavBar: Group ID from notification:', notification.reference_id);
+                    
                     // Navigate to groups view and emit event to open join requests modal
                     this.$emit('navigate', 'groups');
                     
                     // Dispatch a custom event that GroupsView can listen to
                     setTimeout(() => {
+                        console.log('NavBar: Dispatching open-join-requests-modal event for group:', notification.reference_id);
                         window.dispatchEvent(new CustomEvent('open-join-requests-modal', {
                             detail: { groupId: notification.reference_id }
                         }));

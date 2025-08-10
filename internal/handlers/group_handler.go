@@ -176,12 +176,12 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			log.Printf("WARNING: Failed to get group creator for notification: %v", err)
 		} else {
-			// Create notification for group creator
-			err = database.CreateNotification(db, creatorID, "group_join_request", request.GroupID)
+			// Create notification for group creator with requester_id
+			err = database.CreateNotification(db, creatorID, "group_join_request", request.GroupID, userID)
 			if err != nil {
 				log.Printf("WARNING: Failed to create group join request notification: %v", err)
 			} else {
-				log.Printf("SUCCESS: Created group join request notification for group creator %d", creatorID)
+				log.Printf("SUCCESS: Created group join request notification for group creator %d from user %d", creatorID, userID)
 			}
 		}
 

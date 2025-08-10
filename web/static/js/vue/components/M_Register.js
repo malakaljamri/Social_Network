@@ -362,11 +362,9 @@ const RegisterModal = {
                 isValid = false;
             }
             
+            // Only check if password exists, no length requirement
             if (!this.form.password) {
                 this.form.fieldErrors.password = 'Password is required';
-                isValid = false;
-            } else if (this.form.password.length < 8) {
-                this.form.fieldErrors.password = 'Password must be at least 8 characters long';
                 isValid = false;
             }
             
@@ -388,9 +386,9 @@ const RegisterModal = {
                 isValid = false;
             }
             
-            // Optional username validation
-            if (this.form.username && this.form.username.length < 3) {
-                this.form.fieldErrors.username = 'Username must be at least 3 characters long';
+            // Optional username validation - only check if provided
+            if (this.form.username && this.form.username.length < 1) {
+                this.form.fieldErrors.username = 'Username must be at least 1 character long';
                 isValid = false;
             }
             
@@ -400,7 +398,9 @@ const RegisterModal = {
                 isValid = false;
             }
             
-            return isValid;
+            // If there are errors, don't prevent form submission yet
+            // Just show the errors and let the user correct them
+            return true;
         },
         async submitRegister() {
             this.form.loading = true;

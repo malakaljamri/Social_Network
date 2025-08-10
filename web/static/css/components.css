@@ -6,7 +6,7 @@
   margin-bottom: var(--spacing-xl);
   transition: var(--transition-all);
   border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-  position: relative;
+  /* position: relative; */
   overflow: hidden;
 }
 
@@ -109,7 +109,7 @@
   justify-content: center;
   gap: var(--spacing-sm);
   text-decoration: none;
-  position: relative;
+  /* position: relative; */
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
