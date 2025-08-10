@@ -160,7 +160,7 @@ const GroupList = {
         <div class="group-list-container">
             <h3 class="group-list-header">List of Groups</h3>
             <button class="button" style="margin-bottom: 10px; width: 100%;" @click="showCreateGroupModal">➕ Create Group</button>
-            <button class="button" style="margin-bottom: 10px; width: 100%; position: relative;" @click="openGroupInvitations">
+            <button class="button" style="margin-bottom: 10px; width: 100%;" @click="openGroupInvitations">
                 📨 Invitations
                 <span v-if="pendingInvitationsCount > 0" class="unread-badge right-badge">{{ pendingInvitationsCount }}</span>
             </button>
