@@ -245,6 +245,115 @@
   margin-top: 2px;
 }
 
+/* Emoji Picker Styles */
+.emoji-picker-container {
+  position: absolute;
+  bottom: 60px;
+  right: 10px;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.emoji-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 5px 10px;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.emoji-button:hover {
+  color: var(--accent-color);
+}
+
+/* Ensure emojis display at a consistent size */
+.chat-text {
+  font-size: 1em;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-text img.emoji {
+  height: 1.2em;
+  width: 1.2em;
+  margin: 0 0.1em;
+  vertical-align: -0.2em;
+}
+
+/* Emoji Picker Header */
+.emoji-picker-header {
+  color: #000000; /* Black text color */
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Close button in emoji picker */
+.close-emoji-picker {
+  color: #000000; /* Black close button */
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+/* Make sure emoji picker is visible above other elements */
+.emoji-picker {
+  --emoji-size: 1.2em;
+  --emoji-padding: 5px;
+  --category-emoji-size: 1.2em;
+  --background: #fff;
+  --border-color: #e0e0e0;
+  --button-hover-color: #f5f5f5;
+  --button-active-color: #e0e0e0;
+  --indicator-color: var(--accent-color);
+  --indicator-height: 3px;
+  --input-border-color: #e0e0e0;
+  --input-border-radius: 4px;
+  --input-font-size: 14px;
+  --input-padding: 8px 10px;
+  --outline-color: #2196f3;
+  --skintone-border-radius: 4px;
+}
+
+/* Ensure emoji picker is visible in dark mode */
+[data-theme="dark"] .emoji-picker {
+  --background: #2d2d2d;
+  --border-color: #444;
+  --button-hover-color: #3d3d3d;
+  --button-active-color: #4a4a4a;
+  --indicator-color: #4a90e2;
+  --input-border-color: #444;
+  --input-background: #3d3d3d;
+  --input-color: #fff;
+}
+
+/* Make sure chat text is properly spaced with emojis */
+.chat-message-bubble .bubble-content {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  max-width: calc(100% - 50px);
+}
+
+/* Style for emoji-only messages */
+.emoji-message {
+  font-size: 2em;
+  line-height: 1.2;
+  text-align: center;
+  padding: 5px 0;
+}
+
 /* Private Chat Close Button Styling */
 .chat-header {
   display: flex;
@@ -438,53 +547,4 @@
   align-items: center;
   justify-content: center;
   padding: 0 var(--spacing-xs);
-}
-
-/* Emoji Picker Styles */
-.emoji-button {
-    background: transparent;
-    border: none;
-    color: var(--text-color-secondary);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0 8px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-}
-
-.emoji-button:hover {
-    background-color: var(--surface-alt-color);
-}
-
-.emoji-picker-container {
-    position: absolute;
-    top: 100%; /* Position it right below the input container */
-    right: 0;
-    z-index: 1001; /* Ensure it's on top */
-    box-shadow: var(--shadow-lg);
-    border-radius: var(--border-radius);
-    margin-top: 5px; /* Add a little space */
-}
-
-emoji-picker {
-    --border-radius: var(--border-radius);
-    --background: var(--surface-color);
-    --color-text: var(--text-color);
-    --color-text-secondary: var(--text-color-secondary);
-    --border-color: var(--border-color);
-    width: 320px;
-    height: 400px;
-}
-
-/* Specific rule for group chat to open upwards and to the left */
-.group-chat .emoji-picker-container {
-    bottom: 100%; /* Position it to open upwards from the input container */
-    top: auto; /* Unset the top property */
-    left: 0; /* Align to the left */
-    right: auto; /* Unset the right property */
-    margin-top: 0;
-    margin-bottom: 5px; /* Add a little space between picker and input */
 }

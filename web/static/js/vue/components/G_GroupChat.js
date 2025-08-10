@@ -15,16 +15,25 @@ const GroupChat = {
                     <img :src="msg.sender_avatar || '/static/images/default-avatar.png'" class="chat-avatar" alt="avatar" />
                     <div class="bubble-content">
                         <span class="chat-meta"><b>{{ msg.sender_id === currentUserId ? 'You' : msg.sender_username || ('User ' + msg.sender_id) }}</b> [{{ formatTimestamp(msg.timestamp) }}]</span>
-                        <div class="chat-text">{{ msg.content }}</div>
+                        <div class="chat-text" v-html="formatMessageContent(msg.content)"></div>
                     </div>
                 </div>
             </div>
+            <div class="emoji-picker-container" v-if="showEmojiPicker" ref="emojiPickerContainer" @click.stop>
+                <div class="emoji-picker-header">
+                    <span>Select an emoji</span>
+                    <button @click="closeEmojiPicker" class="close-emoji-picker" type="button" aria-label="Close emoji picker">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <emoji-picker></emoji-picker>
+            </div>
             <div class="chat-input-container">
                 <input type="text" v-model="input" placeholder="Type a message..." @keydown.enter="sendMessage" ref="inputBox">
-                <button @click.stop="toggleEmojiPicker" class="emoji-button">
+                <button @click.stop="toggleEmojiPicker" class="emoji-button" type="button">
                     <i class="fa-regular fa-face-smile"></i>
                 </button>
-                <button @click="sendMessage">Send</button>
+                <button @click="sendMessage" type="button">Send</button>
             </div>
         </div>
     `,
@@ -57,10 +66,27 @@ const GroupChat = {
     methods: {
         toggleEmojiPicker() {
             this.showEmojiPicker = !this.showEmojiPicker;
+            if (this.showEmojiPicker) {
+                this.$nextTick(() => {
+                    // Position the picker above the input
+                    const container = this.$refs.emojiPickerContainer;
+                    if (container) {
+                        container.style.bottom = '60px'; // Position above the input
+                    }
+                });
+            }
+        },
+        closeEmojiPicker() {
+            this.showEmojiPicker = false;
         },
         onEmojiSelect(event) {
-            this.input += event.detail.unicode;
-            this.$refs.inputBox.focus();
+            // Use the emoji's unicode character directly
+            if (event.detail && event.detail.unicode) {
+                this.input += event.detail.unicode;
+                this.$nextTick(() => {
+                    this.$refs.inputBox.focus();
+                });
+            }
         },
         closeEmojiPickerOnClickOutside(event) {
             if (this.$refs.emojiPickerContainer && !this.$refs.emojiPickerContainer.contains(event.target) && !event.target.closest('.emoji-button')) {
@@ -72,7 +98,11 @@ const GroupChat = {
             try {
                 const res = await fetch(`/api/groups/chat-history?group_id=${this.groupId}`);
                 const data = await res.json();
-                this.messages = Array.isArray(data) ? data : [];
+                // Ensure messages is an array and handle any potential null/undefined values
+                this.messages = Array.isArray(data) ? data.map(msg => ({
+                    ...msg,
+                    content: msg.content || '' // Ensure content is always a string
+                })) : [];
                 console.log('GroupChat: Fetched history for group', this.groupId, 'messages:', this.messages.length);
             } catch (e) {
                 console.error('GroupChat: Error fetching history:', e);
@@ -82,11 +112,17 @@ const GroupChat = {
             this.$nextTick(this.scrollToBottom);
         },
         sendMessage() {
-            if (!this.input.trim()) return;
+            const message = this.input.trim();
+            if (!message) return;
+            
             if (this.websocket && this.websocket.state.connected) {
-                console.log('GroupChat: Sending message to group', this.groupId, ':', this.input);
-                this.websocket.sendGroupChatMessage(this.groupId, this.input);
+                console.log('GroupChat: Sending message to group', this.groupId, ':', message);
+                // Ensure we're sending the raw emoji characters
+                this.websocket.sendGroupChatMessage(this.groupId, message);
+                // Clear input after sending
                 this.input = '';
+                // Close emoji picker if open
+                this.showEmojiPicker = false;
             } else {
                 console.error('GroupChat: WebSocket not connected');
             }
@@ -100,6 +136,18 @@ const GroupChat = {
             const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
             return `${day}-${month}-${year} ${hours}:${minutes}`;
+        },
+        formatMessageContent(content) {
+            if (!content) return '';
+            // First, ensure content is a string
+            let safeContent = String(content);
+            // Convert URLs to clickable links (only for http/https URLs)
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            let formatted = safeContent.replace(urlRegex, url => {
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            });
+            // Preserve line breaks and emojis
+            return formatted.replace(/\n/g, '<br>');
         },
         scrollToBottom() {
             const c = this.$refs.messagesContainer;

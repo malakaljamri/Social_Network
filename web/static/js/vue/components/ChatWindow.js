@@ -27,13 +27,19 @@ const ChatWindow = {
                 You can only message users you follow or who follow you
             </div>
             <template v-else>
-                                <div class="chat-input-container">
+                <div class="chat-input-container">
                     <input type="text" v-model="input" :placeholder="'Type a message...'" @keydown.enter="sendMessage" @keydown.esc="onClose" @input="handleTyping" ref="inputBox">
                     <button @click.stop="toggleEmojiPicker" class="emoji-button">
                         <i class="fa-regular fa-face-smile"></i>
                     </button>
                     <button @click="sendMessage">Send</button>
-                    <div v-if="showEmojiPicker" class="emoji-picker-container" ref="emojiPickerContainer">
+                    <div v-if="showEmojiPicker" class="emoji-picker-container" ref="emojiPickerContainer" @click.stop>
+                        <div class="emoji-picker-header">
+                            <span>Select an emoji</span>
+                            <button @click="closeEmojiPicker" class="close-emoji-picker" type="button" aria-label="Close emoji picker">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                         <emoji-picker class="light"></emoji-picker>
                     </div>
                 </div>
@@ -80,10 +86,27 @@ const ChatWindow = {
     methods: {
         toggleEmojiPicker() {
             this.showEmojiPicker = !this.showEmojiPicker;
+            if (this.showEmojiPicker) {
+                this.$nextTick(() => {
+                    // Position the picker above the input
+                    const container = this.$refs.emojiPickerContainer;
+                    if (container) {
+                        container.style.bottom = '60px'; // Position above the input
+                    }
+                });
+            }
+        },
+        closeEmojiPicker() {
+            this.showEmojiPicker = false;
         },
         onEmojiSelect(event) {
-            this.input += event.detail.unicode;
-            this.$refs.inputBox.focus();
+            // Use the emoji's unicode character directly
+            if (event.detail && event.detail.unicode) {
+                this.input += event.detail.unicode;
+                this.$nextTick(() => {
+                    this.$refs.inputBox.focus();
+                });
+            }
         },
         closeEmojiPickerOnClickOutside(event) {
             if (this.$refs.emojiPickerContainer && !this.$refs.emojiPickerContainer.contains(event.target) && !event.target.closest('.emoji-button')) {
