@@ -12,60 +12,65 @@ type Notification struct {
 	UserID      int       `json:"user_id"`
 	Type        string    `json:"type"`
 	ReferenceID int       `json:"reference_id"`
+	RequesterID *int      `json:"requester_id,omitempty"` // Optional field for group join requests
 	IsRead      bool      `json:"is_read"`
 	CreatedAt   time.Time `json:"created_at"`
 	Message     string    `json:"message"` // Computed field for display
 }
 
 // CreateNotification creates a new notification
-func CreateNotification(db *sql.DB, userID int, notificationType string, referenceID int) error {
-	query := `INSERT INTO notifications (user_id, type, reference_id) VALUES (?, ?, ?)`
-	_, err := db.Exec(query, userID, notificationType, referenceID)
+func CreateNotification(db *sql.DB, userID int, notificationType string, referenceID int, requesterID ...int) error {
+	var requesterIDValue *int
+	if len(requesterID) > 0 {
+		requesterIDValue = &requesterID[0]
+	}
+
+	query := `INSERT INTO notifications (user_id, type, reference_id, requester_id) VALUES (?, ?, ?, ?)`
+	_, err := db.Exec(query, userID, notificationType, referenceID, requesterIDValue)
 	if err != nil {
-		log.Printf("Error creating notification: %v", err)
+		log.Printf("❌ Failed to create notification: %v", err)
 		return err
 	}
+	log.Printf("✅ Created notification: userID=%d, type=%s, referenceID=%d, requesterID=%v", userID, notificationType, referenceID, requesterIDValue)
 	return nil
 }
 
 // GetUserNotifications retrieves all notifications for a user
 func GetUserNotifications(db *sql.DB, userID int) ([]Notification, error) {
-	log.Printf("DEBUG: GetUserNotifications called for user ID: %d", userID)
-
 	query := `
-		SELECT n.id, n.user_id, n.type, n.reference_id, n.is_read, n.created_at
-		FROM notifications n
-		WHERE n.user_id = ?
-		ORDER BY n.created_at DESC
-		LIMIT 50
+		SELECT id, user_id, type, reference_id, requester_id, is_read, created_at 
+		FROM notifications 
+		WHERE user_id = ? 
+		ORDER BY created_at DESC
 	`
-
 	rows, err := db.Query(query, userID)
 	if err != nil {
-		log.Printf("ERROR: Error getting user notifications: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
 
 	var notifications []Notification
 	for rows.Next() {
-		var n Notification
-		err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
+		var notification Notification
+		var requesterID sql.NullInt64
+		err := rows.Scan(&notification.ID, &notification.UserID, &notification.Type, &notification.ReferenceID, &requesterID, &notification.IsRead, &notification.CreatedAt)
 		if err != nil {
-			log.Printf("ERROR: Error scanning notification: %v", err)
+			log.Printf("❌ Error scanning notification: %v", err)
 			continue
 		}
 
-		log.Printf("DEBUG: Processing notification ID %d, type: %s, reference_id: %d, is_read: %t", n.ID, n.Type, n.ReferenceID, n.IsRead)
+		// Convert sql.NullInt64 to *int
+		if requesterID.Valid {
+			reqID := int(requesterID.Int64)
+			notification.RequesterID = &reqID
+		}
 
-		// Generate message based on notification type
-		n.Message = generateNotificationMessage(db, n.Type, n.ReferenceID)
-		log.Printf("DEBUG: Generated message for notification %d: %s", n.ID, n.Message)
-
-		notifications = append(notifications, n)
+		// Generate message for the notification
+		notification.Message = generateNotificationMessage(db, notification.Type, notification.ReferenceID, notification.RequesterID)
+		notifications = append(notifications, notification)
 	}
 
-	log.Printf("DEBUG: Returning %d notifications for user %d", len(notifications), userID)
+	log.Printf("✅ Retrieved %d notifications for user %d", len(notifications), userID)
 	return notifications, nil
 }
 
@@ -93,20 +98,19 @@ func GetUnreadNotificationCount(db *sql.DB, userID int) (int, error) {
 }
 
 // generateNotificationMessage creates a human-readable message based on notification type
-func generateNotificationMessage(db *sql.DB, notificationType string, referenceID int) string {
+func generateNotificationMessage(db *sql.DB, notificationType string, referenceID int, requesterID *int) string {
 	log.Printf("DEBUG: Generating message for type: %s, reference_id: %d", notificationType, referenceID)
 
 	switch notificationType {
 	case "follow_request":
 		// Get follower name
-		var username string
-		query := `SELECT username FROM users WHERE id = ?`
-		err := db.QueryRow(query, referenceID).Scan(&username)
+		var followerName string
+		err := db.QueryRow("SELECT username FROM users WHERE id = ?", referenceID).Scan(&followerName)
 		if err != nil {
-			log.Printf("WARNING: Failed to get username for follow request %d: %v", referenceID, err)
+			log.Printf("WARNING: Failed to get follower name for notification %d: %v", referenceID, err)
 			return "Someone sent you a follow request"
 		}
-		message := username + " sent you a follow request"
+		message := followerName + " sent you a follow request"
 		log.Printf("DEBUG: Generated follow request message: %s", message)
 		return message
 
@@ -152,8 +156,7 @@ func generateNotificationMessage(db *sql.DB, notificationType string, referenceI
 	case "group_invitation":
 		// Get group name
 		var groupName string
-		query := `SELECT name FROM groups WHERE id = ?`
-		err := db.QueryRow(query, referenceID).Scan(&groupName)
+		err := db.QueryRow("SELECT name FROM groups WHERE id = ?", referenceID).Scan(&groupName)
 		if err != nil {
 			log.Printf("WARNING: Failed to get group name for invitation %d: %v", referenceID, err)
 			return "You received a group invitation"
@@ -183,22 +186,28 @@ func generateNotificationMessage(db *sql.DB, notificationType string, referenceI
 		return message
 
 	case "group_join_request":
-		// Get group name and requester name
+		// Use the stored requester_id to get the correct user
+		if requesterID == nil {
+			log.Printf("WARNING: No requester_id provided for group join request notification %d", referenceID)
+			return "Someone requested to join your group"
+		}
+
+		log.Printf("DEBUG: Generating group join request message for group %d, requester %d", referenceID, *requesterID)
+
+		// Get group name and requester name using the stored requester_id
 		var groupName, requesterName string
 		query := `
 			SELECT g.name, u.username 
-			FROM groups g 
-			JOIN group_members gm ON g.id = gm.group_id 
-			JOIN users u ON gm.user_id = u.id 
-			WHERE g.id = ? AND gm.status = 'pending'
+			FROM groups g, users u 
+			WHERE g.id = ? AND u.id = ?
 		`
-		err := db.QueryRow(query, referenceID).Scan(&groupName, &requesterName)
+		err := db.QueryRow(query, referenceID, *requesterID).Scan(&groupName, &requesterName)
 		if err != nil {
 			log.Printf("WARNING: Failed to get group/requester details for join request %d: %v", referenceID, err)
 			return "Someone requested to join your group"
 		}
 		message := requesterName + " requested to join " + groupName
-		log.Printf("DEBUG: Generated group join request message: %s", message)
+		log.Printf("DEBUG: Generated group join request message: %s (group: %s, requester: %s)", message, groupName, requesterName)
 		return message
 
 	case "group_event":

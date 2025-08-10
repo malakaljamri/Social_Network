@@ -80,8 +80,13 @@ const GroupMain = {
             }
         },
         openGroupJoinRequestsModal() {
-            console.log('🔍 Opening join requests modal for group:', this.selectedGroup?.ID);
+            console.log('GroupMain: openGroupJoinRequestsModal called');
+            console.log('GroupMain: Current selectedGroup:', this.selectedGroup);
+            console.log('GroupMain: Current selectedGroup.ID:', this.selectedGroup?.ID);
+            console.log('GroupMain: Current selectedGroup.Name:', this.selectedGroup?.Name);
+            
             this.showGroupJoinRequestsModal = true;
+            console.log('GroupMain: Set showGroupJoinRequestsModal to true');
         },
         openGroupInviteModal() {
             console.log('🔍 Opening invite modal for group:', this.selectedGroup?.ID);

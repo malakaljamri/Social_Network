@@ -142,9 +142,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   user_id INTEGER,
   type TEXT NOT NULL,
   reference_id INTEGER,
+  requester_id INTEGER,
   is_read BOOLEAN DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (requester_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS post_viewers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

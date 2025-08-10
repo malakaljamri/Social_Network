@@ -39,8 +39,16 @@ const GroupJoinRequestsModal = {
                 }
                 
                 const data = await response.json();
-                console.log('✅ Received join requests:', data);
+                console.log('✅ Received join requests data:', data);
+                console.log('✅ Data type:', typeof data);
+                console.log('✅ Data length:', Array.isArray(data) ? data.length : 'Not an array');
+                if (Array.isArray(data) && data.length > 0) {
+                    console.log('✅ First request structure:', data[0]);
+                    console.log('✅ First request keys:', Object.keys(data[0]));
+                }
+                
                 this.joinRequests = data || [];
+                console.log('✅ Set joinRequests to:', this.joinRequests);
             } catch (error) {
                 console.error('❌ Error fetching join requests:', error);
                 this.error = 'Failed to load join requests';
@@ -112,6 +120,8 @@ const GroupJoinRequestsModal = {
     
     mounted() {
         console.log('🔍 GroupJoinRequestsModal mounted for group:', this.groupId);
+        console.log('🔍 GroupJoinRequestsModal groupId type:', typeof this.groupId);
+        console.log('🔍 GroupJoinRequestsModal groupId value:', this.groupId);
         this.fetchJoinRequests();
     },
     
@@ -137,6 +147,13 @@ const GroupJoinRequestsModal = {
                         
                         <div v-else-if="!hasRequests" class="no-requests">
                             <p>No pending join requests</p>
+                            <!-- Debug information -->
+                            <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                                <p><strong>Debug Info:</strong></p>
+                                <p>joinRequests length: {{ joinRequests.length }}</p>
+                                <p>joinRequests data: {{ JSON.stringify(joinRequests, null, 2) }}</p>
+                                <p>hasRequests computed: {{ hasRequests }}</p>
+                            </div>
                         </div>
                         
                         <div v-else class="requests-list">
@@ -171,7 +188,7 @@ const GroupJoinRequestsModal = {
                                         class="button decline-btn"
                                         :class="{ 'loading': processingRequests.has(request.ID) }"
                                     >
-                                        <i v-if="processingRequests.has(request.ID)" class="fas fa-spinner fa-spin"></i>
+                                        <i v-if="processingRequests.has(request.ID)" class="fas fa-times"></i>
                                         <i v-else class="fas fa-times"></i>
                                         Decline
                                     </button>
