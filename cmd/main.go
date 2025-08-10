@@ -158,7 +158,23 @@ func main() {
 		http.ServeFile(w, r, filePath)
 	})
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(dir, "..", "web", "static")))))
-	mux.HandleFunc("/", handlers.IndexHandler(template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))))
+
+	// Parse all HTML templates including 404.html
+	tmpl := template.Must(template.ParseGlob(filepath.Join(dir, "..", "web", "*.html")))
+
+	// Create a custom 404 handler
+	notFoundHandler := handlers.NotFoundHandler(tmpl)
+
+	// Handle the root path with the main index handler
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Only serve index.html for the exact root path or if it's a known route
+		if r.URL.Path == "/" {
+			handlers.IndexHandler(tmpl)(w, r)
+		} else {
+			// For any other unmatched path, serve the 404 page
+			notFoundHandler(w, r)
+		}
+	})
 
 	// Start the server
 	log.Println("Server starting on http://localhost:8080")

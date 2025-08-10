@@ -16,6 +16,21 @@ func IndexHandler(tmpl *template.Template) http.HandlerFunc {
 	}
 }
 
+// NotFoundHandler handles 404 errors with a custom error page
+func NotFoundHandler(tmpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set the HTTP status code to 404
+		w.WriteHeader(http.StatusNotFound)
+
+		// Execute the 404 template
+		err := tmpl.ExecuteTemplate(w, "404.html", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // LoginHandler handles the login page
 func LoginHandler(tmpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
