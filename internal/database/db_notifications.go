@@ -263,3 +263,44 @@ func DeleteNotification(db *sql.DB, notificationID int) error {
 	}
 	return nil
 }
+
+// DeleteGroupJoinRequestNotification deletes notifications for a specific group join request
+// This is called automatically when a join request is handled (accepted/declined)
+func DeleteGroupJoinRequestNotification(db *sql.DB, groupID, requesterID int) error {
+	query := `DELETE FROM notifications WHERE type = 'group_join_request' AND reference_id = ? AND requester_id = ?`
+	result, err := db.Exec(query, groupID, requesterID)
+	if err != nil {
+		log.Printf("❌ Error deleting group join request notification: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Deleted %d group join request notification(s) for group %d, requester %d", rowsAffected, groupID, requesterID)
+	return nil
+}
+
+// CleanupStaleGroupJoinRequestNotifications removes notifications for join requests that are no longer pending
+// This is useful for cleaning up old notifications that weren't automatically deleted
+func CleanupStaleGroupJoinRequestNotifications(db *sql.DB) error {
+	query := `
+		DELETE FROM notifications 
+		WHERE type = 'group_join_request' 
+		AND id IN (
+			SELECT n.id 
+			FROM notifications n
+			JOIN group_members gm ON n.reference_id = gm.group_id AND n.requester_id = gm.user_id
+			WHERE n.type = 'group_join_request' 
+			AND gm.status != 'pending'
+		)
+	`
+
+	result, err := db.Exec(query)
+	if err != nil {
+		log.Printf("❌ Error cleaning up stale group join request notifications: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Cleaned up %d stale group join request notifications", rowsAffected)
+	return nil
+}

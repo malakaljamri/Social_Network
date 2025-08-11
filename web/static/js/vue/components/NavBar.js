@@ -160,20 +160,38 @@ const NavBar = {
         };
         window.addEventListener('notification-update', this._notificationUpdateHandler);
         
+        // Listen for real-time group join request notifications
+        this._groupJoinRequestNotificationHandler = (event) => {
+            console.log('NavBar: Received real-time group join request notification:', event.detail);
+            // Immediately add the new notification to the list
+            this.addRealTimeNotification(event.detail);
+            // Also refresh the unread count
+            this.fetchUnreadNotificationCount();
+        };
+        window.addEventListener('group-join-request-notification', this._groupJoinRequestNotificationHandler);
+        
         // Listen for refresh notifications event (from invitation request handling)
         this._refreshNotificationsHandler = () => {
             console.log('NavBar: Received refresh-notifications event, refreshing notifications.');
-            this.fetchNotifications();
+            
+            // Fetch notifications and then refresh dropdown if needed
+            this.fetchNotifications().then(() => {
+                // Only refresh dropdown after notifications are actually fetched
+                if (this.showDropdown) {
+                    console.log('NavBar: Refreshing notification dropdown after notifications fetched');
+                    this.removeDropdownElement();
+                    setTimeout(() => {
+                        this.createDropdownElement();
+                    }, 100);
+                }
+            });
+            
             this.fetchUnreadNotificationCount();
         };
         window.addEventListener('refresh-notifications', this._refreshNotificationsHandler);
         
-        // Set up periodic refresh of notifications (every 30 seconds)
-        this.notificationRefreshInterval = setInterval(() => {
-            if (this.currentUserValue.isLoggedIn) {
-                this.fetchUnreadNotificationCount();
-            }
-        }, 30000);
+        // Note: Removed interval-based notification refresh since we now have real-time WebSocket notifications
+        // Real-time notifications will update the UI immediately when they arrive
     },
     watch: {
         currentUser: {
@@ -381,7 +399,7 @@ const NavBar = {
         fetchNotifications() {
             if (this.currentUserValue.isLoggedIn) {
                 console.log('NavBar: Fetching notifications for user:', this.currentUserValue.id);
-                fetch('/api/notifications', { credentials: 'include' })
+                return fetch('/api/notifications', { credentials: 'include' })
                     .then(res => {
                         console.log('NavBar: Notifications response status:', res.status);
                         if (!res.ok) {
@@ -399,13 +417,24 @@ const NavBar = {
                         this.notifications = data || [];
                         console.log('NavBar: Set notifications array:', this.notifications);
                         console.log('NavBar: Updated notifications count:', this.notifications.length);
+                        
+                        // Debug: Log the current state after updating
+                        console.log('NavBar: Current notifications state after fetch:', {
+                            arrayLength: this.notifications.length,
+                            showDropdown: this.showDropdown,
+                            notifications: this.notifications
+                        });
+                        
+                        return data; // Return the data for chaining
                     })
                     .catch((error) => {
                         console.error('NavBar: Error fetching notifications:', error);
                         this.notifications = [];
+                        throw error; // Re-throw for chaining
                     });
             } else {
                 console.log('NavBar: User not logged in, skipping notification fetch');
+                return Promise.resolve([]); // Return resolved promise for consistency
             }
         },
         
@@ -438,8 +467,9 @@ const NavBar = {
             .then(data => {
                 console.log('NavBar: Marked notification as read:', data);
                 // Refresh notifications and count
-                this.fetchNotifications();
-                this.fetchUnreadNotificationCount();
+                this.fetchNotifications().then(() => {
+                    this.fetchUnreadNotificationCount();
+                });
             })
             .catch((error) => {
                 console.error('NavBar: Error marking notification as read:', error);
@@ -576,6 +606,83 @@ const NavBar = {
                 console.log('NavBar: Invitation accepted, navigating to groups');
                 this.$emit('navigate', 'groups');
             }
+        },
+        
+        addRealTimeNotification(notificationData) {
+            console.log('NavBar: Adding real-time notification:', notificationData);
+            
+            // Create a notification object that matches the expected format
+            const newNotification = {
+                id: Date.now(), // Temporary ID for real-time notifications
+                user_id: this.currentUserValue.id,
+                type: 'group_join_request',
+                reference_id: notificationData.group_id,
+                requester_id: notificationData.requester_id,
+                is_read: false,
+                created_at: notificationData.timestamp || new Date().toISOString(),
+                message: notificationData.message
+            };
+            
+            // Add to the beginning of notifications array
+            if (!this.notifications) {
+                this.notifications = [];
+            }
+            this.notifications.unshift(newNotification);
+            
+            // Update unread count immediately
+            this.unreadNotificationCount++;
+            
+            // Show a toast notification for immediate feedback
+            this.showToastNotification(notificationData.message);
+            
+            // Force refresh the notification dropdown if it's open
+            if (this.showDropdown) {
+                console.log('NavBar: Refreshing notification dropdown after real-time notification');
+                this.removeDropdownElement();
+                setTimeout(() => {
+                    this.createDropdownElement();
+                }, 100);
+            }
+        },
+        
+        showToastNotification(message) {
+            // Create a simple toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--button-primary);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-size: 14px;
+                max-width: 300px;
+                word-wrap: break-word;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Animate out and remove after 5 seconds
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 5000);
         }
     },
     beforeUnmount() {
@@ -586,16 +693,17 @@ const NavBar = {
         if (this._notificationUpdateHandler) {
             window.removeEventListener('notification-update', this._notificationUpdateHandler);
         }
+        // Remove group join request notification event listener
+        if (this._groupJoinRequestNotificationHandler) {
+            window.removeEventListener('group-join-request-notification', this._groupJoinRequestNotificationHandler);
+        }
         // Remove refresh notifications event listener
         if (this._refreshNotificationsHandler) {
             window.removeEventListener('refresh-notifications', this._refreshNotificationsHandler);
         }
         this.removeDropdownElement();
         
-        // Clear notification refresh interval
-        if (this.notificationRefreshInterval) {
-            clearInterval(this.notificationRefreshInterval);
-        }
+        // Note: No interval to clear since we removed interval-based refresh in favor of real-time WebSocket notifications
     }
 };
 // No mount here, will be registered globally. 

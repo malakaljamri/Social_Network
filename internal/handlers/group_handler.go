@@ -10,6 +10,7 @@ import (
 	"social_network/internal/utils"
 	"social_network/internal/websocket"
 	"strconv"
+	"time"
 )
 
 func CreateGroupHandler(db *sql.DB) http.HandlerFunc {
@@ -166,15 +167,28 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 
 		err = database.RequestGroupJoin(db, userID, request.GroupID)
 		if err != nil {
+			log.Printf("❌ Failed to request group join: user %d, group %d, error: %v", userID, request.GroupID, err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to request group join")
 			return
 		}
 
-		// Get group creator ID to send notification
-		var creatorID int
-		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", request.GroupID).Scan(&creatorID)
+		log.Printf("✅ Successfully inserted join request: user %d, group %d", userID, request.GroupID)
+
+		// Debug: Verify the join request was actually inserted
+		var status string
+		err = db.QueryRow("SELECT status FROM group_members WHERE group_id = ? AND user_id = ?", request.GroupID, userID).Scan(&status)
 		if err != nil {
-			log.Printf("WARNING: Failed to get group creator for notification: %v", err)
+			log.Printf("⚠️ WARNING: Join request was not found in database after insertion: %v", err)
+		} else {
+			log.Printf("✅ Verified join request in database: group %d, user %d, status: %s", request.GroupID, userID, status)
+		}
+
+		// Get group creator ID and group/requester details for notification
+		var creatorID int
+		var groupName, requesterUsername string
+		err = db.QueryRow("SELECT g.creator_id, g.name, u.username FROM groups g JOIN users u ON u.id = ? WHERE g.id = ?", userID, request.GroupID).Scan(&creatorID, &groupName, &requesterUsername)
+		if err != nil {
+			log.Printf("WARNING: Failed to get group creator or user details for notification: %v", err)
 		} else {
 			// Create notification for group creator with requester_id
 			err = database.CreateNotification(db, creatorID, "group_join_request", request.GroupID, userID)
@@ -182,6 +196,23 @@ func RequestGroupJoinHandler(db *sql.DB) http.HandlerFunc {
 				log.Printf("WARNING: Failed to create group join request notification: %v", err)
 			} else {
 				log.Printf("SUCCESS: Created group join request notification for group creator %d from user %d", creatorID, userID)
+
+				// Send real-time WebSocket notification to group owner
+				notification := websocket.Message{
+					Type: "group_join_request_notification",
+					Content: map[string]interface{}{
+						"group_id":       request.GroupID,
+						"group_name":     groupName,
+						"requester_id":   userID,
+						"requester_name": requesterUsername,
+						"message":        requesterUsername + " requested to join " + groupName,
+						"timestamp":      time.Now(),
+					},
+					UserID: creatorID,
+				}
+				jsonNotification, _ := json.Marshal(notification)
+				websocket.MainHub.Broadcast <- jsonNotification
+				log.Printf("✅ Sent real-time WebSocket notification to group owner %d", creatorID)
 			}
 		}
 
@@ -312,39 +343,81 @@ func GetGroupMembersHandler(db *sql.DB) http.HandlerFunc {
 // Get pending join requests for a group (owner only)
 func GetGroupJoinRequestsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("🔍 GetGroupJoinRequestsHandler called")
+
 		userID, err := database.GetUserIDFromSession(r)
 		if err != nil {
+			log.Printf("❌ Failed to get user ID from session: %v", err)
 			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
 			return
 		}
+
 		groupIDStr := r.URL.Query().Get("group_id")
 		if groupIDStr == "" {
+			log.Printf("❌ Group ID is missing from query parameters")
 			utils.WriteJSONError(w, http.StatusBadRequest, "Group ID is required")
 			return
 		}
+
 		groupID, err := strconv.Atoi(groupIDStr)
 		if err != nil {
+			log.Printf("❌ Invalid group ID format: %s", groupIDStr)
 			utils.WriteJSONError(w, http.StatusBadRequest, "Invalid group ID")
 			return
 		}
+
+		log.Printf("🔍 Processing join requests for group ID: %d, user ID: %d", groupID, userID)
+
 		// Check if user is group owner
 		var creatorID int
 		err = db.QueryRow("SELECT creator_id FROM groups WHERE id = ?", groupID).Scan(&creatorID)
 		if err != nil {
+			log.Printf("❌ Group not found with ID: %d, error: %v", groupID, err)
 			utils.WriteJSONError(w, http.StatusNotFound, "Group not found")
 			return
 		}
+
+		log.Printf("🔍 Group creator ID: %d, requesting user ID: %d", creatorID, userID)
+
 		if creatorID != userID {
+			log.Printf("❌ User %d is not the creator of group %d (creator: %d)", userID, groupID, creatorID)
 			utils.WriteJSONError(w, http.StatusForbidden, "Only group owner can view join requests")
 			return
 		}
+
 		requests, err := database.GetPendingGroupJoinRequests(db, groupID)
 		if err != nil {
+			log.Printf("❌ Failed to fetch join requests for group %d: %v", groupID, err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to fetch join requests")
 			return
 		}
+
+		log.Printf("🔍 Retrieved %d join requests for group %d", len(requests), groupID)
+		if len(requests) > 0 {
+			log.Printf("🔍 First request: %+v", requests[0])
+		}
+
+		// Debug: Check what's actually in the group_members table for this group
+		var debugQuery = `SELECT user_id, status FROM group_members WHERE group_id = ?`
+		debugRows, err := db.Query(debugQuery, groupID)
+		if err != nil {
+			log.Printf("⚠️ Debug query failed: %v", err)
+		} else {
+			defer debugRows.Close()
+			log.Printf("🔍 Debug: All group_members for group %d:", groupID)
+			for debugRows.Next() {
+				var userID int
+				var status string
+				if err := debugRows.Scan(&userID, &status); err == nil {
+					log.Printf("🔍 Debug: user_id=%d, status=%s", userID, status)
+				}
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(requests)
+
+		log.Printf("✅ Successfully sent %d join requests for group %d", len(requests), groupID)
 	}
 }
 
@@ -741,5 +814,51 @@ func GetGroupInvitationsHandler(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(invitations)
+	}
+}
+
+// CleanupStaleNotificationsHandler cleans up stale notifications for handled join requests
+// This is useful for cleaning up old notifications that weren't automatically deleted
+func CleanupStaleNotificationsHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("🧹 CleanupStaleNotificationsHandler called")
+
+		// Only allow group owners to clean up notifications
+		userID, err := database.GetUserIDFromSession(r)
+		if err != nil {
+			log.Printf("❌ Failed to get user ID from session: %v", err)
+			utils.WriteJSONError(w, http.StatusUnauthorized, "Failed to get user ID from session")
+			return
+		}
+
+		// Check if user is a group owner (has at least one group they created)
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM groups WHERE creator_id = ?", userID).Scan(&count)
+		if err != nil {
+			log.Printf("❌ Failed to check if user is group owner: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to check permissions")
+			return
+		}
+
+		if count == 0 {
+			log.Printf("❌ User %d is not a group owner, cannot clean up notifications", userID)
+			utils.WriteJSONError(w, http.StatusForbidden, "Only group owners can clean up notifications")
+			return
+		}
+
+		// Clean up stale notifications
+		err = database.CleanupStaleGroupJoinRequestNotifications(db)
+		if err != nil {
+			log.Printf("❌ Failed to clean up stale notifications: %v", err)
+			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to clean up notifications")
+			return
+		}
+
+		log.Printf("✅ Successfully cleaned up stale notifications for user %d", userID)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Stale notifications cleaned up successfully",
+		})
 	}
 }

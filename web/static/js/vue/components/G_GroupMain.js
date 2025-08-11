@@ -179,6 +179,11 @@ const GroupMain = {
             if (action === 'accept' && this.showGroupMembers) {
                 this.fetchGroupMembers();
             }
+            
+            // Dispatch event to refresh notifications in NavBar after handling join request
+            // This ensures that declined notifications are removed from the UI
+            window.dispatchEvent(new CustomEvent('refresh-notifications'));
+            console.log('🔍 Dispatched refresh-notifications event after handling join request');
         },
         handleInvitationSent(event) {
             console.log('🔍 Invitation sent:', event);

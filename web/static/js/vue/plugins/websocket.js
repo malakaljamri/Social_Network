@@ -134,6 +134,13 @@ const WebSocketPlugin = {
                     console.log('WebSocket: Received notification event:', message);
                     window.dispatchEvent(new CustomEvent('notification-update', { detail: message.content }));
                     break;
+                case 'group_join_request_notification':
+                    console.log('WebSocket: Received group join request notification:', message);
+                    // Dispatch event for group join request notifications
+                    window.dispatchEvent(new CustomEvent('group-join-request-notification', { detail: message.content }));
+                    // Also dispatch general notification update for consistency
+                    window.dispatchEvent(new CustomEvent('notification-update', { detail: message.content }));
+                    break;
                 default:
                     console.warn('Unknown message type:', message);
             }

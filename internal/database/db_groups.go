@@ -125,13 +125,25 @@ func CheckUserGroupAccess(db *sql.DB, userID, groupID int) (bool, error) {
 
 // RequestGroupJoin adds a user to group_members with pending status
 func RequestGroupJoin(db *sql.DB, userID, groupID int) error {
+	log.Printf("🔍 RequestGroupJoin called: userID=%d, groupID=%d", userID, groupID)
+
 	query := `
 		INSERT OR REPLACE INTO group_members (group_id, user_id, status)
 		VALUES (?, ?, 'pending')
 	`
 
-	_, err := db.Exec(query, groupID, userID)
-	return err
+	log.Printf("🔍 Executing query: %s with userID=%d, groupID=%d", query, userID, groupID)
+
+	result, err := db.Exec(query, groupID, userID)
+	if err != nil {
+		log.Printf("❌ Failed to insert join request: %v", err)
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Join request inserted successfully. Rows affected: %d", rowsAffected)
+
+	return nil
 }
 
 // CheckUserGroupMembership checks if user is a member of the group and returns status
@@ -285,6 +297,8 @@ func GetGroupMembers(db *sql.DB, groupID int) ([]GroupMember, error) {
 
 // Fetch pending join requests for a group (with user details)
 func GetPendingGroupJoinRequests(db *sql.DB, groupID int) ([]GroupMember, error) {
+	log.Printf("🔍 GetPendingGroupJoinRequests called for group ID: %d", groupID)
+
 	query := `
 		SELECT u.id, u.username, u.nickname, u.avatar, 0 as online
 		FROM group_members gm
@@ -292,14 +306,17 @@ func GetPendingGroupJoinRequests(db *sql.DB, groupID int) ([]GroupMember, error)
 		WHERE gm.group_id = ? AND gm.status = 'pending'
 		ORDER BY u.username
 	`
+
+	log.Printf("🔍 Executing query: %s with groupID: %d", query, groupID)
+
 	rows, err := db.Query(query, groupID)
 	if err != nil {
 		log.Printf("❌ Database query error (pending join requests): %v", err)
-		return nil, err
+		return make([]GroupMember, 0), err
 	}
 	defer rows.Close()
 
-	var requests []GroupMember
+	var requests []GroupMember = make([]GroupMember, 0) // Initialize as empty slice, not nil
 	for rows.Next() {
 		var member GroupMember
 		var online int
@@ -320,8 +337,29 @@ func GetPendingGroupJoinRequests(db *sql.DB, groupID int) ([]GroupMember, error)
 
 		member.Online = false
 		requests = append(requests, member)
+		log.Printf("🔍 Scanned member: ID=%d, Username=%s", member.ID, member.Username)
 	}
+
 	log.Printf("✅ GetPendingGroupJoinRequests completed. Found %d requests", len(requests))
+
+	// Debug: Let's also check what's actually in the group_members table for this group
+	var debugQuery = `SELECT user_id, status FROM group_members WHERE group_id = ?`
+	debugRows, err := db.Query(debugQuery, groupID)
+	if err != nil {
+		log.Printf("⚠️ Debug query failed: %v", err)
+	} else {
+		defer debugRows.Close()
+		log.Printf("🔍 Debug: All group_members for group %d:", groupID)
+		for debugRows.Next() {
+			var userID int
+			var status string
+			if err := debugRows.Scan(&userID, &status); err == nil {
+				log.Printf("🔍 Debug: user_id=%d, status=%s", userID, status)
+			}
+		}
+	}
+
+	// Always return a slice, never nil
 	return requests, nil
 }
 
@@ -346,6 +384,14 @@ func HandleGroupJoinRequest(db *sql.DB, groupID, userID int, action string) erro
 		return errors.New("no pending request found")
 	}
 	log.Printf("✅ HandleGroupJoinRequest: %s request for user %d in group %d", status, userID, groupID)
+
+	// Automatically delete the notification for this join request since it's no longer pending
+	err = DeleteGroupJoinRequestNotification(db, groupID, userID)
+	if err != nil {
+		log.Printf("⚠️ Warning: Failed to delete notification for handled join request: %v", err)
+		// Don't return error here as the main operation (handling join request) was successful
+	}
+
 	return nil
 }
 

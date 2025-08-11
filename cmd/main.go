@@ -39,6 +39,15 @@ func main() {
 		}
 	}
 
+	// Clean up any existing stale notifications on startup
+	log.Println("Cleaning up stale notifications on startup...")
+	if err := database.CleanupStaleGroupJoinRequestNotifications(db); err != nil {
+		log.Printf("WARNING: Failed to clean up stale notifications on startup: %v", err)
+		// Don't fatal here as the app can still work
+	} else {
+		log.Println("Stale notifications cleanup completed on startup")
+	}
+
 	go websocket.MainHub.Run() //Starts the WebSocket hub's main loop in a new goroutine.
 
 	// go websocket.BroadcastTime(hub) // This function is only for testing purposes
@@ -139,7 +148,8 @@ func main() {
 	mux.HandleFunc("/api/notifications/mark-read", handlers.MarkNotificationAsReadHandler(db))
 	mux.HandleFunc("/api/notifications/unread-count", handlers.GetUnreadNotificationCountHandler(db))
 	mux.HandleFunc("/api/notifications/delete", handlers.DeleteNotificationHandler(db))
-	mux.HandleFunc("/api/notifications/debug", handlers.DebugNotificationsHandler(db)) // Debug endpoint
+	mux.HandleFunc("/api/notifications/debug", handlers.DebugNotificationsHandler(db))          // Debug endpoint
+	mux.HandleFunc("/api/notifications/cleanup", handlers.CleanupStaleNotificationsHandler(db)) // Cleanup stale notifications
 
 	// --- Static file handlers registered LAST ---
 	// Custom file server to handle both avatar files and regular uploads
