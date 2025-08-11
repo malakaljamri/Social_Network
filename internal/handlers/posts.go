@@ -34,24 +34,29 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine the root directory of the project
-	executablePath, err := os.Executable() // Get the path of the running executable
+	// Get the current working directory (project root)
+	currentDir, err := os.Getwd()
 	if err != nil {
-		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to determine executable path")
+		log.Printf("DEBUG: Failed to get current working directory: %v", err)
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to determine project directory")
 		return
 	}
-	rootDir := filepath.Dir(executablePath) // Get the directory of the executable
+	log.Printf("DEBUG: Current working directory: %s", currentDir)
 
-	// Construct the path to "web/uploads" relative to the root directory
-	uploadDir := filepath.Join(rootDir, "..", "web", "uploads", fmt.Sprintf("userID%d", userID)) // Go up one level, then to "web/uploads"
+	// Construct the path to "web/uploads/userID" relative to the project root
+	uploadDir := filepath.Join(currentDir, "web", "uploads", fmt.Sprintf("userID%d", userID))
+	log.Printf("DEBUG: Upload directory path: %s", uploadDir)
 
 	// Ensure the uploads directory exists
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		log.Printf("DEBUG: Creating upload directory: %s", uploadDir)
 		err := os.MkdirAll(uploadDir, os.ModePerm)
 		if err != nil {
+			log.Printf("DEBUG: Failed to create upload directory: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create uploads directory")
 			return
 		}
+		log.Printf("DEBUG: Successfully created upload directory")
 	}
 
 	// Handle the uploaded image file
@@ -59,20 +64,38 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("Image")
 	if err == nil { // If an image is provided
 		defer file.Close()
+		log.Printf("DEBUG: Processing image upload - Filename: %s, Size: %d bytes", handler.Filename, handler.Size)
+
 		// Save the file to the uploads folder
 		uploadPath := filepath.Join(uploadDir, handler.Filename)
+		log.Printf("DEBUG: Full upload path: %s", uploadPath)
+
 		out, err := os.Create(uploadPath)
 		if err != nil {
+			log.Printf("DEBUG: Failed to create file: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
 		defer out.Close()
+
 		_, err = io.Copy(out, file)
 		if err != nil {
+			log.Printf("DEBUG: Failed to copy file content: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
+
+		// Verify the file was actually created
+		if _, err := os.Stat(uploadPath); os.IsNotExist(err) {
+			log.Printf("DEBUG: ERROR - File was not created at: %s", uploadPath)
+		} else {
+			log.Printf("DEBUG: SUCCESS - File created at: %s", uploadPath)
+		}
+
 		imagePath = fmt.Sprintf("/uploads/userID%d/%s", userID, handler.Filename) // Relative path for serving
+		log.Printf("DEBUG: Database image path: %s", imagePath)
+	} else {
+		log.Printf("DEBUG: No image provided in form data: %v", err)
 	}
 
 	// Extract form fields
