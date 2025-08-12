@@ -148,7 +148,7 @@ const GroupJoinRequestsModal = {
                         <div v-else-if="!hasRequests" class="no-requests">
                             <p>No pending join requests</p>
                             <!-- Debug information -->
-                            <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                            <!-- <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
                                 <p><strong>Debug Info:</strong></p>
                                 <p>joinRequests length: {{ joinRequests.length }}</p>
                                 <p>joinRequests data: {{ JSON.stringify(joinRequests, null, 2) }}</p>

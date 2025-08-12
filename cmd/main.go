@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"social_network/internal/auth"
@@ -11,14 +12,44 @@ import (
 	"social_network/internal/handlers"
 	"social_network/internal/websocket"
 	"strings"
-	"time"
 )
 
-// mux = as a traffic cop that directs incoming HTTP requests to the correct handler function, based on the request's URL path.
-var migrate = false
+// Migration environment variables with default values
+var (
+	MIGRATE_DB        = getEnvBool("MIGRATE_DB", false)
+	MIGRATE_FOLLOWERS = getEnvBool("MIGRATE_FOLLOWERS", false)
+	MIGRATE_SEED      = getEnvBool("MIGRATE_SEED", false)
+	MIGRATE_RESET     = getEnvBool("MIGRATE_RESET", false)
+)
+
+// getEnvBool reads an environment variable and converts it to boolean
+func getEnvBool(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	switch strings.ToLower(value) {
+	case "true", "1", "yes", "on":
+		return true
+	case "false", "0", "no", "off":
+		return false
+	default:
+		log.Printf("WARNING: Invalid boolean value '%s' for %s, using default: %v", value, key, defaultValue)
+		return defaultValue
+	}
+}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Log migration configuration
+	log.Printf("Migration Configuration:")
+	log.Printf("  MIGRATE_DB: %v", MIGRATE_DB)
+	log.Printf("  MIGRATE_FOLLOWERS: %v", MIGRATE_FOLLOWERS)
+	log.Printf("  MIGRATE_SEED: %v", MIGRATE_SEED)
+	log.Printf("  MIGRATE_RESET: %v", MIGRATE_RESET)
+
 	// Initialize the database
 	db, err := database.InitializeDB()
 	if err != nil {
@@ -26,17 +57,44 @@ func main() {
 	}
 	defer db.Close()
 
-	if migrate {
-		// Run followers table migration to fix schema
-		log.Println("Waiting for database to be ready before migration...")
-		time.Sleep(2 * time.Second) // Give database time to be ready
+	// Initialize migration manager
+	migrationManager, err := database.NewMigrationManager(db)
+	if err != nil {
+		log.Fatal("Error initializing migration manager:", err)
+	}
+	defer migrationManager.Close()
 
-		if err := database.MigrateFollowersTable(); err != nil {
-			log.Printf("WARNING: Failed to migrate followers table: %v", err)
-			// Don't fatal here as the app can still work with the old schema
-		} else {
-			log.Println("Followers table migration completed successfully")
+	// Handle migrations based on environment variables
+	if MIGRATE_RESET {
+		log.Println("🔄 RESET MODE: Dropping all tables and recreating database...")
+		if err := migrationManager.ResetDatabase(); err != nil {
+			log.Fatal("Error resetting database:", err)
 		}
+		// After reset, we need to run migrations to recreate tables
+		MIGRATE_DB = true
+	}
+
+	if MIGRATE_DB {
+		log.Println("🔄 Running database migrations...")
+		if err := migrationManager.RunMigrations(); err != nil {
+			log.Fatal("Error running migrations:", err)
+		}
+		log.Println("✅ Database migrations completed successfully")
+	}
+
+	if MIGRATE_SEED {
+		log.Println("🔄 Seeding initial data...")
+		if err := migrationManager.SeedInitialData(); err != nil {
+			log.Fatal("Error seeding data:", err)
+		}
+		log.Println("✅ Initial data seeding completed")
+	}
+
+	if MIGRATE_FOLLOWERS {
+		log.Println("🔄 Running followers table migration...")
+		// This is now handled by the proper migration system
+		// The followers table migration is in 000006_create_followers_table.up.sql
+		log.Println("✅ Followers table migration completed (handled by migration system)")
 	}
 
 	// Clean up any existing stale notifications on startup
