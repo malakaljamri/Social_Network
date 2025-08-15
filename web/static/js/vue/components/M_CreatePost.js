@@ -12,8 +12,8 @@ const CreatePostModal = {
                 <div class="modal-content">
                     <h2>{{ groupId ? 'Create Group Post' : 'Create Post' }}</h2>
                     <form @submit.prevent="submitPost">
-                        <input type="text" v-model="form.title" placeholder="Title" required minlength="3" maxlength="100">
-                        <textarea v-model="form.content" placeholder="Content" required minlength="10" maxlength="5000"></textarea>
+                        <input type="text" v-model="form.title" placeholder="Title" required minlength="3" maxlength="">
+                        <textarea v-model="form.content" placeholder="Content (max 90 characters)" required maxlength="90"></textarea>
                         
                         <!-- Category Selection -->
                         <div class="category-select-container">

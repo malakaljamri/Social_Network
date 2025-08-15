@@ -129,10 +129,6 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusBadRequest, "Title must be between 3 and 100 characters")
 		return
 	}
-	if len(text) < 10 || len(text) > 5000 {
-		utils.WriteJSONError(w, http.StatusBadRequest, "Content must be between 10 and 5000 characters")
-		return
-	}
 
 	// Create the post object
 	post := models.Post{
