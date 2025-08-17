@@ -124,12 +124,6 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		groupID = &groupIDInt
 	}
 
-	// Validate the fields
-	if len(title) < 3 || len(title) > 100 {
-		utils.WriteJSONError(w, http.StatusBadRequest, "Title must be between 3 and 100 characters")
-		return
-	}
-
 	// Create the post object
 	post := models.Post{
 		Title:      html.EscapeString(title),

@@ -19,35 +19,35 @@
   --error-color-rgb: 239, 68, 68;
   --error-color-dark-rgb: 220, 38, 38;
   
-  /* Modern Background Colors */
-  --background-color: #fafbfc;
-  --background-secondary: #f1f5f9;
-  --card-color: #ffffff;
-  --sub-card-color: #f8fafc;
-  --surface-alt-color: #f1f5f9;
-  --overlay-color: rgba(15, 23, 42, 0.8);
+  /* Dark Theme Colors */
+  --background-color: #0f172a; /* Dark blue-gray */
+  --background-secondary: #1e293b; /* Slightly lighter than background */
+  --card-color: #1e293b; /* Dark cards */
+  --sub-card-color: #334155; /* Slightly lighter cards */
+  --surface-alt-color: #1e293b; /* Alternative surface color */
+  --overlay-color: rgba(0, 0, 0, 0.7);
   
-  /* Enhanced Text Colors */
-  --text-color: #1e293b;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --text-light: #cbd5e1;
+  /* Text Colors for Dark Theme */
+  --text-color: #f8fafc; /* Light text for dark background */
+  --text-secondary: #94a3b8; /* Muted text */
+  --text-muted: #64748b; /* More muted text */
+  --text-light: #e2e8f0; /* Brighter text */
   --text-on-primary: #ffffff;
   
-  /* Modern Button Colors */
+  /* Button Colors for Dark Theme */
   --button-primary: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
-  --button-secondary: #f1f5f9;
+  --button-secondary: #334155; /* Darker background for secondary buttons */
   --button-secondary-text: var(--text-color);
   --button-success: linear-gradient(135deg, var(--success-color), var(--accent-color-dark));
   --button-danger: linear-gradient(135deg, var(--error-color), var(--error-color-dark));
   
-  /* Enhanced Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --shadow-color-2: rgba(255, 0, 0, 0.3);
+  /* Enhanced Shadows for Dark Theme */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-color-2: rgba(255, 0, 0, 0.5);
   
   /* Modern Border Radius */
   --border-radius-sm: 6px;
