@@ -226,3 +226,99 @@ a:focus {
   background: rgba(var(--primary-color-rgb), 0.2);
   color: var(--text-color);
 }
+
+/* Login View Container */
+.login-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 100vh;
+  background: var(--background-color, #f3f4f6);
+  gap: 1.5rem;
+}
+
+/* Card Styling */
+.login-view .card {
+  background: var(--card-color, #fff);
+  padding: 2rem;
+  border-radius: var(--border-radius, 10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+/* Card Heading */
+.login-view .card h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: var(--text-color, #111827);
+}
+
+/* Form Inputs */
+.login-view input[type="text"],
+.login-view input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius, 6px);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.login-view input:focus {
+  outline: none;
+  border-color: var(--primary-color, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* Buttons */
+.login-view .button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, var(--primary-color, #4f46e5), var(--accent-color, #6366f1));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--border-radius, 6px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-view .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-view .button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Error Message */
+.login-view .error {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+/* Signup Link */
+.login-view .card p {
+  font-size: 0.95rem;
+  color: var(--text-light, #6b7280);
+}
+
+.login-view .card a {
+  color: var(--primary-color, #4f46e5);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-view .card a:hover {
+  text-decoration: underline;
+}
+
