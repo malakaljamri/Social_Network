@@ -1,26 +1,43 @@
+# Social Network
 
-# emoji in group and private chat --> we could use vue library
+**Technologies:** Go, Vue.js, JavaScript, HTML, CSS, SQLite, Docker, WebSockets  
 
-------------------
+---
 
-#  the creatour of the Groups should invite others to the group and they should accept and reject the invitition
+## Project Overview
+This project is a **instagram-like social network** that allows users to interact through posts, comments, groups, notifications, and private/group chats.  
+It is built with **Vue.js** for the frontend and **Go** for the backend, using **SQLite** for data storage and **Docker** for containerization. The app supports real-time messaging via **WebSockets**.
 
-------------------
+---
 
-# 5-Notfication part  
-A user must be able to see the notifications in every page of the project.
- New notifications  different from new private messages and should be displayed in a different way!
+## Features
+- **User Profiles**: Public and private profiles with personal info, posts, followers/following lists.  
+- **Posts**: Create posts with images or GIFs; set post privacy (public, followers, selected followers).  
+- **Followers**: Follow/unfollow users; send follow requests if the profile is private.  
+- **Groups**: Create groups, invite users, post within groups, and create events with RSVP options.  
+- **Chats**: Private messaging between followers or public profiles; group chats for members.  
+- **Notifications**: Real-time notifications for follow requests, group invitations, events, and more.  
 
-# A user should be notified if he/she:
+---
 
-# has a private profile and some other user sends him/her a following request
+## Frontend
+- Built with **Vue.js**  
+- Responsive UI for desktop and mobile  
+- Components for profile, posts, groups, chats, and notifications  
+- Real-time chat using **WebSockets**  
 
-# receives a group invitation, so he can refuse or accept the request
+---
 
-# is the creator of a group and another user requests to join the group, so he can refuse or accept the request
+## Backend
+- Built with **Go**  
+- REST API for posts, users, groups, and notifications  
+- WebSocket server for real-time messaging  
+- Handles authentication, image uploads, and session management  
 
-# is member of a group and an event is created
+---
 
---------------
-
+## Database
+- **SQLite** is used for storing user data, posts, groups, and messages  
+- Database migrations are implemented with `golang-migrate`  
+- Folder structure for migrations:
 
