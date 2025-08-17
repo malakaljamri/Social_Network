@@ -28,7 +28,8 @@ const CommentSection = {
                 </div>
                 <div v-if="currentUser && currentUser.isLoggedIn" class="comment-form">
                     <h4>Add a Comment</h4>
-                    <textarea v-model="newComment.text" placeholder="Write a comment..." rows="3"></textarea>
+                    <textarea v-model="newComment.text" placeholder="Write a comment (max 80 characters)" rows="3" maxlength="80"></textarea>
+
                     
                     <!-- Image Upload for Comments -->
                     <div class="image-upload-section">
