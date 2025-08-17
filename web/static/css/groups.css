@@ -714,11 +714,38 @@
   align-items: center;
   gap: 0.25rem;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .invite-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #5c4de0, #7f6df2); /* Slightly different gradient */
+  color: #fff; /* Force text to remain white */
+}
+
+/* Invited User */
+.user-item.invited {
+  background: var(--surface-alt-color, #304177); /* slightly lighter to show invited state */
+}
+
+.user-item.invited .user-details strong,
+.user-item.invited .nickname {
+  color: var(--text-color, #111827); /* make text readable */
+}
+
+.user-item.invited .invite-btn {
+  background: var(--surface-color, #334075); /* subtle color, not white */
+  color: var(--text-color, #111827); /* readable text */
+  cursor: not-allowed;
+}
+
+.user-item.invited .invite-btn:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--surface-color, #3c51a7); /* keep same */
+  color: var(--text-color, #111827); /* keep readable */
 }
 
 .invite-btn:disabled {
