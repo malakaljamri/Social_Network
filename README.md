@@ -1,6 +1,6 @@
 # Social Network
 
-**Technologies:** Go, Vue.js, JavaScript, HTML, CSS, SQLite, Docker, WebSockets  
+**This Project is Based of:** Go, Vue.js, JavaScript, HTML, CSS, SQLite, Docker, WebSockets  
 
 ---
 
