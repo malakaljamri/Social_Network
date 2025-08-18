@@ -141,11 +141,13 @@ const GroupInviteModal = {
                             <p>Searching users...</p>
                         </div>
                         
-                        <div v-if="error" class="error-message">
+                        <div v-if="error" class="group-status-message error">
+                            <i class="fas fa-exclamation-circle"></i>
                             <p>{{ error }}</p>
                         </div>
                         
-                        <div v-if="success" class="success-message">
+                        <div v-if="success" class="group-status-message success">
+                            <i class="fas fa-check-circle"></i>
                             <p>{{ success }}</p>
                         </div>
                         
