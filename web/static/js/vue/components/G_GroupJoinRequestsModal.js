@@ -26,6 +26,8 @@ const GroupJoinRequestsModal = {
     methods: {
         async fetchJoinRequests() {
             console.log('🔍 Fetching join requests for group:', this.groupId);
+            console.log('🔍 Group ID type:', typeof this.groupId);
+            console.log('🔍 Group ID value:', this.groupId);
             this.loading = true;
             this.error = '';
             
@@ -45,10 +47,14 @@ const GroupJoinRequestsModal = {
                 if (Array.isArray(data) && data.length > 0) {
                     console.log('✅ First request structure:', data[0]);
                     console.log('✅ First request keys:', Object.keys(data[0]));
+                    console.log('✅ First request ID:', data[0].ID);
+                    console.log('✅ First request Username:', data[0].Username);
                 }
                 
                 this.joinRequests = data || [];
                 console.log('✅ Set joinRequests to:', this.joinRequests);
+                console.log('✅ joinRequests length after setting:', this.joinRequests.length);
+                console.log('✅ hasRequests computed value:', this.hasRequests);
             } catch (error) {
                 console.error('❌ Error fetching join requests:', error);
                 this.error = 'Failed to load join requests';
@@ -137,6 +143,18 @@ const GroupJoinRequestsModal = {
                     </div>
                     
                     <div class="modal-body">
+                        <!-- Debug section -->
+                        <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; border: 1px solid #ddd;">
+                            <p><strong>🔍 Debug Info:</strong></p>
+                            <p>Loading: {{ loading }}</p>
+                            <p>Error: {{ error || 'None' }}</p>
+                            <p>Group ID: {{ groupId }} (type: {{ typeof groupId }})</p>
+                            <p>Group Name: {{ groupName }}</p>
+                            <p>Join Requests Count: {{ joinRequests.length }}</p>
+                            <p>Has Requests: {{ hasRequests }}</p>
+                            <p>Raw Data: {{ JSON.stringify(joinRequests, null, 2) }}</p>
+                        </div>
+                        
                         <div v-if="loading" class="loading-indicator">
                             <p>Loading join requests...</p>
                         </div>
@@ -148,7 +166,7 @@ const GroupJoinRequestsModal = {
                         <div v-else-if="!hasRequests" class="no-requests">
                             <p>No pending join requests</p>
                             <!-- Debug information -->
-                            <!-- <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                            <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
                                 <p><strong>Debug Info:</strong></p>
                                 <p>joinRequests length: {{ joinRequests.length }}</p>
                                 <p>joinRequests data: {{ JSON.stringify(joinRequests, null, 2) }}</p>
