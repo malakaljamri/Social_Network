@@ -144,7 +144,7 @@ const GroupJoinRequestsModal = {
                     
                     <div class="modal-body">
                         <!-- Debug section -->
-                        <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; border: 1px solid #ddd;">
+                        <!-- <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; border: 1px solid #ddd;">
                             <p><strong>🔍 Debug Info:</strong></p>
                             <p>Loading: {{ loading }}</p>
                             <p>Error: {{ error || 'None' }}</p>
@@ -153,7 +153,7 @@ const GroupJoinRequestsModal = {
                             <p>Join Requests Count: {{ joinRequests.length }}</p>
                             <p>Has Requests: {{ hasRequests }}</p>
                             <p>Raw Data: {{ JSON.stringify(joinRequests, null, 2) }}</p>
-                        </div>
+                        </div> -->
                         
                         <div v-if="loading" class="loading-indicator">
                             <p>Loading join requests...</p>
@@ -166,12 +166,12 @@ const GroupJoinRequestsModal = {
                         <div v-else-if="!hasRequests" class="no-requests">
                             <p>No pending join requests</p>
                             <!-- Debug information -->
-                            <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                            <!-- <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
                                 <p><strong>Debug Info:</strong></p>
                                 <p>joinRequests length: {{ joinRequests.length }}</p>
                                 <p>joinRequests data: {{ JSON.stringify(joinRequests, null, 2) }}</p>
                                 <p>hasRequests computed: {{ hasRequests }}</p>
-                            </div>
+                            </div> -->
                         </div>
                         
                         <div v-else class="requests-list">
