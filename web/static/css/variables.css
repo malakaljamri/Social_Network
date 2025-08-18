@@ -13,6 +13,7 @@
   --success-color: #10b981;
   
   /* RGB Values for Transparency */
+  --primary-color-30: rgba(102, 126, 234, 0.3);
   --primary-color-rgb: 102, 126, 234;
   --accent-color-rgb: 16, 185, 129;
   --accent-color-dark-rgb: 5, 150, 105;

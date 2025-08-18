@@ -88,10 +88,21 @@ a:hover {
   text-underline-offset: 2px;
 }
 
+/* Focus styles */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
 a:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color-30);
   border-radius: var(--border-radius-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+/* Remove focus styles on mouse click but keep for keyboard navigation */
+:focus:not(:focus-visible) {
+  box-shadow: none;
 }
 
 /* Enhanced Utility Classes */
