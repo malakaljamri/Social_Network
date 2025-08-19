@@ -95,8 +95,17 @@ const GroupJoinRequestsModal = {
                 const result = await response.json();
                 console.log(`✅ Successfully ${action}ed request for user ${userId}:`, result);
                 
-                // Remove the request from the list
-                this.joinRequests = this.joinRequests.filter(req => req.ID !== userId);
+                // Show success message
+                const requestIndex = this.joinRequests.findIndex(req => req.ID === userId);
+                if (requestIndex !== -1) {
+                    // Update the status of the request
+                    this.joinRequests[requestIndex].status = action === 'accept' ? 'accepted' : 'declined';
+                    
+                    // Remove the request from the list after a short delay to show the status
+                    setTimeout(() => {
+                        this.joinRequests = this.joinRequests.filter(req => req.ID !== userId);
+                    }, 1500);
+                }
                 
                 // Emit event to notify parent components
                 this.$emit('request-handled', { 
@@ -199,10 +208,16 @@ const GroupJoinRequestsModal = {
                                     <div class="request-details">
                                         <strong>{{ request.Username }}</strong>
                                         <span v-if="request.Nickname" class="nickname">({{ request.Nickname }})</span>
+                                        <div v-if="request.status === 'accepted'" class="status-message success">
+                                            <i class="fas fa-check-circle"></i> Well Done!
+                                        </div>
+                                        <div v-else-if="request.status === 'declined'" class="status-message error">
+                                            <i class="fas fa-times-circle"></i> Declined
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div class="request-actions">
+                                <div class="request-actions" v-if="!request.status">
                                     <button 
                                         @click="handleRequest(request.ID, 'accept')"
                                         :disabled="processingRequests.has(request.ID)"
@@ -240,4 +255,38 @@ const GroupJoinRequestsModal = {
     emits: ['close', 'request-handled']
 };
 
-window.G_GroupJoinRequestsModal = GroupJoinRequestsModal; 
+window.G_GroupJoinRequestsModal = GroupJoinRequestsModal;
+
+// Add styles for the status messages
+const style = document.createElement('style');
+style.textContent = `
+    .status-message {
+        margin-top: 5px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .status-message.success {
+        color: #28a745;
+        background-color: rgba(40, 167, 69, 0.1);
+        border: 1px solid rgba(40, 167, 69, 0.2);
+    }
+
+    .status-message.error {
+        color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .status-message i {
+        margin-right: 4px;
+        font-size: 1.1em;
+    }
+`;
+document.head.appendChild(style); 
