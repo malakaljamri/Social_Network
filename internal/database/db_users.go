@@ -300,3 +300,10 @@ func UpdateUserPassword(userID int, hashedPassword string) error {
 	_, err := ExecuteQuery(query, hashedPassword, userID)
 	return err
 }
+
+// UpdateUserSessionToken updates the user's session token in the database
+func UpdateUserSessionToken(userID int, token string) error {
+	query := `UPDATE users SET session_token = ? WHERE id = ?`
+	_, err := ExecuteQuery(query, token, userID)
+	return err
+}

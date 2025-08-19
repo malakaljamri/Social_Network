@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -55,9 +56,29 @@ func GetUserIDFromSession(r *http.Request) (int, error) {
 		return 0, err
 	}
 
+	// Check if the session has expired
 	if time.Now().After(session.ExpiresAt) {
 		DeleteSession(sessionToken)
 		return 0, errors.New("session expired")
+	}
+
+	// Get the user's current session token from the users table
+	var userSessionToken string
+	query := `SELECT session_token FROM users WHERE id = ?`
+	row := db.QueryRow(query, session.UserID)
+	err = row.Scan(&userSessionToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, errors.New("user not found")
+		}
+		return 0, fmt.Errorf("error getting user session: %v", err)
+	}
+
+	// If the session token doesn't match, it means the user has logged in from another device
+	if userSessionToken != sessionToken {
+		// Delete the old session
+		DeleteSession(sessionToken)
+		return 0, errors.New("session invalidated by new login")
 	}
 
 	return session.UserID, nil

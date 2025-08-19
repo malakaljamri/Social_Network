@@ -229,17 +229,23 @@ func (h *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createSession(w http.ResponseWriter, user models.User, h *AuthHandlers) {
+	// Generate a new session token
+	sessionToken := utils.GenerateSessionToken()
+	expiresAt := time.Now().Add(24 * time.Hour)
+
+	// Update the user's session token in the database
+	err := database.UpdateUserSessionToken(user.ID, sessionToken)
+	if err != nil {
+		http.Error(w, "Error updating session", http.StatusInternalServerError)
+		return
+	}
+
 	// Delete existing sessions for this user
-	err := database.DeleteSessionsByUserID(user.ID)
+	err = database.DeleteSessionsByUserID(user.ID)
 	if err != nil {
 		http.Error(w, "Error managing sessions", http.StatusInternalServerError)
 		return
 	}
-
-	// Generate a new session token
-	sessionToken := utils.GenerateSessionToken()
-	// sessionToken := uuid.New().String()
-	expiresAt := time.Now().Add(24 * time.Hour)
 
 	// Create a new session
 	session := models.Session{
