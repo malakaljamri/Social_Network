@@ -347,10 +347,16 @@ const RegisterModal = {
             if (!this.form.firstName.trim()) {
                 this.form.fieldErrors.firstName = 'First name is required';
                 isValid = false;
+            } else if (this.form.firstName.length > 20) {
+                this.form.fieldErrors.firstName = 'First name cannot exceed 20 characters';
+                isValid = false;
             }
             
             if (!this.form.lastName.trim()) {
                 this.form.fieldErrors.lastName = 'Last name is required';
+                isValid = false;
+            } else if (this.form.lastName.length > 20) {
+                this.form.fieldErrors.lastName = 'Last name cannot exceed 20 characters';
                 isValid = false;
             }
             
@@ -362,9 +368,12 @@ const RegisterModal = {
                 isValid = false;
             }
             
-            // Only check if password exists, no length requirement
+            // Password validation
             if (!this.form.password) {
                 this.form.fieldErrors.password = 'Password is required';
+                isValid = false;
+            } else if (this.form.password.length > 20) {
+                this.form.fieldErrors.password = 'Password cannot exceed 20 characters';
                 isValid = false;
             }
             
@@ -386,10 +395,15 @@ const RegisterModal = {
                 isValid = false;
             }
             
-            // Optional username validation - only check if provided
-            if (this.form.username && this.form.username.length < 1) {
-                this.form.fieldErrors.username = 'Username must be at least 1 character long';
-                isValid = false;
+            // Username validation
+            if (this.form.username) {
+                if (this.form.username.length < 1) {
+                    this.form.fieldErrors.username = 'Username must be at least 1 character long';
+                    isValid = false;
+                } else if (this.form.username.length > 20) {
+                    this.form.fieldErrors.username = 'Username cannot exceed 20 characters';
+                    isValid = false;
+                }
             }
             
             // About me length validation
@@ -398,9 +412,8 @@ const RegisterModal = {
                 isValid = false;
             }
             
-            // If there are errors, don't prevent form submission yet
-            // Just show the errors and let the user correct them
-            return true;
+            // Return the validation status
+            return isValid;
         },
         async submitRegister() {
             this.form.loading = true;
