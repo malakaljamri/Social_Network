@@ -533,6 +533,19 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
+		// Check final follow status to return in response
+		isFollowing, err := database.IsFollowing(currentUserID, followReq.UserID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get final follow status: %v", err)
+			isFollowing = !targetUser.IsPrivate // Default based on privacy
+		}
+
+		isPending, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
+		if err != nil {
+			log.Printf("WARNING: Failed to get final pending status: %v", err)
+			isPending = targetUser.IsPrivate // Default based on privacy
+		}
+
 		// Provide appropriate response based on privacy settings
 		var message string
 		if targetUser.IsPrivate {
@@ -543,37 +556,59 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 			log.Printf("Response: Public profile - user followed")
 		}
 
-		log.Printf("=== FollowUser handler completed - Message: %s ===", message)
+		log.Printf("=== FollowUser handler completed - Message: %s, is_following: %v, is_pending: %v ===",
+			message, isFollowing, isPending)
+
+		// Return the follow status in the response
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": message})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":      message,
+			"is_following": isFollowing,
+			"is_pending":   isPending,
+		})
 	}
 }
 
 // UnfollowUser handles unfollow requests
 func UnfollowUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("=== UnfollowUser handler started ===")
+
 		// Must be logged in
 		currentUserID, err := database.GetUserIDFromSession(r)
 		if err != nil {
+			log.Printf("ERROR: Failed to get current user ID from session: %v", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		log.Printf("Current user ID: %d", currentUserID)
 
 		// Parse request
 		var followReq models.FollowRequest
 		if err := json.NewDecoder(r.Body).Decode(&followReq); err != nil {
+			log.Printf("ERROR: Failed to decode unfollow request: %v", err)
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
+		log.Printf("Unfollow request - Target user ID: %d", followReq.UserID)
 
 		// Unfollow user
+		log.Printf("Calling database.UnfollowUser(%d, %d)", currentUserID, followReq.UserID)
 		if err := database.UnfollowUser(currentUserID, followReq.UserID); err != nil {
+			log.Printf("ERROR: Failed to unfollow user in database: %v", err)
 			http.Error(w, "Error unfollowing user", http.StatusInternalServerError)
 			return
 		}
 
+		log.Printf("=== UnfollowUser handler completed successfully ===")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "User unfollowed successfully"})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":      "User unfollowed successfully",
+			"is_following": false,
+			"is_pending":   false,
+		})
 	}
 }
 
