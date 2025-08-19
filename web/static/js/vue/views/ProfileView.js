@@ -84,6 +84,16 @@ const ProfileView = {
                                        @request-handled="onRequestHandled">
                     </p-follow-request-list>
 
+                    <!-- Debug Info (remove in production) -->
+                    <div v-if="!isOwnProfile" class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
+                        <strong>Debug:</strong> Profile Private: {{ (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) }}, 
+                        Is Own Profile: {{ isOwnProfile }}, 
+                        Is Follower: {{ isFollower }}, 
+                        Followers Count: {{ followers.length }},
+                        Current User ID: {{ $root.currentUser.value.id || $root.currentUser.value.ID }},
+                        Followers List: {{ followers.map(u => u.id || u.ID).join(', ') }}
+                    </div>
+                    
                     <!-- Privacy Enforcement -->
                     <div v-if="(profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isOwnProfile && !isFollower" class="private-profile-message">
                         <div class="alert alert-warning">
@@ -106,13 +116,7 @@ const ProfileView = {
                         </div>
                     </div>
                     <template v-else>
-                        <!-- Show profile content only if user can view it -->
-                        <div v-if="!isOwnProfile && (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isFollower" class="private-profile-message">
-                            <div class="alert alert-info">
-                                <p>This profile is private. You need to be a follower to see the content.</p>
-                            </div>
-                        </div>
-                        <template v-else>
+                        <!-- Profile Content (only shown if user can view it) -->
                             <!-- Expandable Followers Section -->
                             <div class="expandable-section">
                                 <button class="btn btn-link" @click="showFollowers = !showFollowers">
@@ -207,6 +211,7 @@ const ProfileView = {
             // Robust check for both ID and id fields
             const currentId = this.$root.currentUser.value.ID || this.$root.currentUser.value.id;
             const profileId = this.profile.user.ID || this.profile.user.id;
+            console.log('ProfileView: isOwnProfile computed - currentId:', currentId, 'profileId:', profileId, 'result:', currentId === profileId);
             return currentId === profileId;
         },
         isViewingOwnProfile() {
@@ -215,7 +220,10 @@ const ProfileView = {
         },
         isFollower() {
             // Check if current user is in followers list
-            return this.followers.some(u => u.id === this.$root.currentUser.value.id);
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            const isFollower = this.followers.some(u => u.id === currentUserId || u.ID === currentUserId);
+            console.log('ProfileView: isFollower computed - currentUserId:', currentUserId, 'followers:', this.followers, 'result:', isFollower);
+            return isFollower;
         },
         filteredPosts() {
             return this.profile.posts || [];
@@ -240,7 +248,7 @@ const ProfileView = {
             try {
                 let userId = this.userId;
                 if (!userId) {
-                    userId = this.$root.currentUser.value.id;
+                    userId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
                 }
                 console.log('Fetching profile for user ID:', userId);
                 
@@ -293,23 +301,29 @@ const ProfileView = {
             try {
                 let userId = this.userId;
                 if (!userId) {
-                    userId = this.$root.currentUser.value.id;
+                    userId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
                 }
+                console.log('ProfileView: Fetching followers for user ID:', userId);
                 const response = await fetch(`/api/user/followers?id=${userId}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch followers');
                 this.followers = await response.json();
+                console.log('ProfileView: Followers fetched:', this.followers);
             } catch (error) {
+                console.error('ProfileView: Error fetching followers:', error);
                 this.followers = [];
             }
         },
         async fetchFollowing() {
             try {
                 let userId = this.userId;
-                if (!userId) userId = this.$root.currentUser.value.id;
+                if (!userId) userId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+                console.log('ProfileView: Fetching following for user ID:', userId);
                 const response = await fetch(`/api/user/following?id=${userId}`, { credentials: 'include' });
                 if (!response.ok) throw new Error('Failed to fetch following');
                 this.following = await response.json();
+                console.log('ProfileView: Following fetched:', this.following);
             } catch (error) {
+                console.error('ProfileView: Error fetching following:', error);
                 this.following = [];
             }
         },
@@ -334,7 +348,7 @@ const ProfileView = {
             this.filters = newFilters;
             let userId = this.userId;
             if (!userId) {
-                userId = this.$root.currentUser.value.id;
+                userId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
             }
             this.filters.UserID = userId;
             this.fetchProfile();
@@ -377,11 +391,37 @@ const ProfileView = {
                 const responseData = await response.json();
                 console.log('Follow response data:', responseData);
                 
-                // Always re-fetch profile to get correct state (is_following, is_pending, followers_count)
-                console.log('Re-fetching profile after follow...');
-                await this.fetchProfile();
+                // Update the profile follow status immediately for better UX
+                if (responseData.is_pending !== undefined) {
+                    this.profile.is_pending = responseData.is_pending;
+                }
+                if (responseData.is_following !== undefined) {
+                    this.profile.is_following = responseData.is_following;
+                }
                 
-                console.log('Profile after re-fetch - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
+                // If it's a direct follow (not pending), update followers count
+                if (!this.profile.is_pending && this.profile.is_following) {
+                    this.profile.followers_count = (this.profile.followers_count || 0) + 1;
+                    
+                    // Add current user to followers list
+                    const currentUser = this.$root.currentUser.value;
+                    const currentUserId = currentUser.id || currentUser.ID;
+                    if (currentUser && !this.followers.some(u => u.id === currentUserId || u.ID === currentUserId)) {
+                        this.followers.push({
+                            id: currentUserId,
+                            ID: currentUserId,
+                            Username: currentUser.username || currentUser.Username,
+                            Email: currentUser.email || currentUser.Email,
+                            avatar: currentUser.avatar || currentUser.Avatar
+                        });
+                    }
+                }
+                
+                // Refresh followers and following lists to ensure UI consistency
+                await this.fetchFollowers();
+                await this.fetchFollowing();
+                
+                console.log('Profile after update - is_following:', this.profile.is_following, 'is_pending:', this.profile.is_pending);
                 
                 this.followStatusMessage = (this.profile.is_pending ? 'Follow request sent!' : 'Followed!');
                 console.log('Setting follow status message:', this.followStatusMessage);
@@ -407,8 +447,19 @@ const ProfileView = {
                     credentials: 'include'
                 });
                 if (!response.ok) throw new Error('Failed to unfollow user');
-                // Always re-fetch profile to get correct state
-                await this.fetchProfile();
+                
+                // Update the profile follow status immediately for better UX
+                this.profile.is_following = false;
+                this.profile.followers_count = Math.max(0, (this.profile.followers_count || 0) - 1);
+                
+                // Remove current user from followers list
+                const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+                this.followers = this.followers.filter(u => u.id !== currentUserId && u.ID !== currentUserId);
+                
+                // Refresh followers and following lists to ensure UI consistency
+                await this.fetchFollowers();
+                await this.fetchFollowing();
+                
                 this.followStatusMessage = 'Unfollowed!';
                 setTimeout(() => { this.followStatusMessage = ''; }, 3000);
             } catch (error) {
@@ -438,10 +489,216 @@ const ProfileView = {
         },
         onPasswordChangeSuccess() {
             this.showChangePassword = false;
+        },
+        
+        // Handle real-time follow request updates from websocket
+        handleFollowAccepted(event) {
+            console.log('ProfileView: Follow request accepted event received:', event);
+            console.log('ProfileView: Event detail:', event.detail);
+            
+            const { user_id, reference_id } = event.detail;
+            console.log('ProfileView: user_id:', user_id, 'reference_id:', reference_id);
+            
+            // Check if this event is relevant to the current profile
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            console.log('ProfileView: Current user ID:', currentUserId);
+            console.log('ProfileView: Current user object:', this.$root.currentUser.value);
+            
+            if (user_id === currentUserId) {
+                // This is about the current user's follow request
+                // Check if we're viewing the profile of the user who accepted the request
+                const profileUserId = this.profile.user.ID || this.profile.user.id;
+                console.log('ProfileView: Profile user ID:', profileUserId);
+                
+                if (reference_id === profileUserId) {
+                    console.log('ProfileView: Updating follow status to accepted for profile:', profileUserId);
+                    // Update the profile follow status immediately
+                    this.profile.is_pending = false;
+                    this.profile.is_following = true;
+                    // Update followers count
+                    this.profile.followers_count = (this.profile.followers_count || 0) + 1;
+                    
+                    // Add current user to followers list so isFollower computed property works correctly
+                    const currentUser = this.$root.currentUser.value;
+                    const currentUserId = currentUser.id || currentUser.ID;
+                    if (currentUser && !this.followers.some(u => u.id === currentUserId || u.ID === currentUserId)) {
+                        this.followers.push({
+                            id: currentUserId,
+                            ID: currentUserId,
+                            Username: currentUser.username || currentUser.Username,
+                            Email: currentUser.email || currentUser.Email,
+                            avatar: currentUser.avatar || currentUser.Avatar
+                        });
+                    }
+                    
+                    // Force Vue to re-evaluate the isFollower computed property
+                    this.$forceUpdate();
+                    
+                    // Also refresh the followers list from the backend to ensure consistency
+                    setTimeout(() => {
+                        this.fetchFollowers();
+                        this.fetchFollowing();
+                    }, 100);
+                    
+                    // Show success message
+                    this.followStatusMessage = 'Follow request accepted!';
+                    setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+                    
+                    console.log('ProfileView: Follow status updated - is_pending:', this.profile.is_pending, 'is_following:', this.profile.is_following);
+                    console.log('ProfileView: Followers list updated, count:', this.followers.length);
+                    console.log('ProfileView: Current user in followers list:', this.followers.some(u => u.id === currentUser.id));
+                    console.log('ProfileView: isFollower computed value:', this.isFollower);
+                } else {
+                    console.log('ProfileView: Event not relevant to current profile view');
+                }
+            } else {
+                console.log('ProfileView: Event not for current user');
+            }
+        },
+        
+        handleFollowDeclined(event) {
+            console.log('ProfileView: Follow request declined event received:', event);
+            console.log('ProfileView: Event detail:', event.detail);
+            
+            const { user_id, reference_id } = event.detail;
+            console.log('ProfileView: user_id:', user_id, 'reference_id:', reference_id);
+            
+            // Check if this event is relevant to the current profile
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            console.log('ProfileView: Current user ID:', currentUserId);
+            
+            if (user_id === currentUserId) {
+                // This is about the current user's follow request
+                // Check if we're viewing the profile of the user who declined the request
+                const profileUserId = this.profile.user.ID || this.profile.user.id;
+                console.log('ProfileView: Profile user ID:', profileUserId);
+                
+                if (reference_id === profileUserId) {
+                    console.log('ProfileView: Updating follow status to declined for profile:', profileUserId);
+                    // Update the profile follow status immediately
+                    this.profile.is_pending = false;
+                    this.profile.is_following = false;
+                    
+                    // Refresh followers and following lists to ensure UI consistency
+                    this.fetchFollowers();
+                    this.fetchFollowing();
+                    
+                    // Show declined message
+                    this.followStatusMessage = 'Follow request declined.';
+                    setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+                    
+                    console.log('ProfileView: Follow status updated - is_pending:', this.profile.is_pending, 'is_following:', this.profile.is_following);
+                } else {
+                    console.log('ProfileView: Event not relevant to current profile view');
+                }
+            } else {
+                                    console.log('ProfileView: Event not for current user');
+            }
+        },
+        
+        // Handle new follow requests (when viewing own profile)
+        handleFollowRequest(event) {
+            console.log('ProfileView: New follow request event received:', event);
+            console.log('ProfileView: Event detail:', event.detail);
+            
+            const { user_id, reference_id } = event.detail;
+            console.log('ProfileView: user_id:', user_id, 'reference_id:', reference_id);
+            
+            // Check if this event is relevant to the current profile
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            console.log('ProfileView: Current user ID:', currentUserId);
+            
+            if (user_id === currentUserId && this.isOwnProfile) {
+                // This is a new follow request for the current user's profile
+                console.log('ProfileView: New follow request received for own profile');
+                
+                // Update followers count immediately
+                this.profile.followers_count = (this.profile.followers_count || 0) + 1;
+                
+                // Refresh the profile to show the new follow request
+                this.fetchProfile();
+                
+                // Show notification message
+                this.followStatusMessage = 'New follow request received!';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            }
+        },
+        
+        // Handle when someone unfollows the current user (when viewing own profile)
+        handleUnfollowed(event) {
+            console.log('ProfileView: Unfollowed event received:', event);
+            console.log('ProfileView: Event detail:', event.detail);
+            
+            const { user_id, reference_id } = event.detail;
+            console.log('ProfileView: user_id:', user_id, 'reference_id:', reference_id);
+            
+            // Check if this event is relevant to the current profile
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            console.log('ProfileView: Current user ID:', currentUserId);
+            
+            if (reference_id === currentUserId && this.isOwnProfile) {
+                // Someone unfollowed the current user
+                console.log('ProfileView: User unfollowed current user');
+                
+                // Update followers count immediately
+                this.profile.followers_count = Math.max(0, (this.profile.followers_count || 0) - 1);
+                
+                // Refresh the profile to update the followers list
+                this.fetchProfile();
+                
+                // Show notification message
+                this.followStatusMessage = 'Someone unfollowed you.';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            }
+        },
+        
+        // Handle when someone starts following the current user (when viewing own profile)
+        handleNewFollower(event) {
+            console.log('ProfileView: New follower event received:', event);
+            console.log('ProfileView: Event detail:', event.detail);
+            
+            const { user_id, reference_id } = event.detail;
+            console.log('ProfileView: user_id:', user_id, 'reference_id:', reference_id);
+            
+            // Check if this event is relevant to the current profile
+            const currentUserId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
+            console.log('ProfileView: Current user ID:', currentUserId);
+            
+            if (reference_id === currentUserId && this.isOwnProfile) {
+                // Someone started following the current user
+                console.log('ProfileView: New follower for current user');
+                
+                // Update followers count immediately
+                this.profile.followers_count = (this.profile.followers_count || 0) + 1;
+                
+                // Refresh the profile to update the followers list
+                this.fetchProfile();
+                
+                // Show notification message
+                this.followStatusMessage = 'New follower!';
+                setTimeout(() => { this.followStatusMessage = ''; }, 3000);
+            }
         }
     },
     mounted() {
         //this.fetchProfile(); // Now it is handled by the watch. This is for the van button to work.
+        
+        // Add event listeners for real-time follow updates
+        console.log('ProfileView: Adding websocket event listeners for follow updates');
+        window.addEventListener('follow-accepted', this.handleFollowAccepted);
+        window.addEventListener('follow-declined', this.handleFollowDeclined);
+        window.addEventListener('follow-request', this.handleFollowRequest);
+        window.addEventListener('unfollowed', this.handleUnfollowed);
+        window.addEventListener('new-follower', this.handleNewFollower);
+    },
+    beforeUnmount() {
+        // Clean up event listeners
+        console.log('ProfileView: Removing websocket event listeners');
+        window.removeEventListener('follow-accepted', this.handleFollowAccepted);
+        window.removeEventListener('follow-declined', this.handleFollowDeclined);
+        window.removeEventListener('follow-request', this.handleFollowRequest);
+        window.removeEventListener('unfollowed', this.handleUnfollowed);
+        window.removeEventListener('new-follower', this.handleNewFollower);
     },
     props: {
         userId: {

@@ -133,6 +133,29 @@ const WebSocketPlugin = {
                 case 'new_notification':
                     console.log('WebSocket: Received notification event:', message);
                     window.dispatchEvent(new CustomEvent('notification-update', { detail: message.content }));
+                    
+                    // Dispatch specific events for follow-related notifications
+                    if (message.content && message.content.type) {
+                        console.log('WebSocket: Processing notification type:', message.content.type);
+                        switch (message.content.type) {
+                            case 'follow_accepted':
+                                console.log('WebSocket: Dispatching follow-accepted event with content:', message.content);
+                                window.dispatchEvent(new CustomEvent('follow-accepted', { detail: message.content }));
+                                break;
+                            case 'follow_declined':
+                                console.log('WebSocket: Dispatching follow-declined event with content:', message.content);
+                                window.dispatchEvent(new CustomEvent('follow-declined', { detail: message.content }));
+                                break;
+                            case 'follow_request':
+                                console.log('WebSocket: Dispatching follow-request event with content:', message.content);
+                                window.dispatchEvent(new CustomEvent('follow-request', { detail: message.content }));
+                                break;
+                            case 'new_follower':
+                                console.log('WebSocket: Dispatching new-follower event with content:', message.content);
+                                window.dispatchEvent(new CustomEvent('new-follower', { detail: message.content }));
+                                break;
+                        }
+                    }
                     break;
                 case 'group_join_request_notification':
                     console.log('WebSocket: Received group join request notification:', message);
