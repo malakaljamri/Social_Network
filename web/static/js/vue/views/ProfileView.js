@@ -64,7 +64,6 @@ const ProfileView = {
                             <p><strong>Email:</strong> {{ profile.user.Email }}</p>
                             <p><strong>Followers:</strong> {{ profile.followers_count }}</p>
                             <p><strong>Following:</strong> {{ profile.following_count }}</p>
-                            <p><strong>Posts:</strong> {{ profile.posts_count }}</p>
                         </div>
                     </div>
 
@@ -84,16 +83,6 @@ const ProfileView = {
                                        @request-handled="onRequestHandled">
                     </p-follow-request-list>
 
-                    <!-- Debug Info (remove in production) -->
-                    <div v-if="!isOwnProfile" class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
-                        <strong>Debug:</strong> Profile Private: {{ (profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) }}, 
-                        Is Own Profile: {{ isOwnProfile }}, 
-                        Is Follower: {{ isFollower }}, 
-                        Followers Count: {{ followers.length }},
-                        Current User ID: {{ $root.currentUser.value.id || $root.currentUser.value.ID }},
-                        Followers List: {{ followers.map(u => u.id || u.ID).join(', ') }}
-                    </div>
-                    
                     <!-- Privacy Enforcement -->
                     <div v-if="(profile.user.IsPrivate !== undefined ? profile.user.IsPrivate : profile.user.is_private) && !isOwnProfile && !isFollower" class="private-profile-message">
                         <div class="alert alert-warning">

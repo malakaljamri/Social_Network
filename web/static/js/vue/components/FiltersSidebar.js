@@ -58,24 +58,9 @@ const FiltersSidebar = {
                 </div>
             </div>
 
-            <div class="filter-section">
-                <h3>Other Filters</h3>
-                <div class="checkbox-filters">
-                    <div v-if="!isProfile" class="filter-item">
-                        <input 
-                            type="checkbox" 
-                            id="loggedInUserFilter" 
-                            v-model="loggedInUserFilter"
-                            :disabled="!currentUserValue || !currentUserValue.isLoggedIn"
-                        >
-                        <label for="loggedInUserFilter">Show only my posts</label>
-                    </div>
-                </div>
-            </div>
+            <!-- Other Filters section removed as requested -->
 
-            <div class="results-counter">
-                <span id="resultsCounter">Total Results: {{ totalResults }}</span>
-            </div>
+            <!-- Results counter removed as requested -->
         </div>
     `,
     data() {
