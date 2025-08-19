@@ -464,9 +464,57 @@ func HandleGroupJoinRequestHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// Get updated group access and membership information for the requester
+		var groupAccessInfo map[string]interface{}
+		if request.Action == "accept" {
+			// If join request was accepted, get the updated access info for the requester
+			hasAccess, membershipStatus, err := database.GetGroupAccessAndMembership(db, request.UserID, request.GroupID)
+			if err != nil {
+				log.Printf("⚠️ Failed to get updated group access info: %v", err)
+			} else {
+				groupAccessInfo = map[string]interface{}{
+					"group_id":          request.GroupID,
+					"user_id":           request.UserID,
+					"has_access":        hasAccess,
+					"membership_status": membershipStatus,
+				}
+				log.Printf("🔍 DEBUG: Updated group access info after join request: groupID=%d, userID=%d, hasAccess=%v, membershipStatus=%s", request.GroupID, request.UserID, hasAccess, membershipStatus)
+
+				// Send real-time WebSocket notification to the requester about their access update
+				var groupName string
+				err = db.QueryRow("SELECT name FROM groups WHERE id = ?", request.GroupID).Scan(&groupName)
+				if err != nil {
+					log.Printf("⚠️ Failed to get group name for WebSocket notification: %v", err)
+				} else {
+					accessUpdateNotification := websocket.Message{
+						Type: "group_access_update",
+						Content: map[string]interface{}{
+							"group_id":          request.GroupID,
+							"group_name":        groupName,
+							"user_id":           request.UserID,
+							"has_access":        hasAccess,
+							"membership_status": membershipStatus,
+							"message":           fmt.Sprintf("Your request to join %s was accepted", groupName),
+							"timestamp":         time.Now(),
+						},
+						UserID: request.UserID,
+					}
+					jsonNotification, err := json.Marshal(accessUpdateNotification)
+					if err == nil {
+						websocket.MainHub.Broadcast <- jsonNotification
+						log.Printf("✅ Sent real-time group access update to user %d for group %d", request.UserID, request.GroupID)
+					} else {
+						log.Printf("⚠️ Failed to marshal WebSocket notification: %v", err)
+					}
+				}
+			}
+		}
+
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":            "success",
+			"message":           fmt.Sprintf("Join request %s successfully", request.Action),
+			"group_access_info": groupAccessInfo,
 		})
 	}
 }
@@ -792,13 +840,31 @@ func HandleGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
 		updatedCount := len(updatedInvitations)
 		log.Printf("🔍 DEBUG: Updated pending invitations count: %d for userID=%d", updatedCount, userID)
 
+		// Get updated group access and membership information for the affected group
+		var groupAccessInfo map[string]interface{}
+		if req.Action == "accept" {
+			// If invitation was accepted, get the updated access info
+			hasAccess, membershipStatus, err := database.GetGroupAccessAndMembership(db, groupID, userID)
+			if err != nil {
+				log.Printf("⚠️ Failed to get updated group access info: %v", err)
+			} else {
+				groupAccessInfo = map[string]interface{}{
+					"group_id":          groupID,
+					"has_access":        hasAccess,
+					"membership_status": membershipStatus,
+				}
+				log.Printf("🔍 DEBUG: Updated group access info: groupID=%d, hasAccess=%v, membershipStatus=%s", groupID, hasAccess, membershipStatus)
+			}
+		}
+
 		log.Printf("✅ Group invitation %s successfully: invitationID=%d, userID=%d", req.Action, req.InvitationID, userID)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":        "success",
-			"message":       fmt.Sprintf("Invitation %s successfully", req.Action),
-			"updated_count": updatedCount,
+			"status":            "success",
+			"message":           fmt.Sprintf("Invitation %s successfully", req.Action),
+			"updated_count":     updatedCount,
+			"group_access_info": groupAccessInfo,
 		})
 	}
 }

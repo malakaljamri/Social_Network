@@ -178,13 +178,21 @@ const GroupsView = {
         },
         handleInvitationHandled(event) {
             console.log('🔍 Invitation handled:', event);
-            const { invitationId, action, groupId, updatedCount } = event;
+            const { invitationId, action, groupId, updatedCount, groupAccessInfo } = event;
             
             // If we have an updated count, dispatch event to refresh invitation counter
             if (updatedCount !== undefined) {
                 console.log(`🔍 Dispatching invitation-count-update event with count: ${updatedCount}`);
                 window.dispatchEvent(new CustomEvent('invitation-count-update', {
                     detail: { count: updatedCount }
+                }));
+            }
+            
+            // If we have group access info, dispatch event to update privacy indicators
+            if (groupAccessInfo) {
+                console.log(`🔍 Dispatching group-access-update event with info:`, groupAccessInfo);
+                window.dispatchEvent(new CustomEvent('group-access-update', {
+                    detail: groupAccessInfo
                 }));
             }
             

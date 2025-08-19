@@ -141,6 +141,11 @@ const WebSocketPlugin = {
                     // Also dispatch general notification update for consistency
                     window.dispatchEvent(new CustomEvent('notification-update', { detail: message.content }));
                     break;
+                case 'group_access_update':
+                    console.log('WebSocket: Received group access update:', message);
+                    // Dispatch event for group access updates
+                    window.dispatchEvent(new CustomEvent('group-access-update', { detail: message.content }));
+                    break;
                 default:
                     console.warn('Unknown message type:', message);
             }

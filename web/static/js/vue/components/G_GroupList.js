@@ -25,6 +25,7 @@ const GroupList = {
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
         window.addEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
         window.addEventListener('invitation-count-update', this.handleInvitationCountUpdate);
+        window.addEventListener('group-access-update', this.handleGroupAccessUpdate);
 
         // Fetch unread group counts on page load only if user is logged in
         if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
@@ -59,6 +60,18 @@ const GroupList = {
                 console.log(`G_GroupList: pendingInvitationsCount changed from ${oldCount} to ${newCount}`);
             },
             immediate: true
+        },
+        groupAccess: {
+            handler(newAccess, oldAccess) {
+                console.log('G_GroupList: groupAccess changed:', newAccess);
+            },
+            deep: true
+        },
+        groupMembership: {
+            handler(newMembership, oldMembership) {
+                console.log('G_GroupList: groupMembership changed:', newMembership);
+            },
+            deep: true
         }
     },
     methods: {
@@ -101,6 +114,9 @@ const GroupList = {
         getPrivacyIndicator(group) {
             const hasAccess = this.groupAccess.get(group.ID);
             const membershipStatus = this.groupMembership.get(group.ID);
+            
+            console.log(`G_GroupList: getPrivacyIndicator called for group ${group.ID}: hasAccess=${hasAccess}, membershipStatus=${membershipStatus}, privacy=${group.PrivacySetting}`);
+            
             if (group.PrivacySetting === 'private') {
                 if (hasAccess) {
                     return '🔒✅'; // Private group, has access
@@ -165,12 +181,38 @@ const GroupList = {
             window.dispatchEvent(new CustomEvent('invitation-count-update', {
                 detail: { count: this.pendingInvitationsCount }
             }));
+        },
+        handleGroupAccessUpdate(event) {
+            const { group_id, has_access, membership_status, user_id, message } = event.detail;
+            console.log(`G_GroupList: Received group-access-update event for group ${group_id}: hasAccess=${has_access}, membershipStatus=${membership_status}, userID=${user_id || 'N/A'}`);
+            
+            // Only update if this is for the current user
+            const currentUserId = this.$root.currentUser?.value?.id || this.$root.currentUser?.id;
+            if (user_id && user_id !== currentUserId) {
+                console.log(`G_GroupList: Ignoring access update for different user: ${user_id} vs ${currentUserId}`);
+                return;
+            }
+            
+            // Update the group access and membership maps immediately
+            this.groupAccess.set(group_id, has_access);
+            this.groupMembership.set(group_id, membership_status);
+            
+            console.log(`G_GroupList: Updated group ${group_id} access: ${has_access}, membership: ${membership_status}`);
+            
+            // Show success message if provided
+            if (message) {
+                console.log(`G_GroupList: ${message}`);
+            }
+            
+            // Force a re-render of the privacy indicators
+            this.$forceUpdate();
         }
     },
     beforeUnmount() {
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
         window.removeEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
         window.removeEventListener('invitation-count-update', this.handleInvitationCountUpdate);
+        window.removeEventListener('group-access-update', this.handleGroupAccessUpdate);
     },
     template: `
         <div class="group-list-container">

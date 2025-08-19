@@ -165,6 +165,21 @@ func CheckUserGroupMembership(db *sql.DB, userID, groupID int) (string, error) {
 	return status, nil
 }
 
+// GetGroupAccessAndMembership returns both access status and membership status for a user in a group
+func GetGroupAccessAndMembership(db *sql.DB, userID, groupID int) (bool, string, error) {
+	hasAccess, err := CheckUserGroupAccess(db, userID, groupID)
+	if err != nil {
+		return false, "", err
+	}
+
+	membershipStatus, err := CheckUserGroupMembership(db, userID, groupID)
+	if err != nil {
+		return false, "", err
+	}
+
+	return hasAccess, membershipStatus, nil
+}
+
 // AddCreatorFollowersToPrivateGroup adds all followers of the group creator to the group
 func AddCreatorFollowersToPrivateGroup(db *sql.DB, groupID, creatorID int) error {
 	query := `

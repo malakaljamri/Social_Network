@@ -92,13 +92,27 @@ const GroupJoinRequestsModal = {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                console.log(`✅ Successfully ${action}ed request for user ${userId}`);
+                const result = await response.json();
+                console.log(`✅ Successfully ${action}ed request for user ${userId}:`, result);
                 
                 // Remove the request from the list
                 this.joinRequests = this.joinRequests.filter(req => req.ID !== userId);
                 
                 // Emit event to notify parent components
-                this.$emit('request-handled', { userId, action, groupId: this.groupId });
+                this.$emit('request-handled', { 
+                    userId, 
+                    action, 
+                    groupId: this.groupId,
+                    groupAccessInfo: result.group_access_info || null
+                });
+                
+                // Dispatch custom event to update group access and privacy indicators
+                if (result.group_access_info) {
+                    console.log(`🔍 Dispatching group-access-update event for join request:`, result.group_access_info);
+                    window.dispatchEvent(new CustomEvent('group-access-update', {
+                        detail: result.group_access_info
+                    }));
+                }
                 
             } catch (error) {
                 console.error(`❌ Error ${action}ing request:`, error);

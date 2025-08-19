@@ -170,7 +170,7 @@ const GroupMain = {
         },
         handleJoinRequestHandled(event) {
             console.log('🔍 Join request handled:', event);
-            const { userId, action, groupId } = event;
+            const { userId, action, groupId, groupAccessInfo } = event;
             
             // Update the pending count
             this.pendingJoinRequestsCount = Math.max(0, this.pendingJoinRequestsCount - 1);
@@ -178,6 +178,14 @@ const GroupMain = {
             // If this was an accept, we might want to refresh the group members
             if (action === 'accept' && this.showGroupMembers) {
                 this.fetchGroupMembers();
+            }
+            
+            // If we have group access info, dispatch event to update privacy indicators
+            if (groupAccessInfo) {
+                console.log(`🔍 Dispatching group-access-update event for join request:`, groupAccessInfo);
+                window.dispatchEvent(new CustomEvent('group-access-update', {
+                    detail: groupAccessInfo
+                }));
             }
             
             // Dispatch event to refresh notifications in NavBar after handling join request

@@ -75,7 +75,8 @@ const GroupInvitationsModal = {
                         invitationId, 
                         action, 
                         groupId: this.invitations.find(inv => inv.id === invitationId)?.group_id,
-                        updatedCount: result.updated_count || 0
+                        updatedCount: result.updated_count || 0,
+                        groupAccessInfo: result.group_access_info || null
                     });
                     
                     // Dispatch custom event to refresh invitation counter immediately
@@ -83,6 +84,14 @@ const GroupInvitationsModal = {
                         console.log(`🔍 Dispatching invitation-count-update event with count: ${result.updated_count}`);
                         window.dispatchEvent(new CustomEvent('invitation-count-update', {
                             detail: { count: result.updated_count }
+                        }));
+                    }
+                    
+                    // Dispatch custom event to update group access and privacy indicators
+                    if (result.group_access_info) {
+                        console.log(`🔍 Dispatching group-access-update event with info:`, result.group_access_info);
+                        window.dispatchEvent(new CustomEvent('group-access-update', {
+                            detail: result.group_access_info
                         }));
                     }
                     
