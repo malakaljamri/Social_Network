@@ -24,6 +24,7 @@ const GroupList = {
         this.fetchAllGroupAccess();
         window.addEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
         window.addEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
+        window.addEventListener('invitation-count-update', this.handleInvitationCountUpdate);
 
         // Fetch unread group counts on page load only if user is logged in
         if (this.$root.currentUser?.value?.isLoggedIn || this.$root.currentUser?.isLoggedIn) {
@@ -52,6 +53,12 @@ const GroupList = {
                 this.fetchAllGroupAccess();
             },
             deep: true
+        },
+        pendingInvitationsCount: {
+            handler(newCount, oldCount) {
+                console.log(`G_GroupList: pendingInvitationsCount changed from ${oldCount} to ${newCount}`);
+            },
+            immediate: true
         }
     },
     methods: {
@@ -150,11 +157,20 @@ const GroupList = {
                         }));
                     });
             }
+        },
+        handleInvitationCountUpdate(event) {
+            console.log('G_GroupList: Received invitation-count-update event with count:', event.detail.count);
+            this.pendingInvitationsCount = event.detail.count;
+            // Dispatch event to update NavBar counter as well
+            window.dispatchEvent(new CustomEvent('invitation-count-update', {
+                detail: { count: this.pendingInvitationsCount }
+            }));
         }
     },
     beforeUnmount() {
         window.removeEventListener('unread-group-count-update', this.handleUnreadCountUpdate);
         window.removeEventListener('refresh-invitation-count', this.fetchPendingInvitationsCount);
+        window.removeEventListener('invitation-count-update', this.handleInvitationCountUpdate);
     },
     template: `
         <div class="group-list-container">

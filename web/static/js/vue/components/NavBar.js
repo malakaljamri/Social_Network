@@ -582,7 +582,16 @@ const NavBar = {
         
         handleInvitationHandled(event) {
             console.log('NavBar: Invitation handled:', event);
-            const { invitationId, action, groupId } = event;
+            const { invitationId, action, groupId, updatedCount } = event;
+            
+            // If we have an updated count, update the invitation counter immediately
+            if (updatedCount !== undefined) {
+                console.log(`NavBar: Updating invitation counter to: ${updatedCount}`);
+                // Update the invitation count in the NavBar if it exists
+                if (this.invitationCount !== undefined) {
+                    this.invitationCount = updatedCount;
+                }
+            }
             
             // Refresh notifications to update the count
             console.log('NavBar: Refreshing notifications after invitation handled');
@@ -603,7 +612,7 @@ const NavBar = {
             
             // If invitation was accepted, we might want to navigate to the group
             if (action === 'accept' && groupId) {
-                console.log('NavBar: Invitation accepted, navigating to groups');
+                console.log('NavBar: Navigating to groups after invitation accepted');
                 this.$emit('navigate', 'groups');
             }
         },

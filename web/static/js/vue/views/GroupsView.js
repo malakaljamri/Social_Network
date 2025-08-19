@@ -178,6 +178,16 @@ const GroupsView = {
         },
         handleInvitationHandled(event) {
             console.log('🔍 Invitation handled:', event);
+            const { invitationId, action, groupId, updatedCount } = event;
+            
+            // If we have an updated count, dispatch event to refresh invitation counter
+            if (updatedCount !== undefined) {
+                console.log(`🔍 Dispatching invitation-count-update event with count: ${updatedCount}`);
+                window.dispatchEvent(new CustomEvent('invitation-count-update', {
+                    detail: { count: updatedCount }
+                }));
+            }
+            
             // Could refresh groups or show success message
         },
         

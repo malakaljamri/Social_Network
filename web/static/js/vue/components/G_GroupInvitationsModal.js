@@ -70,12 +70,21 @@ const GroupInvitationsModal = {
                     // Remove the invitation from the list
                     this.invitations = this.invitations.filter(inv => inv.id !== invitationId);
                     
-                    // Emit event to notify parent
+                    // Emit event to notify parent with updated count
                     this.$emit('invitation-handled', { 
                         invitationId, 
                         action, 
-                        groupId: this.invitations.find(inv => inv.id === invitationId)?.group_id 
+                        groupId: this.invitations.find(inv => inv.id === invitationId)?.group_id,
+                        updatedCount: result.updated_count || 0
                     });
+                    
+                    // Dispatch custom event to refresh invitation counter immediately
+                    if (result.updated_count !== undefined) {
+                        console.log(`🔍 Dispatching invitation-count-update event with count: ${result.updated_count}`);
+                        window.dispatchEvent(new CustomEvent('invitation-count-update', {
+                            detail: { count: result.updated_count }
+                        }));
+                    }
                     
                     // Show success message
                     this.showSuccessMessage(`Invitation ${action}ed successfully`);

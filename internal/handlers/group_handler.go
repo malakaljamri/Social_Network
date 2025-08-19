@@ -782,12 +782,23 @@ func HandleGroupInvitationHandler(db *sql.DB) http.HandlerFunc {
 			log.Printf("✅ Successfully deleted group invitation notification for userID=%d, groupID=%d", userID, groupID)
 		}
 
+		// Get the updated count of pending invitations for the user
+		updatedInvitations, err := database.GetUserGroupInvitations(db, userID)
+		if err != nil {
+			log.Printf("⚠️ Failed to get updated invitation count: %v", err)
+			// Don't return error here as the main operation succeeded
+		}
+
+		updatedCount := len(updatedInvitations)
+		log.Printf("🔍 DEBUG: Updated pending invitations count: %d for userID=%d", updatedCount, userID)
+
 		log.Printf("✅ Group invitation %s successfully: invitationID=%d, userID=%d", req.Action, req.InvitationID, userID)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "success",
-			"message": fmt.Sprintf("Invitation %s successfully", req.Action),
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":        "success",
+			"message":       fmt.Sprintf("Invitation %s successfully", req.Action),
+			"updated_count": updatedCount,
 		})
 	}
 }
