@@ -448,14 +448,15 @@
 
 /* Chat Input Container */
 .chat-input-container {
-  position: relative; /* This is crucial for positioning the emoji picker */
-  display: flex;
-  gap: 8px; /* Reduced gap between input and button */
-  padding: 12px 16px; /* Slightly reduced padding */
+  /*position: relative; /* This is crucial for positioning the emoji picker */
+  /* display: grid;
+  gap: 8px; */
+  /* padding: 12px 16px; */
   background: var(--card-color);
   border-radius: 0 0 var(--border-radius) var(--border-radius);
   border-top: 1px solid rgba(var(--primary-color-rgb), 0.1);
   align-items: center; /* Align items vertically */
+  width: 100%;
 }
 
 .chat-input-container input {
@@ -469,6 +470,8 @@
   transition: var(--transition-all);
   height: 40px; /* Fixed height */
   box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .chat-input-container input:focus {
@@ -490,11 +493,13 @@
   cursor: pointer;
   transition: var(--transition-all);
   white-space: nowrap;
-  display: flex;
+  /* display: flex; */
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   flex-shrink: 0; /* Prevent button from shrinking */
+  width: calc(96%/2);
+  margin: 0px 1%;
 }
 
 .chat-input-container button:hover {
