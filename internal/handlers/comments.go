@@ -12,6 +12,7 @@ import (
 	"social_network/internal/database"
 	"social_network/internal/models"
 	"social_network/internal/utils"
+	"social_network/internal/websocket"
 	"strconv"
 )
 
@@ -140,11 +141,21 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast new comment via WebSocket for real-time updates
+	log.Printf("🔔 Broadcasting new comment via WebSocket for user %d on post %d", userID, comment.PostID)
+	websocket.BroadcastNewComment(websocket.MainHub, &comment, userID)
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(comment)
 }
 
 func DeleteComment(w http.ResponseWriter, r *http.Request) {
+	userID, errUserID := database.GetUserIDFromSession(r)
+	if errUserID != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get user ID from session")
+		return
+	}
+
 	commentIDStr := r.URL.Query().Get("id")
 	commentID, err := strconv.Atoi(commentIDStr)
 	if err != nil {
@@ -157,6 +168,10 @@ func DeleteComment(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error deleting comment")
 		return
 	}
+
+	// Broadcast comment deletion via WebSocket for real-time updates
+	log.Printf("🔔 Broadcasting comment deletion via WebSocket for comment %d by user %d", commentID, userID)
+	websocket.BroadcastCommentDeleted(websocket.MainHub, commentID, userID)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Comment deleted successfully"})

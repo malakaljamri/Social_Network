@@ -100,6 +100,100 @@ const CommentSection = {
                 this.submitError = 'Failed to load comments.';
             }
         },
+        setupRealTimeUpdates() {
+            console.log('🔔 CommentSection: Setting up real-time updates for post', this.postId);
+            
+            // Listen for new comments on this specific post
+            window.addEventListener('new-comment', this.handleNewComment);
+            
+            // Listen for comment updates on this specific post
+            window.addEventListener('comment-updated', this.handleCommentUpdated);
+            
+            // Listen for comment deletions on this specific post
+            window.addEventListener('comment-deleted', this.handleCommentDeleted);
+        },
+        cleanupRealTimeUpdates() {
+            console.log('🔔 CommentSection: Cleaning up real-time updates for post', this.postId);
+            
+            window.removeEventListener('new-comment', this.handleNewComment);
+            window.removeEventListener('comment-updated', this.handleCommentUpdated);
+            window.removeEventListener('comment-deleted', this.handleCommentDeleted);
+        },
+        handleNewComment(event) {
+            const newComment = event.detail;
+            console.log('🔔 CommentSection: New comment received:', newComment);
+            
+            // Only handle comments for this specific post
+            if (newComment.PostID === this.postId) {
+                // Add the new comment to the list
+                this.comments.push(newComment);
+                
+                // Show a brief notification
+                this.showCommentNotification('New comment added!', 'success');
+            }
+        },
+        handleCommentUpdated(event) {
+            const updatedComment = event.detail;
+            console.log('🔔 CommentSection: Comment updated:', updatedComment);
+            
+            // Only handle comments for this specific post
+            if (updatedComment.PostID === this.postId) {
+                // Find and update the comment
+                const index = this.comments.findIndex(comment => comment.ID === updatedComment.ID);
+                if (index !== -1) {
+                    this.comments[index] = { ...this.comments[index], ...updatedComment };
+                    this.showCommentNotification('Comment updated!', 'info');
+                }
+            }
+        },
+        handleCommentDeleted(event) {
+            const deletedComment = event.detail;
+            console.log('🔔 CommentSection: Comment deleted:', deletedComment);
+            
+            // Only handle comments for this specific post
+            if (deletedComment.PostID === this.postId) {
+                // Remove the deleted comment
+                this.comments = this.comments.filter(comment => comment.ID !== deletedComment.comment_id);
+                this.showCommentNotification('Comment deleted!', 'warning');
+            }
+        },
+        showCommentNotification(message, type = 'info') {
+            // Create a simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `comment-toast-notification comment-toast-${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4caf50' : type === 'warning' ? '#ff9800' : '#2196f3'};
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                z-index: 10000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                font-size: 14px;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove after 2 seconds
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 2000);
+        },
         async submitComment() {
             if (!this.newComment.text.trim() && !this.newComment.file) {
                 this.submitError = 'Comment cannot be empty.';
@@ -130,7 +224,7 @@ const CommentSection = {
                 this.newComment.text = '';
                 this.newComment.file = null;
                 this.removeImage(); // Clear image preview
-                this.fetchComments();
+                // Note: We don't need to fetch comments here anymore since WebSocket will handle it
                 this.showComments = true; // Keep comments visible after posting
             } catch (error) {
                 console.error('Error submitting comment:', error);
@@ -225,6 +319,10 @@ const CommentSection = {
     },
     mounted() {
         this.fetchComments();
+        this.setupRealTimeUpdates();
+    },
+    beforeUnmount() {
+        this.cleanupRealTimeUpdates();
     },
     computed: {
         commentButtonText() {

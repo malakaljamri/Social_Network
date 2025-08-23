@@ -90,8 +90,11 @@ const GroupsView = {
                     body: formData
                 });
                 if (!response.ok) throw new Error('Failed to create group post');
-                this.fetchGroupPosts(this.selectedGroupId);
+                
+                // No need to manually refresh since real-time updates will handle it
+                console.log('🔔 GroupsView: Group post created successfully, waiting for real-time update');
             } catch (e) {
+                console.error('❌ Failed to create group post:', e);
                 alert('Failed to create group post');
             }
         },
@@ -224,6 +227,98 @@ const GroupsView = {
             
             // Also dispatch a custom window event for the NavBar to catch
             window.dispatchEvent(new CustomEvent('refresh-notifications'));
+        },
+        
+        // Real-time post update handlers
+        handleNewPost(event) {
+            const newPost = event.detail;
+            console.log('🔔 GroupsView: New post received:', newPost);
+            
+            // Check if this is a group post for the currently selected group
+            if (newPost.GroupID && newPost.GroupID.toString() === this.selectedGroupId?.toString()) {
+                console.log('🔔 GroupsView: Adding new group post to current group:', newPost);
+                
+                // Transform the post to match the expected format
+                const transformedPost = {
+                    ID: newPost.ID || newPost.id,
+                    Title: newPost.Title || newPost.title,
+                    Content: newPost.Text || newPost.content,
+                    Author: newPost.Username || newPost.username,
+                    CreatedAt: newPost.CreatedAt || newPost.created_at,
+                    file_path: newPost.Image || newPost.file_path,
+                    UserID: newPost.UserID || newPost.user_id,
+                    Categories: newPost.Categories || newPost.category_ids || [],
+                    Privacy: newPost.Privacy || newPost.privacy_setting
+                };
+                
+                // Add the new post to the beginning of the group posts list
+                this.groupPosts.unshift(transformedPost);
+                
+                // Show success notification
+                this.showPostNotification('New group post created!', 'success');
+            }
+        },
+        
+        handlePostUpdated(event) {
+            const updatedPost = event.detail;
+            console.log('🔔 GroupsView: Post updated:', updatedPost);
+            
+            // Check if this is a group post for the currently selected group
+            if (updatedPost.GroupID && updatedPost.GroupID.toString() === this.selectedGroupId?.toString()) {
+                // Find and update the post in the list
+                const index = this.groupPosts.findIndex(post => post.ID === updatedPost.ID);
+                if (index !== -1) {
+                    // Update the post while preserving the transformed format
+                    this.groupPosts[index] = {
+                        ...this.groupPosts[index],
+                        Title: updatedPost.Title || updatedPost.title,
+                        Content: updatedPost.Text || updatedPost.content,
+                        Categories: updatedPost.Categories || updatedPost.category_ids || [],
+                        Privacy: updatedPost.Privacy || updatedPost.privacy_setting
+                    };
+                    
+                    this.showPostNotification('Group post updated!', 'info');
+                }
+            }
+        },
+        
+        handlePostDeleted(event) {
+            const deletedPost = event.detail;
+            console.log('🔔 GroupsView: Post deleted:', deletedPost);
+            
+            // Check if this is a group post for the currently selected group
+            if (deletedPost.GroupID && deletedPost.GroupID.toString() === this.selectedGroupId?.toString()) {
+                // Remove the deleted post from the list
+                this.groupPosts = this.groupPosts.filter(post => post.ID !== deletedPost.post_id);
+                
+                this.showPostNotification('Group post deleted!', 'warning');
+            }
+        },
+        
+        showPostNotification(message, type = 'info') {
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                padding: 15px;
+                border-radius: 5px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    notification.remove();
+                }
+            }, 3000);
         }
     },
     mounted() {
@@ -238,14 +333,36 @@ const GroupsView = {
         
         // Listen for custom event to open invitation requests modal
         window.addEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
+        
+        // Listen for real-time post updates
+        window.addEventListener('new-post', this.handleNewPost);
+        window.addEventListener('post-updated', this.handlePostUpdated);
+        window.addEventListener('post-deleted', this.handlePostDeleted);
     },
     beforeUnmount() {
         // Clean up event listeners
         window.removeEventListener('open-join-requests-modal', this.handleOpenJoinRequestsModal);
         window.removeEventListener('open-group-invitations-modal', this.handleOpenGroupInvitationsModal);
         window.removeEventListener('open-invitation-requests-modal', this.handleOpenInvitationRequestsModal);
+        
+        // Clean up real-time post update listeners
+        window.removeEventListener('new-post', this.handleNewPost);
+        window.removeEventListener('post-updated', this.handlePostUpdated);
+        window.removeEventListener('post-deleted', this.handlePostDeleted);
     },
     template: `
+        <style>
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        </style>
         <div class="layout-grid groups-layout">
             <g-group-list
                 :groups="groups"

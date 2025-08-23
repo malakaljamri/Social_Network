@@ -151,23 +151,15 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
 		if err != nil || !isFollowing {
 			canViewFullProfile = false
-			log.Printf("Privacy check failed - Profile %d is private, user %d is not a follower", targetUserID, currentUserID)
-		} else {
-			log.Printf("Privacy check passed - Profile %d is private, user %d is a follower", targetUserID, currentUserID)
 		}
 	}
 
 	// If user is logged in, check if they follow the profile user
 	if currentUserID > 0 && currentUserID != targetUserID {
-		log.Printf("Checking follow status for currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
-
 		isFollowing, err := database.IsFollowing(currentUserID, targetUserID)
 		profile.IsFollowing = false // Always set the field, default to false
 		if err == nil {
 			profile.IsFollowing = isFollowing
-			log.Printf("IsFollowing set to: %v", isFollowing)
-		} else {
-			log.Printf("ERROR: Failed to check IsFollowing: %v", err)
 		}
 
 		// Check if profile user follows current user
@@ -175,21 +167,13 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		profile.IsFollower = false // Always set the field, default to false
 		if err == nil {
 			profile.IsFollower = isFollower
-			log.Printf("IsFollower set to: %v", isFollower)
-		} else {
-			log.Printf("ERROR: Failed to check IsFollower: %v", err)
 		}
 
 		// Check if there is a pending follow request
 		isPending, err := database.IsPendingFollowRequest(currentUserID, targetUserID)
 		if err == nil {
 			profile.IsPending = isPending
-			log.Printf("IsPending set to: %v", isPending)
-		} else {
-			log.Printf("ERROR: Failed to check IsPending: %v", err)
 		}
-	} else {
-		log.Printf("Skipping follow status check - currentUserID=%d, targetUserID=%d", currentUserID, targetUserID)
 	}
 
 	// Apply privacy restrictions
@@ -206,7 +190,6 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		profile.FollowersCount = 0      // Hide follower count
 		profile.FollowingCount = 0      // Hide following count
 		profile.PostsCount = 0          // Hide posts count
-		log.Printf("Applied privacy restrictions to profile %d for user %d", targetUserID, currentUserID)
 	} else {
 		// Load posts and other data only if user can view full profile
 		if filtersJSON != "" {
@@ -447,15 +430,12 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 		// Parse request
 		var followReq models.FollowRequest
 		if err := json.NewDecoder(r.Body).Decode(&followReq); err != nil {
-			log.Printf("ERROR: Failed to decode follow request: %v", err)
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
-		log.Printf("Follow request - Target user ID: %d", followReq.UserID)
 
 		// Prevent self-follow
 		if currentUserID == followReq.UserID {
-			log.Printf("ERROR: User %d attempted to follow themselves", currentUserID)
 			http.Error(w, "Cannot follow yourself", http.StatusBadRequest)
 			return
 		}
@@ -463,71 +443,42 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 		// Get target user to check privacy settings
 		targetUser, err := database.GetUserByID(followReq.UserID)
 		if err != nil {
-			log.Printf("ERROR: Failed to get target user %d: %v", followReq.UserID, err)
 			http.Error(w, "Error fetching user", http.StatusInternalServerError)
 			return
 		}
-		log.Printf("Target user privacy setting: IsPrivate=%v", targetUser.IsPrivate)
 
 		// Check current follow status before following
 		isFollowingBefore, err := database.IsFollowing(currentUserID, followReq.UserID)
-		if err != nil {
-			log.Printf("WARNING: Failed to check if following before: %v", err)
-		} else {
-			log.Printf("Follow status before: IsFollowing=%v", isFollowingBefore)
-		}
+		_ = isFollowingBefore // Use to avoid unused variable warning
 
 		isPendingBefore, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
-		if err != nil {
-			log.Printf("WARNING: Failed to check if pending before: %v", err)
-		} else {
-			log.Printf("Pending status before: IsPending=%v", isPendingBefore)
-		}
+		_ = isPendingBefore // Use to avoid unused variable warning
 
 		// Follow user
-		log.Printf("Calling database.FollowUser(%d, %d)", currentUserID, followReq.UserID)
 		if err := database.FollowUser(currentUserID, followReq.UserID); err != nil {
-			log.Printf("ERROR: Failed to follow user in database: %v", err)
 			http.Error(w, "Error following user", http.StatusInternalServerError)
 			return
 		}
-		log.Printf("SUCCESS: Database follow operation completed")
 
 		// Check follow status after following
 		isFollowingAfter, err := database.IsFollowing(currentUserID, followReq.UserID)
-		if err != nil {
-			log.Printf("WARNING: Failed to check if following after: %v", err)
-		} else {
-			log.Printf("Follow status after: IsFollowing=%v", isFollowingAfter)
-		}
+		_ = isFollowingAfter // Use to avoid unused variable warning
 
 		isPendingAfter, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
-		if err != nil {
-			log.Printf("WARNING: Failed to check if pending after: %v", err)
-		} else {
-			log.Printf("Pending status after: IsPending=%v", isPendingAfter)
-		}
+		_ = isPendingAfter // Use to avoid unused variable warning
 
 		// Create notification for follow request if target user has private profile
 		if targetUser.IsPrivate {
 			// Create notification for the target user
 			err = database.CreateNotification(db, followReq.UserID, "follow_request", currentUserID)
-			if err != nil {
-				log.Printf("WARNING: Failed to create follow request notification: %v", err)
-				// Don't fail the request if notification creation fails
-			} else {
-				log.Printf("SUCCESS: Created follow request notification for user %d", followReq.UserID)
+			if err == nil {
 				// Broadcast WebSocket notification
 				broadcastFollowNotification(db, followReq.UserID, "follow_request", currentUserID)
 			}
 		} else {
 			// Create notification for the followed user when someone follows a public profile
 			err = database.CreateFollowNotification(db, followReq.UserID, "new_follower", currentUserID)
-			if err != nil {
-				log.Printf("WARNING: Failed to create new follower notification: %v", err)
-				// Don't fail the request if notification creation fails
-			} else {
-				log.Printf("SUCCESS: Created new follower notification for user %d", followReq.UserID)
+			if err == nil {
 				// Broadcast WebSocket notification
 				broadcastFollowNotification(db, followReq.UserID, "new_follower", currentUserID)
 			}
@@ -536,13 +487,11 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 		// Check final follow status to return in response
 		isFollowing, err := database.IsFollowing(currentUserID, followReq.UserID)
 		if err != nil {
-			log.Printf("WARNING: Failed to get final follow status: %v", err)
 			isFollowing = !targetUser.IsPrivate // Default based on privacy
 		}
 
 		isPending, err := database.IsPendingFollowRequest(currentUserID, followReq.UserID)
 		if err != nil {
-			log.Printf("WARNING: Failed to get final pending status: %v", err)
 			isPending = targetUser.IsPrivate // Default based on privacy
 		}
 
@@ -573,35 +522,25 @@ func FollowUser(db *sql.DB) http.HandlerFunc {
 // UnfollowUser handles unfollow requests
 func UnfollowUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("=== UnfollowUser handler started ===")
-
 		// Must be logged in
 		currentUserID, err := database.GetUserIDFromSession(r)
 		if err != nil {
-			log.Printf("ERROR: Failed to get current user ID from session: %v", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		log.Printf("Current user ID: %d", currentUserID)
 
 		// Parse request
 		var followReq models.FollowRequest
 		if err := json.NewDecoder(r.Body).Decode(&followReq); err != nil {
-			log.Printf("ERROR: Failed to decode unfollow request: %v", err)
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
-		log.Printf("Unfollow request - Target user ID: %d", followReq.UserID)
 
 		// Unfollow user
-		log.Printf("Calling database.UnfollowUser(%d, %d)", currentUserID, followReq.UserID)
 		if err := database.UnfollowUser(currentUserID, followReq.UserID); err != nil {
-			log.Printf("ERROR: Failed to unfollow user in database: %v", err)
 			http.Error(w, "Error unfollowing user", http.StatusInternalServerError)
 			return
 		}
-
-		log.Printf("=== UnfollowUser handler completed successfully ===")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -897,11 +836,7 @@ func HandleFollowRequest(db *sql.DB) http.HandlerFunc {
 			if err == nil {
 				// Create notification for the follower that their request was accepted
 				notificationErr := database.CreateFollowNotification(db, followerID, "follow_accepted", currentUserID)
-				if notificationErr != nil {
-					log.Printf("WARNING: Failed to create follow accepted notification: %v", notificationErr)
-					// Don't fail the request if notification creation fails
-				} else {
-					log.Printf("SUCCESS: Created follow accepted notification for user %d", followerID)
+				if notificationErr == nil {
 					// Broadcast WebSocket notification
 					broadcastFollowNotification(db, followerID, "follow_accepted", currentUserID)
 				}
@@ -911,11 +846,7 @@ func HandleFollowRequest(db *sql.DB) http.HandlerFunc {
 			if err == nil {
 				// Create notification for the follower that their request was declined
 				notificationErr := database.CreateFollowNotification(db, followerID, "follow_declined", currentUserID)
-				if notificationErr != nil {
-					log.Printf("WARNING: Failed to create follow declined notification: %v", notificationErr)
-					// Don't fail the request if notification creation fails
-				} else {
-					log.Printf("SUCCESS: Created follow declined notification for user %d", followerID)
+				if notificationErr == nil {
 					// Broadcast WebSocket notification
 					broadcastFollowNotification(db, followerID, "follow_declined", currentUserID)
 				}
@@ -1019,7 +950,6 @@ func broadcastFollowNotification(db *sql.DB, userID int, notificationType string
 	// Get the username for the reference ID (the user who performed the action)
 	username, err := database.GetUsernameByID(db, referenceID)
 	if err != nil {
-		log.Printf("WARNING: Failed to get username for broadcast notification %d: %v", referenceID, err)
 		username = "Someone"
 	}
 
@@ -1038,7 +968,6 @@ func broadcastFollowNotification(db *sql.DB, userID int, notificationType string
 	// Broadcast the notification
 	jsonNotification, _ := json.Marshal(notification)
 	websocket.MainHub.Broadcast <- jsonNotification
-	log.Printf("SUCCESS: Broadcasted follow notification to user %d, type: %s", userID, notificationType)
 }
 
 // generateNotificationMessageForBroadcast creates a message for WebSocket broadcast

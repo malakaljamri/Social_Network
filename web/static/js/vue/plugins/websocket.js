@@ -93,6 +93,8 @@ const WebSocketPlugin = {
 
         // Handle incoming WebSocket messages
         function handleWebSocketMessage(message) {
+            console.log('🔔 WebSocket: Received message type:', message.type, message);
+            
             switch(message.type) {
                 case 'user_status':
                     handleUserStatus(message.content);
@@ -111,6 +113,31 @@ const WebSocketPlugin = {
                     break;
                 case 'new_group':
                     handleNewGroup(message.content);
+                    break;
+                // New real-time post and comment handlers
+                case 'new_post':
+                    console.log('🔔 WebSocket: New post received:', message.content);
+                    window.dispatchEvent(new CustomEvent('new-post', { detail: message.content }));
+                    break;
+                case 'post_updated':
+                    console.log('🔔 WebSocket: Post updated:', message.content);
+                    window.dispatchEvent(new CustomEvent('post-updated', { detail: message.content }));
+                    break;
+                case 'post_deleted':
+                    console.log('🔔 WebSocket: Post deleted:', message.content);
+                    window.dispatchEvent(new CustomEvent('post-deleted', { detail: message.content }));
+                    break;
+                case 'new_comment':
+                    console.log('🔔 WebSocket: New comment received:', message.content);
+                    window.dispatchEvent(new CustomEvent('new-comment', { detail: message.content }));
+                    break;
+                case 'comment_updated':
+                    console.log('🔔 WebSocket: Comment updated:', message.content);
+                    window.dispatchEvent(new CustomEvent('comment-updated', { detail: message.content }));
+                    break;
+                case 'comment_deleted':
+                    console.log('🔔 WebSocket: Comment deleted:', message.content);
+                    window.dispatchEvent(new CustomEvent('comment-deleted', { detail: message.content }));
                     break;
                 case 'unread-count-update':
                     window.dispatchEvent(new CustomEvent('unread-count-update', { detail: message.content }));

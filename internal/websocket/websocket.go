@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"social_network/internal/database"
 	"sync"
@@ -40,16 +39,13 @@ var (
 )
 
 func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request, messageHandler func(*Client, []byte)) {
-	log.Printf("New WebSocket connection received from client: 💻 %s", r.RemoteAddr)
 	conn, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Websocket upgrade error: %v", err)
 		return
 	}
 
 	userID, err := database.GetUserIDFromSession(r)
 	if err != nil {
-		log.Println(err)
 		conn.Close()
 		return
 	}
@@ -109,7 +105,6 @@ func (c *Client) WritePump() {
 			// log.Printf("Sending message to client %d: %s", c.UserID, string(message))
 
 			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Printf("Error writing message: %v", err)
 				return
 			}
 		case <-ticker.C:
@@ -137,9 +132,7 @@ func (c *Client) ReadPump(messageHandler func(*Client, []byte)) {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				if err.Error() != "websocket: close 1005 (no status)" {
-					log.Printf("error: %v", err)
-				}
+				// Handle unexpected close errors silently
 			}
 			break
 		}
@@ -181,7 +174,6 @@ func BroadcastUserStatus(hub *Hub, userID int, online bool) {
 
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
-		log.Printf("Error marshalling user status message: %v", err)
 		return
 	}
 	hub.Broadcast <- jsonMessage
@@ -245,7 +237,6 @@ func (h *Hub) Run() {
 							case client.Send <- message:
 
 							default:
-								log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
 								close(client.Send)
 								delete(h.clients, client)
 							}
@@ -258,7 +249,6 @@ func (h *Hub) Run() {
 						case client.Send <- message:
 							// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
 						default:
-							log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
 							close(client.Send)
 							delete(h.clients, client)
 						}
@@ -271,7 +261,6 @@ func (h *Hub) Run() {
 					case client.Send <- message:
 						// log.Printf("Successfully sent message 📩 to client 👤 %d", client.UserID)
 					default:
-						log.Printf("Failed to send message 📩 to client 👤 %d, removing client", client.UserID)
 						close(client.Send)
 						delete(h.clients, client)
 					}
@@ -323,7 +312,6 @@ func BroadcastTime(hub *Hub) { // This function is only for testing purposes
 		}
 		jsonMessage, err := json.Marshal(message)
 		if err != nil {
-			log.Printf("Error marshalling time message: %v", err)
 			continue
 		}
 		hub.Broadcast <- jsonMessage
@@ -331,3 +319,73 @@ func BroadcastTime(hub *Hub) { // This function is only for testing purposes
 }
 
 var MainHub = NewHub()
+
+// BroadcastPostUpdate broadcasts post-related updates to all connected clients
+func BroadcastPostUpdate(hub *Hub, messageType string, post interface{}, userID int) {
+	message := Message{
+		Type:    messageType,
+		Content: post,
+		UserID:  userID,
+	}
+
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		return
+	}
+
+	hub.Broadcast <- jsonMessage
+}
+
+// BroadcastCommentUpdate broadcasts comment-related updates to all connected clients
+func BroadcastCommentUpdate(hub *Hub, messageType string, comment interface{}, userID int) {
+	message := Message{
+		Type:    messageType,
+		Content: comment,
+		UserID:  userID,
+	}
+
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		return
+	}
+
+	hub.Broadcast <- jsonMessage
+}
+
+// BroadcastNewPost broadcasts a new post to all connected clients
+func BroadcastNewPost(hub *Hub, post interface{}, userID int) {
+	BroadcastPostUpdate(hub, "new_post", post, userID)
+}
+
+// BroadcastPostUpdate broadcasts a post update to all connected clients
+func BroadcastPostEdited(hub *Hub, post interface{}, userID int) {
+	BroadcastPostUpdate(hub, "post_updated", post, userID)
+}
+
+// BroadcastPostDeleted broadcasts a post deletion to all connected clients
+func BroadcastPostDeleted(hub *Hub, postID int, userID int) {
+	postData := map[string]interface{}{
+		"post_id":    postID,
+		"deleted_by": userID,
+	}
+	BroadcastPostUpdate(hub, "post_deleted", postData, userID)
+}
+
+// BroadcastNewComment broadcasts a new comment to all connected clients
+func BroadcastNewComment(hub *Hub, comment interface{}, userID int) {
+	BroadcastCommentUpdate(hub, "new_comment", comment, userID)
+}
+
+// BroadcastCommentEdited broadcasts a comment update to all connected clients
+func BroadcastCommentEdited(hub *Hub, comment interface{}, userID int) {
+	BroadcastCommentUpdate(hub, "comment_updated", comment, userID)
+}
+
+// BroadcastCommentDeleted broadcasts a comment deletion to all connected clients
+func BroadcastCommentDeleted(hub *Hub, commentID int, userID int) {
+	commentData := map[string]interface{}{
+		"comment_id": commentID,
+		"deleted_by": userID,
+	}
+	BroadcastCommentUpdate(hub, "comment_deleted", commentData, userID)
+}

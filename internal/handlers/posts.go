@@ -6,13 +6,13 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"social_network/internal/database"
 	"social_network/internal/models"
 	"social_network/internal/utils"
+	"social_network/internal/websocket"
 
 	// "social_network/internal/websocket"
 	"strconv"
@@ -37,26 +37,20 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Get the current working directory (project root)
 	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Printf("DEBUG: Failed to get current working directory: %v", err)
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to determine project directory")
 		return
 	}
-	log.Printf("DEBUG: Current working directory: %s", currentDir)
 
 	// Construct the path to "web/uploads/userID" relative to the project root
 	uploadDir := filepath.Join(currentDir, "web", "uploads", fmt.Sprintf("userID%d", userID))
-	log.Printf("DEBUG: Upload directory path: %s", uploadDir)
 
 	// Ensure the uploads directory exists
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		log.Printf("DEBUG: Creating upload directory: %s", uploadDir)
 		err := os.MkdirAll(uploadDir, os.ModePerm)
 		if err != nil {
-			log.Printf("DEBUG: Failed to create upload directory: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to create uploads directory")
 			return
 		}
-		log.Printf("DEBUG: Successfully created upload directory")
 	}
 
 	// Handle the uploaded image file
@@ -64,15 +58,12 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("Image")
 	if err == nil { // If an image is provided
 		defer file.Close()
-		log.Printf("DEBUG: Processing image upload - Filename: %s, Size: %d bytes", handler.Filename, handler.Size)
 
 		// Save the file to the uploads folder
 		uploadPath := filepath.Join(uploadDir, handler.Filename)
-		log.Printf("DEBUG: Full upload path: %s", uploadPath)
 
 		out, err := os.Create(uploadPath)
 		if err != nil {
-			log.Printf("DEBUG: Failed to create file: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
@@ -80,22 +71,16 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 		_, err = io.Copy(out, file)
 		if err != nil {
-			log.Printf("DEBUG: Failed to copy file content: %v", err)
 			utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to save image")
 			return
 		}
 
 		// Verify the file was actually created
-		if _, err := os.Stat(uploadPath); os.IsNotExist(err) {
-			log.Printf("DEBUG: ERROR - File was not created at: %s", uploadPath)
-		} else {
-			log.Printf("DEBUG: SUCCESS - File created at: %s", uploadPath)
-		}
+		_, _ = os.Stat(uploadPath) // Check if file was created
 
 		imagePath = fmt.Sprintf("/uploads/userID%d/%s", userID, handler.Filename) // Relative path for serving
-		log.Printf("DEBUG: Database image path: %s", imagePath)
 	} else {
-		log.Printf("DEBUG: No image provided in form data: %v", err)
+		// No image provided
 	}
 
 	// Extract form fields
@@ -143,10 +128,12 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Save the post to the database
 	err = database.CreatePost(&post)
 	if err != nil {
-		log.Printf("Database error: %v", err)
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error creating post")
 		return
 	}
+
+	// Broadcast new post via WebSocket for real-time updates
+	websocket.BroadcastNewPost(websocket.MainHub, &post, userID)
 
 	// Return success response
 	response := map[string]interface{}{
@@ -198,6 +185,12 @@ func GetPostByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeletePost(w http.ResponseWriter, r *http.Request) {
+	userID, errUserID := database.GetUserIDFromSession(r)
+	if errUserID != nil {
+		utils.WriteJSONError(w, http.StatusInternalServerError, "Failed to get user ID from session")
+		return
+	}
+
 	postIDStr := r.URL.Query().Get("id")
 	postID, err := strconv.Atoi(postIDStr)
 	if err != nil {
@@ -210,6 +203,9 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSONError(w, http.StatusInternalServerError, "Error deleting post")
 		return
 	}
+
+	// Broadcast post deletion via WebSocket for real-time updates
+	websocket.BroadcastPostDeleted(websocket.MainHub, postID, userID)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Post deleted successfully"})
@@ -234,13 +230,10 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 // Side bar filters
 func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetPostsHandler called")
 	filtersJSON := r.URL.Query().Get("filters")
-	log.Printf("Received filters: %s", filtersJSON)
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	log.Printf("Page: %d, Limit: %d", page, limit)
 
 	if page < 1 {
 		page = 1
@@ -252,19 +245,15 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	var filters map[string]interface{}
 	err := json.Unmarshal([]byte(filtersJSON), &filters)
 	if err != nil {
-		log.Printf("Error unmarshaling filters: %v", err)
 		utils.WriteJSONError(w, http.StatusBadRequest, "Invalid filters")
 		return
 	}
-	log.Printf("Parsed filters: %+v", filters)
 
 	posts, totalCount, err := database.GetFilteredPosts(page, limit, filters, r)
 	if err != nil {
-		log.Printf("Error getting filtered posts: %v", err)
 		utils.WriteJSONError(w, http.StatusInternalServerError, fmt.Sprintf("GetFilteredPosts issue: %v", err))
 		return
 	}
-	log.Printf("Retrieved %d posts out of %d total", len(posts), totalCount)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
@@ -297,7 +286,6 @@ func GetNewestPostDate(w http.ResponseWriter, r *http.Request) {
 /*func SendPostsViaWebSocket(client *websocket.Client) {
 	posts, _, err := database.GetPosts(1, 10) // Get the first 10 posts
 	if err != nil {
-		log.Printf("❌ Error fetching posts: %v", err)
 		return
 	}
 
