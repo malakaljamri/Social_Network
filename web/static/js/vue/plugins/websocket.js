@@ -97,6 +97,7 @@ const WebSocketPlugin = {
             
             switch(message.type) {
                 case 'user_status':
+                    console.log('🔔 WebSocket: Received user_status message:', message);
                     handleUserStatus(message.content);
                     break;
                 case 'chat':
@@ -203,16 +204,22 @@ const WebSocketPlugin = {
 
         // Handle user status changes
         function handleUserStatus(data) {
-            if (!data.user_id) return;
+            console.log('🔔 WebSocket: Handling user status change:', data);
+            if (!data.user_id) {
+                console.warn('WebSocket: User status message missing user_id:', data);
+                return;
+            }
             
             if (data.status === 'offline') {
                 wsState.onlineUsers.delete(data.user_id);
+                console.log(`🔔 WebSocket: User ${data.user_id} went offline`);
             } else {
                 wsState.onlineUsers.set(data.user_id, {
                     online: true,
                     username: data.username || `User ${data.user_id}`,
                     LastMessageTime: Date.now()
                 });
+                console.log(`🔔 WebSocket: User ${data.user_id} came online`);
             }
             
             // Dispatch event for user status change

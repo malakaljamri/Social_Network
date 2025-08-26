@@ -101,7 +101,7 @@ const CommentSection = {
             }
         },
         setupRealTimeUpdates() {
-            console.log('🔔 CommentSection: Setting up real-time updates for post', this.postId);
+            // console.log('🔔 CommentSection: Setting up real-time updates for post', this.postId);
             
             // Listen for new comments on this specific post
             window.addEventListener('new-comment', this.handleNewComment);
@@ -113,7 +113,7 @@ const CommentSection = {
             window.addEventListener('comment-deleted', this.handleCommentDeleted);
         },
         cleanupRealTimeUpdates() {
-            console.log('🔔 CommentSection: Cleaning up real-time updates for post', this.postId);
+            // console.log('🔔 CommentSection: Cleaning up real-time updates for post', this.postId);
             
             window.removeEventListener('new-comment', this.handleNewComment);
             window.removeEventListener('comment-updated', this.handleCommentUpdated);
@@ -121,7 +121,7 @@ const CommentSection = {
         },
         handleNewComment(event) {
             const newComment = event.detail;
-            console.log('🔔 CommentSection: New comment received:', newComment);
+            // console.log('🔔 CommentSection: New comment received:', newComment);
             
             // Only handle comments for this specific post
             if (newComment.PostID === this.postId) {
@@ -134,7 +134,7 @@ const CommentSection = {
         },
         handleCommentUpdated(event) {
             const updatedComment = event.detail;
-            console.log('🔔 CommentSection: Comment updated:', updatedComment);
+            // console.log('🔔 CommentSection: Comment updated:', updatedComment);
             
             // Only handle comments for this specific post
             if (updatedComment.PostID === this.postId) {
@@ -148,7 +148,7 @@ const CommentSection = {
         },
         handleCommentDeleted(event) {
             const deletedComment = event.detail;
-            console.log('🔔 CommentSection: Comment deleted:', deletedComment);
+            // console.log('🔔 CommentSection: Comment deleted:', deletedComment);
             
             // Only handle comments for this specific post
             if (deletedComment.PostID === this.postId) {

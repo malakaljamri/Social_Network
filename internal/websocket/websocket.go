@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"social_network/internal/database"
 	"sync"
@@ -162,6 +163,8 @@ func BroadcastUserStatus(hub *Hub, userID int, online bool) {
 		status = "online"
 	}
 
+	log.Printf("🔔 Broadcasting user status: User %d is now %s", userID, status)
+
 	message := Message{
 		Type: "user_status",
 		Content: map[string]interface{}{
@@ -174,8 +177,11 @@ func BroadcastUserStatus(hub *Hub, userID int, online bool) {
 
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
+		log.Printf("❌ Error marshalling user status message: %v", err)
 		return
 	}
+
+	log.Printf("🔔 Sending user status message to hub: %s", string(jsonMessage))
 	hub.Broadcast <- jsonMessage
 }
 
@@ -224,18 +230,34 @@ func (h *Hub) Run() {
 				client.SetOnlineStatus(false)
 			}
 		case message := <-h.Broadcast:
-			// Parse the message to get the target UserID
+			// Parse the message to get the message type and target UserID
 			var msgData map[string]interface{}
 			if err := json.Unmarshal(message, &msgData); err == nil {
-				if userID, ok := msgData["user_id"].(float64); ok {
-					// Send only to the specific user
+				// Check message type first
+				messageType, hasType := msgData["type"].(string)
+
+				// User status messages should always be broadcasted to all users
+				if hasType && messageType == "user_status" {
+					log.Printf("🔔 Broadcasting user status message to all clients: %s", string(message))
+					// Broadcast user status to all connected clients
+					for client := range h.clients {
+						select {
+						case client.Send <- message:
+							log.Printf("Successfully sent user status message 📩 to client 👤 %d", client.UserID)
+						default:
+							close(client.Send)
+							delete(h.clients, client)
+						}
+					}
+				} else if userID, ok := msgData["user_id"].(float64); ok {
+					// Send only to the specific user for targeted messages
 					targetUserID := int(userID)
+					log.Printf("🔔 Sending targeted message to user %d", targetUserID)
 
 					for client := range h.clients {
 						if client.UserID == targetUserID {
 							select {
 							case client.Send <- message:
-
 							default:
 								close(client.Send)
 								delete(h.clients, client)
@@ -244,6 +266,7 @@ func (h *Hub) Run() {
 					}
 				} else {
 					// If no specific user_id, broadcast to all (for general messages)
+					log.Printf("🔔 Broadcasting general message to all clients")
 					for client := range h.clients {
 						select {
 						case client.Send <- message:
@@ -256,6 +279,7 @@ func (h *Hub) Run() {
 				}
 			} else {
 				// Fallback: broadcast to all if message parsing fails
+				log.Printf("🔔 Fallback: broadcasting message to all clients due to parsing error")
 				for client := range h.clients {
 					select {
 					case client.Send <- message:
