@@ -543,4 +543,4 @@ app.component('group-events', { template: '<div>Group Events (stub)</div>' });
 app.component('group-chat', GroupChat);
 
 // Mount the app
-app.mount('#app'); 
+app.mount('#app');

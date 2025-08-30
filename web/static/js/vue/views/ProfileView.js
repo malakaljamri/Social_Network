@@ -151,7 +151,6 @@ const ProfileView = {
                                     ></feed-main>
                                 </div>
                             </div>
-                        </template>
                     </template>
                 </div>
             </div>
@@ -274,6 +273,7 @@ const ProfileView = {
                 console.error('=== Frontend fetchProfile failed ===', error);
             } finally {
                 this.loading = false;
+                this.categoriesFixes();
             }
         },
         async fetchCategories() {
@@ -334,13 +334,33 @@ const ProfileView = {
             }
         },
         onFiltersChanged(newFilters) {
-            this.filters = newFilters;
+            this.filters = { ...newFilters };
             let userId = this.userId;
             if (!userId) {
                 userId = this.$root.currentUser.value.id || this.$root.currentUser.value.ID;
             }
             this.filters.UserID = userId;
+
+            this.categoriesFixes();
             this.fetchProfile();
+        },
+        categoriesFixes() {
+            // Ensure categories is always an array
+            if (!Array.isArray(this.filters.categories)) {
+                this.filters.categories = [];
+            }
+
+            // If no categories selected, set to all categories after 2 seconds
+            if (Array.isArray(this.filters.categories) && this.filters.categories.length === 0) {
+                setTimeout(() => {
+                    this.filters.categories = this.categories.map(cat => cat.id || cat.ID);
+                    console.log('🔔🔔🔔DEBUG: No categories selected, using all categories:', this.filters.categories);
+
+                    // Now trigger posts load by calling onFiltersChanged
+                    // this.onFiltersChanged(this.filters);
+                    this.fetchProfile();
+                }, 2000);
+            }
         },
         formatDate(dateStr) {
             return window.formatDate(dateStr, "YYYY-MM-DD HH:MM");
