@@ -8,7 +8,7 @@ const CreatePostModal = {
     },
     template: `
         <teleport to="body">
-            <div class="modal-overlay" @click.self="close">
+            <div class="modal-overlay">
                 <div class="modal-content">
                     <h2>{{ groupId ? 'Create Group Post' : 'Create Post' }}</h2>
                     <form @submit.prevent="submitPost">

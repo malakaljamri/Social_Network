@@ -28,7 +28,7 @@
   font-size: 40px;
   font-weight: bold;
   margin-right: 20px;
-  position: relative;
+  /* position: relative; */
   overflow: hidden; /* Back to hidden for clean image cropping */
   flex-shrink: 0;
 }
@@ -42,14 +42,14 @@
   /* position: absolute;
   top: 0;
   left: 0; */
-  z-index: 1;
+  /* z-index: 1; */
 }
 
 /* Create a circular mask for the image */
-.profile-avatar .profile-avatar-img,
+/* .profile-avatar .profile-avatar-img,
 .profile-avatar .avatar-large {
   clip-path: circle(50%);
-}
+} */
 
 /* Fallback styling for when no image is present */
 .profile-avatar:not(:has(img)) {
