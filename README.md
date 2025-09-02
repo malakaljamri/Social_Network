@@ -38,6 +38,5 @@ It is built with **Vue.js** for the frontend and **Go** for the backend, using *
 
 ## Database
 - **SQLite** is used for storing user data, posts, groups, and messages  
-- Database migrations are implemented with `golang-migrate`  
-- Folder structure for migrations:
+- Database migrations are implemented with `golang-migrate`
 
