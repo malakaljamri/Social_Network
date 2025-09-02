@@ -361,9 +361,85 @@ nav {
   animation: navSlideIn 0.3s ease-out;
 }
 
-/* Responsive Search */
+/* -------------------- RESPONSIVE DESIGN -------------------- */
+
+/* Phones (max 480px) */
+@media (max-width: 480px) {
+  nav {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+  }
+
+  .nav-left,
+  .nav-center,
+  .nav-right {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nav-brand {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .nav-menu {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  #user-search {
+    width: 100%;
+    margin: var(--spacing-md) 0;
+  }
+
+  #user-search input.search-input,
+  .search-dropdown {
+    width: 100%;
+  }
+}
+
+/* Tablets (481px – 1024px) */
+@media (min-width: 481px) and (max-width: 1024px) {
+  nav {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .nav-center {
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  .nav-right {
+    gap: var(--spacing-sm);
+  }
+
+  #user-search {
+    max-width: 350px;
+  }
+}
+
+/* Laptops (1025px – 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  nav {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .nav-center {
+    flex: 1;
+    justify-content: center;
+  }
+
+  #user-search {
+    max-width: 450px;
+  }
+}
+
+/* Already existing responsiveness for search (<=700px) */
 @media (max-width: 700px) {
-  #user-search input.search-input, .search-dropdown { 
+  #user-search input.search-input, 
+  .search-dropdown { 
     width: 98vw; 
     min-width: 0; 
   }
