@@ -33,17 +33,25 @@ const CreateGroupModal = {
     },
     methods: {
         async submitGroup() {
+            // Trim the name to prevent only-space input
+            const trimmedName = this.form.name.trim();
+
+            if (!trimmedName) {
+                this.form.error = 'Group name cannot be empty or just spaces';
+                return;
+            }
+
             this.form.loading = true;
             this.form.error = '';
             try {
                 const response = await fetch('/api/groups/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                    name: this.form.name,
-                    description: this.form.description,
-                    privacy_setting: this.form.privacy
-                }),
+                    body: JSON.stringify({
+                        name: trimmedName, // use trimmed name
+                        description: this.form.description,
+                        privacy_setting: this.form.privacy
+                    }),
                     credentials: 'include'
                 });
                 if (!response.ok) {
@@ -69,4 +77,4 @@ const CreateGroupModal = {
 };
 
 // No mount here, will be registered globally.
-window.M_GroupCreate = CreateGroupModal; 
+window.M_GroupCreate = CreateGroupModal;
