@@ -55,6 +55,7 @@ const GroupEventsModal = {
         close() {
             this.$emit('close');
         }
+        
     },
     template: `
         <teleport to="body">

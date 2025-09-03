@@ -12,11 +12,21 @@ const CreateGroupEventModal = {
                 <div class="modal-content">
                     <h2>Create Group Event</h2>
                     <form @submit.prevent="submitGroupEvent">
-                        <input type="text" v-model="form.title" placeholder="Title" required minlength="3" maxlength="100">
+                        <input 
+                            type="text" 
+                            v-model.trim="form.title" 
+                            @input="form.error = ''"
+                            placeholder="Event title" 
+                            required 
+                            minlength="3" 
+                            maxlength="100"
+                            class="form-input"
+                            :class="{'error': form.error && form.error.includes('title')}"
+                        >
                         <textarea v-model="form.description" placeholder="Description" required minlength="5" maxlength="1000"></textarea>
                         <input type="date" v-model="form.date" :min="today" required>
                         <button type="submit" class="button" :disabled="form.loading">Create</button>
-                        <div v-if="form.error" class="error">{{ form.error }}</div>
+                        <div v-if="form.error" class="error-message">{{ form.error }}</div>
                     </form>
                     <button class="button secondary-button" @click="close">Cancel</button>
                 </div>
@@ -42,9 +52,28 @@ const CreateGroupEventModal = {
         }
     },
     methods: {
+        validateForm() {
+            if (!this.form.title.trim()) {
+                this.form.error = 'Event title is required';
+                return false;
+            }
+            if (!this.form.description.trim()) {
+                this.form.error = 'Description is required';
+                return false;
+            }
+            if (!this.form.date) {
+                this.form.error = 'Event date is required';
+                return false;
+            }
+            return true;
+        },
         async submitGroupEvent() {
             if (!this.currentUserValue?.isLoggedIn) {
                 this.form.error = 'You must be logged in to create a group event';
+                return;
+            }
+            
+            if (!this.validateForm()) {
                 return;
             }
             this.form.loading = true;
