@@ -4,21 +4,72 @@ import (
 	"database/sql"
 	"fmt"
 	"social_network/internal/models"
+	"strings"
 	"time"
 )
 
 var OnlineUsers = make(map[int]bool)
 
-func CreateUser(user *models.User) error {
-	query := `INSERT INTO users (username, email, password, birthDate, gender, first_name, last_name, avatar, about_me) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	result, err := ExecuteQuery(query, user.Username, user.Email, user.Password, fmt.Sprint(user.BirthDate.Year(), "-", int(user.BirthDate.Month()), "-", user.BirthDate.Day()), user.Gender, user.FirstName, user.LastName, user.Avatar, user.AboutMe)
+// Check if email already exists (case-insensitive)
+func emailExists(email string) (bool, error) {
+	query := `SELECT COUNT(*) as count FROM users WHERE LOWER(email) = LOWER(?)`
+	
+	rows, err := FetchData(query, email)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("error checking email existence: %v", err)
 	}
+	defer rows.Close()
+
+	var count int
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return false, fmt.Errorf("error scanning email count: %v", err)
+		}
+	}
+
+	return count > 0, nil
+}
+
+func CreateUser(user *models.User) error {
+	// Convert email to lowercase before storing
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
+	
+	// Check if email already exists
+	exists, err := emailExists(user.Email)
+	if err != nil {
+		return fmt.Errorf("error checking email: %v", err)
+	}
+	if exists {
+		return fmt.Errorf("email already registered")
+	}
+
+	query := `INSERT INTO users (username, email, password, birthDate, gender, first_name, last_name, avatar, about_me) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	result, err := ExecuteQuery(query, 
+		user.Username, 
+		user.Email, 
+		user.Password, 
+		fmt.Sprint(user.BirthDate.Year(), "-", int(user.BirthDate.Month()), "-", user.BirthDate.Day()), 
+		user.Gender, 
+		user.FirstName, 
+		user.LastName, 
+		user.Avatar, 
+		user.AboutMe,
+	)
+
+	if err != nil {
+		// Check if error is due to duplicate email (in case of race condition)
+		if strings.Contains(strings.ToLower(err.Error()), "unique constraint failed: users.email") {
+			return fmt.Errorf("email already registered")
+		}
+		return fmt.Errorf("database error: %v", err)
+	}
+
 	id, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting last insert ID: %v", err)
 	}
+
 	user.ID = int(id)
 	return nil
 }
